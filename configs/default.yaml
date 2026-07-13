@@ -1,13 +1,13 @@
 # Default experiment configuration.
-# Fields marked TODO(Monday) are open Methods decisions — leave null until the
-# team pins them; code that needs them fails loudly rather than guessing.
+# Null fields are open Methods decisions — leave null until the team pins
+# them; code that needs them fails loudly rather than guessing.
 
 model:
   backend: dummy            # dummy | qwen_jlens
   model_id: Qwen/Qwen3.6-27B  # TODO: verify exact HF id against the Neuronpedia lens
   lens_repo: anthropics/jacobian-lens
-  layer_band: null          # TODO(Monday): workspace layer band for Qwen3.6-27B
-  alpha: null               # TODO(Monday): swap scaling (null = coordinate-swap default)
+  layer_band: null          # open: workspace layer band for Qwen3.6-27B
+  alpha: null               # open: swap scaling (null = coordinate-swap default)
   dtype: bfloat16
   dummy_mode: binding       # binding | bag — ground truth used by the dummy backend
 

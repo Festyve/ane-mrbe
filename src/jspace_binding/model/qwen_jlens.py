@@ -1,6 +1,6 @@
 """Qwen3.6-27B + pre-fitted Jacobian-lens backend (stub).
 
-Blocked on Monday's Methods decisions; every entry point fails loudly with a
+Blocked on open Methods decisions; every entry point fails loudly with a
 pointer to what is missing instead of guessing. The class is shaped so filling
 it in is mechanical: _load_model -> _load_lens -> _concept_direction ->
 _apply_edit_hooks -> answer_distribution.
@@ -29,7 +29,7 @@ class QwenJLensModel:
     """WorkspaceModel backend for the real model.
 
     The constructor is deliberately non-raising: it validates the config and
-    collects the still-open Monday decisions into `missing_decisions`, so the
+    collects the still-open decisions into `missing_decisions`, so the
     runner can construct the backend and report everything that is missing in
     one shot when `answer_distribution` is first called.
     """
@@ -62,30 +62,30 @@ class QwenJLensModel:
         the candidates)."""
         missing = "; ".join(self.missing_decisions) or "none — decisions pinned, code pending"
         raise NotImplementedError(
-            f"TODO(Monday): QwenJLensModel is a stub. Open decisions: {missing}. "
+            f"QwenJLensModel is a stub. Open decisions: {missing}. "
             f"Recipe: {_RECIPE}."
         )
 
     def _load_model(self) -> None:
         """Load config.model_id at config.dtype; keep model + tokenizer on self.
         Validate answer-token single-tokenness here via stimuli.vocab."""
-        raise NotImplementedError("TODO(Monday): load Qwen3.6-27B once model_id is verified")
+        raise NotImplementedError("stub: load Qwen3.6-27B once model_id is verified")
 
     def _load_lens(self) -> None:
         """Load the pre-fitted Jacobian lens from config.lens_repo covering
         config.layer_band."""
-        raise NotImplementedError("TODO(Monday): blocked on layer_band")
+        raise NotImplementedError("stub: blocked on layer_band")
 
     def _concept_direction(self, word: str) -> Any:
         """Lens-space direction for `word`: run "Tell me about {word}", read
         the lens coordinates at the concept token, subtract the mean over the
         100-concept baseline set. Returns a torch.Tensor once implemented
         (typed Any to keep this module import-light)."""
-        raise NotImplementedError("TODO(Monday): baseline concept list + readout token")
+        raise NotImplementedError("stub: baseline concept list + readout token undecided")
 
     def _apply_edit_hooks(self, edit: EditSpec, site: InjectionSite) -> Any:
         """Context manager installing forward hooks over the layer band that
         apply `edit` at `site`: REAL / NULL_NON_PARTICIPANT use the coordinate
         swap (interventions.edits docstring), RANDOM_DIRECTION a matched-norm
         vector seeded from edit.seed, NO_EDIT installs nothing."""
-        raise NotImplementedError("TODO(Monday): blocked on layer_band and alpha")
+        raise NotImplementedError("stub: blocked on layer_band and alpha")

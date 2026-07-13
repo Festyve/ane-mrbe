@@ -45,7 +45,7 @@ VERBS_BY_CONSTRUCTION: dict[Construction, tuple[str, ...]] = {
     Construction.DATIVE: ("handed", "sent", "mailed", "offered", "promised"),
 }
 
-# Probe drafts. TODO(Monday): validate wording with team. DATIVE needs its own
+# Probe drafts, pending team validation of wording. DATIVE needs its own
 # frame: "Who handed someone?" is ungrammatical for ditransitives, so the
 # dative probe includes the fixed theme from the stimulus sentences.
 _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
@@ -66,7 +66,7 @@ _ACTIVE_PASSIVE: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "The {other} {verb_past} the {target}.",
 }
 
-# TODO(Monday): validate with team — draft cleft 2x2.
+# Draft cleft 2x2, pending team validation.
 _CLEFT: dict[_Cell, str] = {
     (Role.AGENT, Position.FIRST): "It was the {target} who {verb_past} the {other}.",
     (Role.AGENT, Position.SECOND): "It was the {other} whom the {target} {verb_past}.",
@@ -74,7 +74,7 @@ _CLEFT: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "It was the {other} who {verb_past} the {target}.",
 }
 
-# TODO(Monday): validate with team — draft relative-clause 2x2.
+# Draft relative-clause 2x2, pending team validation.
 _RELATIVE_CLAUSE: dict[_Cell, str] = {
     (Role.AGENT, Position.FIRST): "The {target} who {verb_past} the {other} smiled.",
     (Role.AGENT, Position.SECOND): "The {other} whom the {target} {verb_past} smiled.",
@@ -82,7 +82,7 @@ _RELATIVE_CLAUSE: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "The {other} who {verb_past} the {target} smiled.",
 }
 
-# TODO(Monday): validate with team — draft dative 2x2. "Role" here is
+# Draft dative 2x2, pending team validation. "Role" here is
 # giver/recipient, with the recipient mapped onto the PATIENT slot. Actives use
 # the prepositional frame, passives the passivized double-object frame, and the
 # theme is fixed ("a letter") so the four cells stay lexically matched.
@@ -112,9 +112,9 @@ def build_family(
     """Instantiate the matched quadruple for one lexical content.
 
     ACTIVE_PASSIVE reproduces the proposal's worked example verbatim; the
-    other constructions are drafts (see TODO(Monday) markers on the template
-    tables). Both probes are built once per family, so they are byte-identical
-    across cells by construction.
+    other constructions are drafts (see the notes on the template tables).
+    Both probes are built once per family, so they are byte-identical across
+    cells by construction.
     """
     cells = {
         cell_key(role, position): Stimulus(
