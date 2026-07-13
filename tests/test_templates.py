@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from jspace_binding.config import Config, StimuliConfig
 from jspace_binding.stimuli.generate import generate_families, load_families, save_families
 from jspace_binding.stimuli.templates import build_family
@@ -72,10 +70,7 @@ def test_answer_set_is_source_target_other() -> None:
 
 def test_generate_families_full_crossing_and_deterministic() -> None:
     config = _tiny_config()
-    try:
-        families = generate_families(config)
-    except NotImplementedError:
-        pytest.skip("draft constructions pending TODO(Monday)")
+    families = generate_families(config)
     n_pairs = len(config.stimuli.concept_pairs)
     assert len(families) == n_pairs * len(Construction) * config.stimuli.items_per_cell
     assert len({family.family_id for family in families}) == len(families)
@@ -83,13 +78,7 @@ def test_generate_families_full_crossing_and_deterministic() -> None:
 
 
 def test_save_load_roundtrip(tmp_path: Path) -> None:
-    try:
-        families = generate_families(_tiny_config())
-    except NotImplementedError:
-        families = [
-            _worked_family(),
-            _worked_family(pair=ConceptPair("teacher", "student"), other="judge"),
-        ]
+    families = generate_families(_tiny_config())
     path = tmp_path / "stimuli.jsonl"
     save_families(families, path)
     assert load_families(path) == families

@@ -151,7 +151,7 @@ class EditSpec:
     edit_type: EditType
     source_concept: str | None = None  # None for NO_EDIT / RANDOM_DIRECTION
     target_concept: str | None = None
-    alpha: float | None = None  # swap scaling; None = backend default. TODO(Monday)
+    alpha: float | None = None  # swap scaling; None = backend default
     seed: int | None = None  # RNG seed for RANDOM_DIRECTION reproducibility
 
 
