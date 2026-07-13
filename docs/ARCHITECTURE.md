@@ -1,9 +1,7 @@
 # Architecture
 
 MVP skeleton for **testing role-filler binding in the J-space global workspace**
-(Qwen3.6-27B + pre-fitted Jacobian lens). Design principle: **implement what the
-proposal pins down; stub what Monday's Methods meeting decides** — every stub
-fails loudly with a `TODO(Monday)` pointer instead of guessing.
+(Qwen3.6-27B + pre-fitted Jacobian lens).
 
 ## Data flow
 
