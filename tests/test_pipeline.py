@@ -31,29 +31,21 @@ def _tiny_config(tmp_path: Path) -> Config:
 
 
 def _families(config: Config) -> list[ItemFamily]:
-    """Every construction build_family supports; drafts that cannot form a
-    clean 2x2 raise NotImplementedError (TODO(Monday)) and are skipped."""
-    families: list[ItemFamily] = []
-    for construction in Construction:
-        verbs = VERBS_BY_CONSTRUCTION.get(construction) or ("treated",)
-        built = []
-        try:
-            for pair in config.stimuli.concept_pairs:
-                other = OTHER_ENTITY_BY_PAIR.get(pair.pair_id, "lawyer")
-                for index in range(config.stimuli.items_per_cell):
-                    built.append(
-                        build_family(
-                            pair=pair,
-                            construction=construction,
-                            other_entity=other,
-                            verb_lemma=verbs[index % len(verbs)],
-                            family_index=index,
-                        )
-                    )
-        except NotImplementedError:
-            continue
-        families.extend(built)
-    return families
+    """All four constructions, at the tiny config's scale."""
+    return [
+        build_family(
+            pair=pair,
+            construction=construction,
+            other_entity=OTHER_ENTITY_BY_PAIR.get(pair.pair_id, "lawyer"),
+            verb_lemma=VERBS_BY_CONSTRUCTION[construction][
+                index % len(VERBS_BY_CONSTRUCTION[construction])
+            ],
+            family_index=index,
+        )
+        for construction in Construction
+        for pair in config.stimuli.concept_pairs
+        for index in range(config.stimuli.items_per_cell)
+    ]
 
 
 def _run(tmp_path: Path, mode: str) -> dict:

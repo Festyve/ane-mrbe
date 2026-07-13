@@ -48,10 +48,9 @@ numpy — no model dependencies — so it is unit-testable on any machine.
     - (PATIENT, FIRST): "The doctor was treated by the lawyer."
     - (PATIENT, SECOND): "The lawyer treated the doctor."
   - DATIVE / CLEFT / RELATIVE_CLAUSE: draft templates behind the same
-    interface, clearly marked `TODO(Monday): validate with team`. All four
-    constructions form clean 2x2s.
-  - Probes are byte-identical across the four cells. Role probe (draft wording,
-    `TODO(Monday)`, per-construction): "Question: Who {verb_past} someone?
+    interface, pending team validation. All four constructions form clean 2x2s.
+  - Probes are byte-identical across the four cells. Role probe (draft
+    wording, per-construction): "Question: Who {verb_past} someone?
     Answer: The" for the transitive constructions; DATIVE uses "Question: Who
     {verb_past} a letter to someone? Answer: The" to match the ditransitive
     frame. Neutral probe: "Question: Which professions are mentioned? Answer: The".
@@ -95,7 +94,7 @@ numpy — no model dependencies — so it is unit-testable on any machine.
 
 ### `model/qwen_jlens.py`
 - `QwenJLensModel(config: ModelConfig)` — **stub**. Constructor validates
-  config and records the open Monday decisions in `missing_decisions`; the
+  config and records the open decisions in `missing_decisions`; the
   first `answer_distribution()` call raises `NotImplementedError` listing them
   (layer band, alpha, direction extraction via the "Tell me about {concept}"
   recipe, mean-subtracted over a 100-concept baseline) — this is the path
@@ -161,7 +160,7 @@ numpy — no model dependencies — so it is unit-testable on any machine.
 
 ## What is pinned vs open
 
-| Pinned (implement fully) | Open (stub with TODO(Monday)) |
+| Pinned (implement fully) | Open (stubbed) |
 |---|---|
 | 2x2 design, active/passive templates | dative/cleft/relative templates (drafts) |
 | Binding score DiD + null band | layer band, alpha for Qwen3.6-27B |

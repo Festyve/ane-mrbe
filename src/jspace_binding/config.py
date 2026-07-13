@@ -1,8 +1,8 @@
 """Typed config loaded from configs/*.yaml.
 
-One flat, explicit dataclass per section. Fields marked TODO(Monday) are the
-open Methods decisions — they default to None and the code that needs them
-fails loudly with a pointer here rather than guessing.
+One flat, explicit dataclass per section. Fields defaulting to None are the
+open Methods decisions — code that needs them fails loudly with a pointer
+here rather than guessing.
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ class ModelConfig:
     backend: str = "dummy"  # "dummy" | "qwen_jlens"
     model_id: str = "Qwen/Qwen3.6-27B"  # TODO: verify exact HF id against Neuronpedia lens
     lens_repo: str = "anthropics/jacobian-lens"
-    layer_band: tuple[int, int] | None = None  # TODO(Monday): workspace band for Qwen3.6-27B
-    alpha: float | None = None  # TODO(Monday): swap scaling; None = coordinate-swap default
+    layer_band: tuple[int, int] | None = None  # open: workspace band for Qwen3.6-27B
+    alpha: float | None = None  # open: swap scaling; None = coordinate-swap default
     dtype: str = "bfloat16"
     dummy_mode: str = "binding"  # "binding" | "bag" — ground truth for the dummy backend
 
