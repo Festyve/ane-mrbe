@@ -1,0 +1,36 @@
+# Default experiment configuration.
+# Fields marked TODO(Monday) are open Methods decisions — leave null until the
+# team pins them; code that needs them fails loudly rather than guessing.
+
+model:
+  backend: dummy            # dummy | qwen_jlens
+  model_id: Qwen/Qwen3.6-27B  # TODO: verify exact HF id against the Neuronpedia lens
+  lens_repo: anthropics/jacobian-lens
+  layer_band: null          # TODO(Monday): workspace layer band for Qwen3.6-27B
+  alpha: null               # TODO(Monday): swap scaling (null = coordinate-swap default)
+  dtype: bfloat16
+  dummy_mode: binding       # binding | bag — ground truth used by the dummy backend
+
+stimuli:
+  items_per_cell: 50        # placeholder pending power calculation
+  concept_pairs:
+    - [doctor, nurse]
+    - [teacher, student]
+    - [driver, passenger]
+  non_participant_concept: tuesday
+
+experiment:
+  edit_types: [real, no_edit, null_non_participant, random_direction]
+  injection_sites: [final_token, entity_token]
+  seed: 0
+
+analysis:
+  n_bootstrap: 10000
+  n_permutation: 10000
+  alpha_level: 0.05
+  ci_level: 0.95
+
+paths:
+  stimuli: data/stimuli/stimuli.jsonl
+  results: data/results
+  figures: figures

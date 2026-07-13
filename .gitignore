@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Experiment outputs (regenerable; keep the repo lean)
+data/results*/
+figures*/
+*.jsonl
+!data/stimuli/.gitkeep
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.DS_Store
