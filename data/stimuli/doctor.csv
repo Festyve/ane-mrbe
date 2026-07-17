@@ -1,0 +1,21 @@
+﻿DOCTOR AGENT ACTIVE,DOCTOR AGENT PASSIVE,DOCTOR AGENT PASSIVE,DOCTOR PATIENT PASSIVE,EVAL SET agent + active,EVAL SET agent + passive,EVAL SET patient + active,EVAL SET patient + passive
+The doctor thanked the lawyer.,The lawyer was thanked by the doctor.,The lawyer thanked the doctor.,The doctor was thanked by the lawyer.,The doctor greeted the passenger.,The passenger was greeted by the doctor.,The passenger greeted the doctor.,The doctor was greeted by the passenger.
+The doctor greeted the judge.,The judge was greeted by the doctor.,The judge greeted the doctor.,The doctor was greeted by the judge.,The doctor thanked the judge.,The judge was thanked by the doctor.,The judge thanked the doctor.,The doctor was thanked by the judge.
+The doctor called the teacher.,The teacher was called by the doctor.,The teacher called the doctor.,The doctor was called by the teacher.,The doctor interviewed the pilot.,The pilot was interviewed by the doctor.,The pilot interviewed the doctor.,The doctor was interviewed by the pilot.
+The doctor praised the student.,The student was praised by the doctor.,The student praised the doctor.,The doctor was praised by the student.,The doctor praised the coach.,The coach was praised by the doctor.,The coach praised the doctor.,The doctor was praised by the coach.
+The doctor warned the driver.,The driver was warned by the doctor.,The driver warned the doctor.,The doctor was warned by the driver.,The doctor encouraged the farmer.,The farmer was encouraged by the doctor.,The farmer encouraged the doctor.,The doctor was encouraged by the farmer.
+The doctor assisted the passenger.,The passenger was assisted by the doctor.,The passenger assisted the doctor.,The doctor was assisted by the passenger.,The doctor recognized the lawyer.,The lawyer was recognized by the doctor.,The lawyer recognized the doctor.,The doctor was recognized by the lawyer.
+The doctor questioned the pilot.,The pilot was questioned by the doctor.,The pilot questioned the doctor.,The doctor was questioned by the pilot.,The doctor assisted the teacher.,The teacher was assisted by the doctor.,The teacher assisted the doctor.,The doctor was assisted by the teacher.
+The doctor congratulated the chef.,The chef was congratulated by the doctor.,The chef congratulated the doctor.,The doctor was congratulated by the chef.,The doctor questioned the chef.,,The chef questioned the doctor.,
+The doctor visited the farmer.,The farmer was visited by the doctor.,The farmer visited the doctor.,The doctor was visited by the farmer.,,,,
+The doctor encouraged the coach.,The coach was encouraged by the doctor.,The coach encouraged the doctor.,The doctor was encouraged by the coach.,,,,
+The doctor helped the nurse.,The nurse was helped by the doctor.,The nurse helped the doctor.,The doctor was helped by the nurse.,,,,
+The doctor recognized the lawyer.,The lawyer was recognized by the doctor.,The lawyer recognized the doctor.,The doctor was recognized by the lawyer.,,,,
+The doctor introduced the judge.,The judge was introduced by the doctor.,The judge introduced the doctor.,The doctor was introduced by the judge.,,,,
+The doctor comforted the student.,The student was comforted by the doctor.,The student comforted the doctor.,The doctor was comforted by the student.,,,,
+The doctor escorted the passenger.,The passenger was escorted by the doctor.,The passenger escorted the doctor.,The doctor was escorted by the passenger.,,,,
+The doctor criticized the driver.,The driver was criticized by the doctor.,The driver criticized the doctor.,The doctor was criticized by the driver.,,,,
+The doctor thanked the pilot.,The pilot was thanked by the doctor.,The pilot thanked the doctor.,The doctor was thanked by the pilot.,,,,
+The doctor greeted the chef.,The chef was greeted by the doctor.,The chef greeted the doctor.,The doctor was greeted by the chef.,,,,
+The doctor praised the farmer.,The farmer was praised by the doctor.,The farmer praised the doctor.,The doctor was praised by the farmer.,,,,
+The doctor interviewed the teacher.,The teacher was interviewed by the doctor.,The teacher interviewed the doctor.,The doctor was interviewed by the teacher.,,,,

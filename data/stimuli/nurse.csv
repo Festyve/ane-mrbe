@@ -1,0 +1,21 @@
+﻿NURSE AGENT ACTIVE,NURSE AGENT PASSIVE,NURSE AGENT PASSIVE,NURSE PATIENT PASSIVE,EVAL SET agent + active,EVAL SET agent + passive,EVAL SET patient + active,EVAL SET patient + passive
+The nurse thanked the lawyer.,The lawyer was thanked by the nurse.,The lawyer thanked the nurse.,The nurse was thanked by the lawyer.,The nurse greeted the passenger.,The passenger was greeted by the nurse.,The passenger greeted the nurse.,The nurse was greeted by the passenger.
+The nurse greeted the judge.,The judge was greeted by the nurse.,The judge greeted the nurse.,The nurse was greeted by the judge.,The nurse thanked the judge.,The judge was thanked by the nurse.,The judge thanked the nurse.,The nurse was thanked by the judge.
+The nurse called the teacher.,The teacher was called by the nurse.,The teacher called the nurse.,The nurse was called by the teacher.,The nurse interviewed the pilot.,The pilot was interviewed by the nurse.,The pilot interviewed the nurse.,The nurse was interviewed by the pilot.
+The nurse praised the student.,The student was praised by the nurse.,The student praised the nurse.,The nurse was praised by the student.,The nurse praised the coach.,The coach was praised by the nurse.,The coach praised the nurse.,The nurse was praised by the coach.
+The nurse warned the driver.,The driver was warned by the nurse.,The driver warned the nurse.,The nurse was warned by the driver.,The nurse encouraged the farmer.,The farmer was encouraged by the nurse.,The farmer encouraged the nurse.,The nurse was encouraged by the farmer.
+The nurse assisted the passenger.,The passenger was assisted by the nurse.,The passenger assisted the nurse.,The nurse was assisted by the passenger.,The nurse recognized the lawyer.,The lawyer was recognized by the nurse.,The lawyer recognized the nurse.,The nurse was recognized by the lawyer.
+The nurse questioned the pilot.,The pilot was questioned by the nurse.,The pilot questioned the nurse.,The nurse was questioned by the pilot.,The nurse assisted the teacher.,The teacher was assisted by the nurse.,The teacher assisted the nurse.,The nurse was assisted by the teacher.
+The nurse congratulated the chef.,The chef was congratulated by the nurse.,The chef congratulated the nurse.,The nurse was congratulated by the chef.,The nurse questioned the chef.,,The chef questioned the nurse.,
+The nurse visited the farmer.,The farmer was visited by the nurse.,The farmer visited the nurse.,The nurse was visited by the farmer.,,,,
+The nurse encouraged the coach.,The coach was encouraged by the nurse.,The coach encouraged the nurse.,The nurse was encouraged by the coach.,,,,
+The nurse helped the nurse.,The nurse was helped by the nurse.,The nurse helped the nurse.,The nurse was helped by the nurse.,,,,
+The nurse recognized the lawyer.,The lawyer was recognized by the nurse.,The lawyer recognized the nurse.,The nurse was recognized by the lawyer.,,,,
+The nurse introduced the judge.,The judge was introduced by the nurse.,The judge introduced the nurse.,The nurse was introduced by the judge.,,,,
+The nurse comforted the student.,The student was comforted by the nurse.,The student comforted the nurse.,The nurse was comforted by the student.,,,,
+The nurse escorted the passenger.,The passenger was escorted by the nurse.,The passenger escorted the nurse.,The nurse was escorted by the passenger.,,,,
+The nurse criticized the driver.,The driver was criticized by the nurse.,The driver criticized the nurse.,The nurse was criticized by the driver.,,,,
+The nurse thanked the pilot.,The pilot was thanked by the nurse.,The pilot thanked the nurse.,The nurse was thanked by the pilot.,,,,
+The nurse greeted the chef.,The chef was greeted by the nurse.,The chef greeted the nurse.,The nurse was greeted by the chef.,,,,
+The nurse praised the farmer.,The farmer was praised by the nurse.,The farmer praised the nurse.,The nurse was praised by the farmer.,,,,
+The nurse interviewed the teacher.,The teacher was interviewed by the nurse.,The teacher interviewed the nurse.,The nurse was interviewed by the teacher.,,,,
