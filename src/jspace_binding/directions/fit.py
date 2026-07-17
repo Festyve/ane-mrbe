@@ -107,10 +107,6 @@ def fit_role_direction(agent_acts: np.ndarray, patient_acts: np.ndarray) -> np.n
     return raw / norm
 
 
-def raw_norm(agent_acts: np.ndarray, patient_acts: np.ndarray) -> float:
-    """Norm of the un-normalized difference-of-means (diagnostic)."""
-    diff = np.asarray(agent_acts, float).mean(axis=0) - np.asarray(patient_acts, float).mean(axis=0)
-    return float(np.linalg.norm(diff))
 
 
 def bootstrap_stability(
@@ -202,9 +198,12 @@ def fit_all(
     shuffled_rows, norms, stabilities = [], [], []
     for offset, entity in enumerate(entities):
         agent_acts, patient_acts = activations[entity]
+        raw = np.asarray(agent_acts, float).mean(axis=0) - np.asarray(patient_acts, float).mean(
+            axis=0
+        )
+        norms.append(float(np.linalg.norm(raw)))
         fitted[entity] = fit_role_direction(agent_acts, patient_acts)
         shuffled_rows.append(shuffled_label_direction(agent_acts, patient_acts, seed=seed + offset))
-        norms.append(raw_norm(agent_acts, patient_acts))
         stabilities.append(
             bootstrap_stability(agent_acts, patient_acts, n_resamples=n_bootstrap, seed=seed)
         )

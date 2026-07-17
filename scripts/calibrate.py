@@ -12,6 +12,10 @@ Copy the printed values into configs/*.yaml (model.push_coefficient /
 model.alpha) before running the primary experiment — the runner reads them
 from config, not from calibration.json (the JSON is the audit record).
 
+Exit codes: 2 = backend not runnable yet (missing config/lens/directions);
+3 = intervention-strength failure — no grid value moved behavior enough,
+which is the proposal's uninterpretable-null outcome, not a crash.
+
 The DummyModel has no strength dial, so --dry-run returns the smallest grid
 values; this script's dry-run exists to exercise the plumbing end-to-end.
 """
@@ -29,54 +33,35 @@ from jspace_binding.experiments.calibrate import (
     calibrate_identity_alpha,
     calibrate_push_coefficient,
 )
-from jspace_binding.model.base import WorkspaceModel
-from jspace_binding.model.dummy import DummyModel
+from jspace_binding.model.factory import add_backend_args, build_model, preflight_or_exit
 from jspace_binding.stimuli.fitting_corpus import generate_fitting_corpus
 from jspace_binding.stimuli.generate import generate_families
-
-
-def _build_model(config: Config, dry_run: bool, dummy_mode: str | None) -> WorkspaceModel:
-    backend = "dummy" if dry_run else config.model.backend
-    if backend == "dummy":
-        return DummyModel(mode=dummy_mode or config.model.dummy_mode, seed=config.experiment.seed)
-    if backend == "qwen_jlens":
-        from jspace_binding.model.qwen_jlens import QwenJLensModel
-
-        return QwenJLensModel(
-            config.model,
-            directions_dir=config.paths.directions,
-            direction_variant=config.directions.variant,
-        )
-    sys.exit(f"unknown model.backend {config.model.backend!r}; expected 'dummy' or 'qwen_jlens'")
+from jspace_binding.types import InjectionSite
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Calibrate push_coefficient and alpha.")
-    parser.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
-    parser.add_argument(
-        "--dry-run", action="store_true", help="force the GPU-free DummyModel backend"
-    )
-    parser.add_argument("--dummy-mode", choices=("binding", "bag"), default=None)
+    add_backend_args(parser)
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
-    model = _build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
+    model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
+    # Push calibration steers fitted directions at the final-token site.
+    preflight_or_exit(model, (InjectionSite.FINAL_TOKEN,))
 
-    entities = tuple(
-        dict.fromkeys(
-            [pair.entity for pair in config.stimuli.concept_pairs]
-            + list(config.stimuli.non_participant_entities)
-        )
+    corpus = generate_fitting_corpus(
+        config.direction_entities(), config.directions.exemplars_per_role
     )
-    corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
     families = generate_families(config)
 
     try:
         push = calibrate_push_coefficient(model, corpus)
         alpha = calibrate_identity_alpha(model, families)
-    except (RuntimeError, FileNotFoundError) as exc:
-        print(f"calibration cannot run yet: {exc}", file=sys.stderr)
-        sys.exit(2)
+    except ValueError as exc:
+        # The documented failure mode: the intervention is too weak at every
+        # grid value, so any null binding result would be uninterpretable.
+        print(f"intervention-strength failure: {exc}", file=sys.stderr)
+        sys.exit(3)
 
     record = {
         "push_coefficient": asdict(push),

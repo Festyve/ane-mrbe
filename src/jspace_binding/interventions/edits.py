@@ -11,22 +11,25 @@ site (directions.fit; fitted per site), expressed in J-space coordinates, and
 B the lens map from J-space coordinates back to the residual stream. At the
 site token:
 
-    h_patched = h + s * c * (B @ r)
+    h_patched = h + s * c * unit(B @ r)
 
 where s = +1 for PushSign.TOWARD_AGENT, -1 for TOWARD_PATIENT, and c is the
 push coefficient calibrated on the fitting corpus (never on the primary
-stimuli). The same (r, s, c, site) is applied to every sentence in a condition
-— byte-identical across the minimal pair, never conditioned on the sentence's
-own role label. That uniformity is what licenses reading any role-dependent
-effect as binding.
+stimuli). The decoded direction is re-normalized in the RESIDUAL stream
+(B is not orthonormal, so J-space unit vectors decode to differing residual
+norms); c is therefore in residual-norm units and every push — real or
+control — perturbs the stream by exactly c. The same (r, s, c, site) is
+applied to every sentence in a condition — byte-identical across the minimal
+pair, never conditioned on the sentence's own role label. That uniformity is
+what licenses reading any role-dependent effect as binding.
 
-Controls sharing the push mechanics (all strength-matched via the same c):
+Controls sharing the push mechanics (all strength-matched at exactly c by the
+residual-stream normalization above):
 - NULL_NON_PARTICIPANT: push the fitted r of an entity ABSENT from the
   sentence (plan_edit picks it per family). Ties any effect to the sentence's
   relational content rather than generic workspace perturbation.
 - RANDOM_DIRECTION: replace r with a seeded random unit direction in the same
-  subspace — norm-matched by construction since pushes always use unit
-  directions. Direction-specificity control.
+  subspace. Direction-specificity control.
 - SHUFFLED_LABEL_DIRECTION: push the same entity's shuffled-label refit
   (directions.fit.shuffled_label_direction). Direction-overfitting control.
 
@@ -58,7 +61,13 @@ capacity-matched comparison that separates "the J-space specifically" from
 
 from __future__ import annotations
 
-from jspace_binding.types import EditSpec, EditType, ItemFamily, PushSign
+from jspace_binding.types import (
+    DIRECTION_PUSH_EDIT_TYPES,
+    EditSpec,
+    EditType,
+    ItemFamily,
+    PushSign,
+)
 
 
 def choose_non_participant(family: ItemFamily, candidates: tuple[str, ...]) -> str:
@@ -97,26 +106,16 @@ def plan_edit(
     strength-matched to the real push; IDENTITY_SWAP and NO_EDIT take no sign.
     seed is recorded only for RANDOM_DIRECTION, the sole stochastic edit.
     """
-    is_push = edit_type in (
-        EditType.ROLE_PUSH,
-        EditType.NULL_NON_PARTICIPANT,
-        EditType.RANDOM_DIRECTION,
-        EditType.SHUFFLED_LABEL_DIRECTION,
-    )
+    is_push = edit_type in DIRECTION_PUSH_EDIT_TYPES
     if is_push and sign is None:
         raise ValueError(f"{edit_type.value} is a direction push and requires a PushSign")
     if not is_push and sign is not None:
         raise ValueError(f"{edit_type.value} takes no PushSign, got {sign.value}")
 
     match edit_type:
-        case EditType.ROLE_PUSH:
-            return EditSpec(
-                edit_type=edit_type,
-                entity=family.concept_pair.entity,
-                sign=sign,
-                coefficient=coefficient,
-            )
-        case EditType.SHUFFLED_LABEL_DIRECTION:
+        case EditType.ROLE_PUSH | EditType.SHUFFLED_LABEL_DIRECTION:
+            # Same spec shape: the backends pick the fitted vs shuffled-label
+            # variant of the entity's direction from edit_type.
             return EditSpec(
                 edit_type=edit_type,
                 entity=family.concept_pair.entity,

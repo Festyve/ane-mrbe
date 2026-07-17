@@ -59,6 +59,15 @@ def calibrate_push_coefficient(
     patients = [ex for ex in examples if ex.role is Role.PATIENT][:max_examples]
     if not patients:
         raise ValueError("calibrate_push_coefficient: no patient-role fitting examples")
+    # The no-edit baseline is coefficient-independent: run it once per example,
+    # not once per (example, grid value) — on the real backend that saves
+    # (len(grid)-1) * len(patients) 27B forward passes.
+    base_logits = {}
+    for ex in patients:
+        base = model.answer_distribution(
+            ex.sentence, ex.role_probe, _NO_EDIT, site, (ex.entity, ex.other)
+        )
+        base_logits[ex.sentence] = logit(base[ex.entity])
     shifts: dict[float, float] = {}
     chosen: float | None = None
     for coefficient in sorted(grid):
@@ -70,10 +79,10 @@ def calibrate_push_coefficient(
                 sign=PushSign.TOWARD_AGENT,
                 coefficient=coefficient,
             )
-            tokens = (ex.entity, ex.other)
-            pushed = model.answer_distribution(ex.sentence, ex.role_probe, push, site, tokens)
-            base = model.answer_distribution(ex.sentence, ex.role_probe, _NO_EDIT, site, tokens)
-            total += logit(pushed[ex.entity]) - logit(base[ex.entity])
+            pushed = model.answer_distribution(
+                ex.sentence, ex.role_probe, push, site, (ex.entity, ex.other)
+            )
+            total += logit(pushed[ex.entity]) - base_logits[ex.sentence]
         shifts[coefficient] = total / len(patients)
         if chosen is None and shifts[coefficient] >= min_logit_shift:
             chosen = coefficient
@@ -104,36 +113,39 @@ def calibrate_identity_alpha(
     sample = families[:max_families]
     if not sample:
         raise ValueError("calibrate_identity_alpha: no families provided")
+    # Alpha-independent baselines, computed once per (family, role) cell —
+    # not per grid value (saves (len(grid)-1) * cells 27B forwards).
+    cells = []
+    for family in sample:
+        answers = family.answer_set
+        if answers is None:
+            raise ValueError(f"family {family.family_id!r} has no answer_set")
+        for role in Role:
+            # One cell per role suffices for a strength read; FIRST position.
+            stimulus = family.cells[f"{role.value}:first"]
+            base = model.answer_distribution(
+                stimulus.sentence, family.neutral_probe, _NO_EDIT, site, answers.tokens
+            )
+            cells.append((family, stimulus, answers, base))
     shifts: dict[float, float] = {}
     chosen: float | None = None
     for alpha in sorted(grid):
         counterpart_shift = 0.0
         entity_shift = 0.0
-        n = 0
-        for family in sample:
-            answers = family.answer_set
-            if answers is None:
-                raise ValueError(f"family {family.family_id!r} has no answer_set")
+        for family, stimulus, answers, base in cells:
             swap = EditSpec(
                 edit_type=EditType.IDENTITY_SWAP,
                 swap_source=answers.entity,
                 swap_target=answers.counterpart,
                 alpha=alpha,
             )
-            for role in Role:
-                # One cell per role suffices for a strength read; FIRST position.
-                stimulus = family.cells[f"{role.value}:first"]
-                swapped = model.answer_distribution(
-                    stimulus.sentence, family.neutral_probe, swap, site, answers.tokens
-                )
-                base = model.answer_distribution(
-                    stimulus.sentence, family.neutral_probe, _NO_EDIT, site, answers.tokens
-                )
-                counterpart_shift += swapped[answers.counterpart] - base[answers.counterpart]
-                entity_shift += swapped[answers.entity] - base[answers.entity]
-                n += 1
-        counterpart_shift /= n
-        entity_shift /= n
+            swapped = model.answer_distribution(
+                stimulus.sentence, family.neutral_probe, swap, site, answers.tokens
+            )
+            counterpart_shift += swapped[answers.counterpart] - base[answers.counterpart]
+            entity_shift += swapped[answers.entity] - base[answers.entity]
+        counterpart_shift /= len(cells)
+        entity_shift /= len(cells)
         shifts[alpha] = counterpart_shift
         if chosen is None and counterpart_shift >= min_prob_shift and entity_shift < 0.0:
             chosen = alpha

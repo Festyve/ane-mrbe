@@ -153,18 +153,16 @@ def _cell_name(key: _CellKey) -> str:
     return f"({role.value}, {pos.value}, {edit.value}{sign_txt})"
 
 
-def gap_change(
-    trials: list[TrialResult],
-    entity_token: str,
-    treatment: EditType,
-    sign: PushSign,
-) -> float:
-    """dG(sign): the edit-induced change of the position-averaged agent-patient
-    log-odds gap, for one push sign of the treatment edit."""
+def family_gap_changes(
+    trials: list[TrialResult], entity_token: str, treatment: EditType = EditType.ROLE_PUSH
+) -> dict[PushSign, float]:
+    """dG(sign) for both signs of one family — the edit-induced change of the
+    position-averaged agent-patient log-odds gap, and the descriptive
+    per-sign breakdown (binding predicts both negative; an asymmetry, e.g.
+    promotion works but demotion doesn't, shows up here rather than being
+    averaged away). One trial scan serves both signs.
+    """
     cells = _cell_logits(trials, entity_token, treatment)
-    pushed = position_average(
-        {(role, pos): cells[(role, pos, treatment, sign)] for role in Role for pos in Position}
-    )
     baseline = position_average(
         {
             (role, pos): cells[(role, pos, EditType.NO_EDIT, None)]
@@ -172,23 +170,21 @@ def gap_change(
             for pos in Position
         }
     )
-    return float(
-        (pushed[Role.AGENT] - pushed[Role.PATIENT])
-        - (baseline[Role.AGENT] - baseline[Role.PATIENT])
-    )
+    natural_gap = baseline[Role.AGENT] - baseline[Role.PATIENT]
+    gaps: dict[PushSign, float] = {}
+    for sign in PushSign:
+        pushed = position_average(
+            {
+                (role, pos): cells[(role, pos, treatment, sign)]
+                for role in Role
+                for pos in Position
+            }
+        )
+        gaps[sign] = float((pushed[Role.AGENT] - pushed[Role.PATIENT]) - natural_gap)
+    return gaps
 
 
-def family_gap_changes(
-    trials: list[TrialResult], entity_token: str, treatment: EditType = EditType.ROLE_PUSH
-) -> dict[PushSign, float]:
-    """Both signs' dG for one family — the descriptive per-sign breakdown
-    (binding predicts both negative; an asymmetry, e.g. promotion works but
-    demotion doesn't, shows up here rather than being averaged away)."""
-    return {sign: gap_change(trials, entity_token, treatment, sign) for sign in PushSign}
-
-
-def _crossover_score(trials: list[TrialResult], entity_token: str, treatment: EditType) -> float:
-    gaps = family_gap_changes(trials, entity_token, treatment)
+def _crossover_score(gaps: dict[PushSign, float]) -> float:
     return -(gaps[PushSign.TOWARD_AGENT] + gaps[PushSign.TOWARD_PATIENT]) / 2.0
 
 
@@ -201,7 +197,7 @@ def family_binding_score(trials: list[TrialResult], entity_token: str) -> float:
     Primary analysis reads FINAL_TOKEN-site trials; site filtering is the
     caller's job (collect_scores) so the same math serves both sites.
     """
-    return _crossover_score(trials, entity_token, EditType.ROLE_PUSH)
+    return _crossover_score(family_gap_changes(trials, entity_token, EditType.ROLE_PUSH))
 
 
 def control_binding_score(
@@ -221,7 +217,7 @@ def control_binding_score(
         raise ValueError(
             f"control_binding_score: {edit_type.value!r} is not a control edit ({allowed})"
         )
-    return _crossover_score(trials, entity_token, edit_type)
+    return _crossover_score(family_gap_changes(trials, entity_token, edit_type))
 
 
 @dataclass
@@ -267,11 +263,11 @@ def collect_scores(all_trials: list[TrialResult], site: InjectionSite) -> ScoreT
         entity_token = first.pair_id.split("->", 1)[0]
         edits_present = {t.edit_type for t in trials}
         if EditType.ROLE_PUSH in edits_present:
+            # One cell scan yields both the per-sign gaps and the score.
+            gaps = family_gap_changes(trials, entity_token)
             group_key = (first.construction.value, first.pair_id)
-            table.real.setdefault(group_key, []).append(
-                family_binding_score(trials, entity_token)
-            )
-            for sign, value in family_gap_changes(trials, entity_token).items():
+            table.real.setdefault(group_key, []).append(_crossover_score(gaps))
+            for sign, value in gaps.items():
                 table.gap_changes.setdefault(sign.value, []).append(value)
         for control in CONTROL_EDIT_TYPES:
             if control in edits_present:

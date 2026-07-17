@@ -40,9 +40,18 @@ import re
 from collections.abc import Sequence
 
 from jspace_binding.stimuli.vocab import PROFESSION_ENTITIES
-from jspace_binding.types import EditSpec, EditType, InjectionSite, PushSign
+from jspace_binding.types import (
+    DIRECTION_PUSH_EDIT_TYPES,
+    EditSpec,
+    EditType,
+    InjectionSite,
+    PushSign,
+)
 
 
+# Local twin of analysis.binding_score.logit: this module is stdlib-only by
+# charter (must run on any machine), so it cannot import the numpy-backed
+# analysis package.
 def _logit(p: float) -> float:
     return math.log(p / (1.0 - p))
 
@@ -72,12 +81,7 @@ _L_MILD_AGENT = _logit(0.65)  # random-subspace ablation: mild, order-preserving
 _L_MILD_PATIENT = _logit(0.08)
 _L_MILD_MENTIONED = _logit(0.40)
 
-_PUSH_EDITS = (
-    EditType.ROLE_PUSH,
-    EditType.NULL_NON_PARTICIPANT,
-    EditType.RANDOM_DIRECTION,
-    EditType.SHUFFLED_LABEL_DIRECTION,
-)
+_PUSH_EDITS = DIRECTION_PUSH_EDIT_TYPES
 
 
 class DummyModel:
@@ -332,12 +336,16 @@ class DummyModel:
         marker = re.search(r"\b(?:by|whom)\b", low)
         if marker is not None:
             return entity_idx > marker.end()
-        earliest = min(
-            idx
-            for p in PROFESSION_ENTITIES
-            if (idx := self._find(low, p)) is not None
-        )
-        return entity_idx == earliest
+        indices = [
+            idx for p in PROFESSION_ENTITIES if (idx := self._find(low, p)) is not None
+        ]
+        if not indices:
+            raise ValueError(
+                f"DummyModel cannot infer roles in {sentence!r}: no vocab profession "
+                "found (stimuli.vocab.PROFESSION_ENTITIES) — extend the vocabulary "
+                "before using non-profession entities"
+            )
+        return entity_idx == min(indices)
 
     @staticmethod
     def _find(lowered_sentence: str, token: str) -> int | None:

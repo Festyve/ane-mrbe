@@ -2,6 +2,7 @@
 """Generate the fitting corpus, cache activations, fit role directions.
 
 Usage: fit_directions.py --config configs/default.yaml [--dry-run] [--dummy-mode binding|bag]
+                         [--corpus PATH] [--allow-contaminated]
 
 Runs the one-time direction-fitting pass (proposal, Methods / Role directions):
 for every entity that any condition pushes (the concept-pair entities plus the
@@ -10,6 +11,12 @@ r_entity = mean(agent) - mean(patient) over J-space activations, plus the
 shuffled-label and leave-one-out generic control variants, and run the
 bootstrap stability pilot check. Directions land in config.paths.directions;
 the fitting corpus is archived to config.paths.fitting_corpus.
+
+--corpus PATH fits from a hand-written JSONL instead of the generated frames.
+The corpus is refused if any of its sentences occur verbatim in the primary
+stimulus set at this config's scale (fitting and testing on the same
+sentences contaminates the causal test); --allow-contaminated overrides for
+throwaway integration tests and stamps "contaminated": true into the summary.
 
 --dry-run forces the GPU-free DummyModel, whose synthetic activations carry a
 planted role direction in `binding` mode (stability should come out high) and
@@ -30,8 +37,7 @@ import numpy as np
 
 from jspace_binding.config import Config
 from jspace_binding.directions.fit import fit_all, save_directions
-from jspace_binding.model.base import FittingActivationSource
-from jspace_binding.model.dummy import DummyModel
+from jspace_binding.model.factory import add_backend_args, build_model, preflight_or_exit
 from jspace_binding.stimuli.fitting_corpus import (
     generate_fitting_corpus,
     load_fitting_corpus,
@@ -42,41 +48,28 @@ from jspace_binding.stimuli.qc import find_primary_collisions
 from jspace_binding.types import Role
 
 
-def _build_model(config: Config, dry_run: bool, dummy_mode: str | None) -> FittingActivationSource:
-    backend = "dummy" if dry_run else config.model.backend
-    if backend == "dummy":
-        return DummyModel(mode=dummy_mode or config.model.dummy_mode, seed=config.experiment.seed)
-    if backend == "qwen_jlens":
-        from jspace_binding.model.qwen_jlens import QwenJLensModel
-
-        return QwenJLensModel(config.model, directions_dir=config.paths.directions)
-    sys.exit(f"unknown model.backend {config.model.backend!r}; expected 'dummy' or 'qwen_jlens'")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fit role directions from the fitting corpus.")
-    parser.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
-    parser.add_argument(
-        "--dry-run", action="store_true", help="force the GPU-free DummyModel backend"
-    )
-    parser.add_argument("--dummy-mode", choices=("binding", "bag"), default=None)
+    add_backend_args(parser)
     parser.add_argument(
         "--corpus",
         type=Path,
         default=None,
         help="hand-written fitting corpus JSONL (default: generate from the frame templates)",
     )
+    parser.add_argument(
+        "--allow-contaminated",
+        action="store_true",
+        help="proceed despite primary-set collisions (integration tests only; stamped in output)",
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
-    model = _build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
+    model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
+    preflight_or_exit(model)  # fitting itself needs no already-fitted directions
 
-    needed = tuple(
-        dict.fromkeys(
-            [pair.entity for pair in config.stimuli.concept_pairs]
-            + list(config.stimuli.non_participant_entities)
-        )
-    )
+    needed = config.direction_entities()
+    contaminated = False
     if args.corpus is not None:
         corpus = load_fitting_corpus(args.corpus)
         entities = tuple(sorted({ex.entity for ex in corpus}))
@@ -90,13 +83,18 @@ def main() -> None:
             )
         collisions = find_primary_collisions(corpus, generate_families(config))
         if collisions:
+            contaminated = True
             print(
-                f"WARNING {len(collisions)} corpus sentences occur verbatim in the "
-                "primary stimulus set at this config's scale — fitting and testing on "
-                "the same sentences contaminates the causal test. Run "
-                "scripts/check_corpus.py for the list; fix the corpus before a real run.",
+                f"{len(collisions)} corpus sentences occur verbatim in the primary "
+                "stimulus set at this config's scale — fitting and testing on the same "
+                "sentences contaminates the causal test (scripts/check_corpus.py lists "
+                "them).",
                 file=sys.stderr,
             )
+            if not args.allow_contaminated:
+                print("refusing to fit; fix the corpus or pass --allow-contaminated",
+                      file=sys.stderr)
+                sys.exit(1)
         print(f"fitting corpus: {len(corpus)} sentences (hand-written, {args.corpus})",
               file=sys.stderr)
     else:
@@ -109,7 +107,11 @@ def main() -> None:
             file=sys.stderr,
         )
 
-    summary: dict[str, object] = {"entities": list(entities), "sites": {}}
+    summary: dict[str, object] = {
+        "entities": list(entities),
+        "contaminated": contaminated,
+        "sites": {},
+    }
     for site in config.experiment.injection_sites:
         activations = {}
         for entity in entities:
