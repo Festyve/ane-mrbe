@@ -76,7 +76,13 @@ class FittedDirections:
         }.get(variant)
         if matrix is None:
             raise ValueError(f"unknown direction variant {variant!r}")
-        return matrix[self.index(entity)]
+        row = matrix[self.index(entity)]
+        if variant == "generic_loo" and float(np.linalg.norm(row)) < 1e-12:
+            raise ValueError(
+                f"generic_loo direction unavailable for {entity!r}: the corpus was "
+                "fitted from a single entity (leave-one-out needs >= 2)"
+            )
+        return row
 
 
 def fit_role_direction(agent_acts: np.ndarray, patient_acts: np.ndarray) -> np.ndarray:
@@ -186,7 +192,10 @@ def fit_all(
     """Fit every entity's direction plus both control variants at one site.
 
     activations maps entity -> (agent_acts, patient_acts). Shuffle seeds are
-    offset per entity so no two entities share a shuffle.
+    offset per entity so no two entities share a shuffle. With a single-entity
+    corpus (e.g. the hand-written doctor set) the leave-one-out generic
+    variant is undefined; its rows are stored as zeros and direction() raises
+    if that variant is ever requested.
     """
     entities = tuple(sorted(activations))
     fitted: dict[str, np.ndarray] = {}
@@ -199,12 +208,16 @@ def fit_all(
         stabilities.append(
             bootstrap_stability(agent_acts, patient_acts, n_resamples=n_bootstrap, seed=seed)
         )
+    if len(entities) >= 2:
+        generic = np.stack([generic_loo_direction(fitted, e) for e in entities])
+    else:
+        generic = np.zeros_like(np.stack([fitted[e] for e in entities]))
     return FittedDirections(
         site=site,
         entities=entities,
         fitted=np.stack([fitted[e] for e in entities]),
         shuffled=np.stack(shuffled_rows),
-        generic_loo=np.stack([generic_loo_direction(fitted, e) for e in entities]),
+        generic_loo=generic,
         raw_norms=np.asarray(norms),
         stability=np.asarray(stabilities),
     )

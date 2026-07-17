@@ -92,6 +92,14 @@ def test_generic_loo_excludes_held_out_entity() -> None:
         generic_loo_direction({"a": directions["a"]}, held_out="a")
 
 
+def test_fit_all_single_entity_has_no_generic_variant() -> None:
+    activations = {"doctor": _role_activations(_planted(11), noise=0.3, seed=12)}
+    fitted = fit_all(activations, InjectionSite.FINAL_TOKEN, n_bootstrap=20, seed=0)
+    assert fitted.direction("doctor", "fitted") is not None
+    with pytest.raises(ValueError, match="single entity"):
+        fitted.direction("doctor", "generic_loo")
+
+
 def test_fit_all_and_storage_roundtrip(tmp_path: Path) -> None:
     activations = {
         entity: _role_activations(_planted(seed), noise=0.3, seed=seed + 100)
