@@ -88,6 +88,20 @@ def test_binding_mode_recovers_large_pooled_score(tmp_path: Path) -> None:
     for sign in PushSign:
         assert summary["gap_change_by_sign"][sign.value]["mean"] < -1.0
     assert summary["neutral_strength_check"]["passes"] is True
+    # Verdict: with the strength check passing, a pooled-significant d >= 0.5
+    # effect classifies as at least suggestive; positive_binding additionally
+    # needs per-construction Holm significance, unreachable at tiny-CI n.
+    verdict = summary["verdict"]
+    assert verdict["strength_check_passes"] is True
+    assert verdict["pooled_significant"] is True
+    assert verdict["outcome"] in ("positive_binding", "suggestive_not_conclusive")
+    assert verdict["random_direction_in_band"] is True
+    # d carries its own bootstrap CI, excluding zero here.
+    assert summary["pooled"]["cohens_d_ci_lo"] > 0.0
+    # Per-construction blocks exist for all four constructions.
+    assert set(summary["constructions"]) == {
+        "active_passive", "dative", "cleft", "relative_clause"
+    }
 
 
 def test_bag_mode_lands_inside_null_band(tmp_path: Path) -> None:
@@ -102,3 +116,6 @@ def test_bag_mode_lands_inside_null_band(tmp_path: Path) -> None:
     # The strength check still passes: "the edit works" is exactly what makes
     # a bag-mode null interpretable as a clean negative.
     assert summary["neutral_strength_check"]["passes"] is True
+    # And the verdict says so: not significant, tight CI on d -> clean negative,
+    # reported as a positive finding for the falsifiable claim.
+    assert summary["verdict"]["outcome"] == "clean_negative"

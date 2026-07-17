@@ -44,6 +44,16 @@ a pure swap). If this fails to move the role-neutral readout, the lens is too
 weak for any null role result to be interpretable.
 
 NO_EDIT: the untouched baseline the difference-in-differences subtracts.
+
+RQ2 ablations (never part of the primary sweep; experiments.rq2_ablation
+builds their EditSpecs directly)
+--------------------------------
+ABLATE_JSPACE: h_patched = h - D @ (E @ h) — remove the lens-reconstructable
+component at the site (E = lens encoder, D = decoder).
+ABLATE_RANDOM_SUBSPACE: h_patched = h - Q @ (Q^T @ h) for a seeded random
+orthonormal basis Q with the SAME number of columns as the J-space — the
+capacity-matched comparison that separates "the J-space specifically" from
+"any subspace of that size".
 """
 
 from __future__ import annotations

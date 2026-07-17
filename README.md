@@ -17,4 +17,8 @@ python scripts/fit_directions.py --config configs/ci.yaml --dry-run
 python scripts/calibrate.py      --config configs/ci.yaml --dry-run
 python scripts/run_primary.py    --config configs/ci.yaml --dry-run --dummy-mode binding
 python scripts/run_primary.py    --config configs/ci.yaml --dry-run --dummy-mode bag
+
+# Secondary analyses (proposal §4):
+python scripts/run_rq1.py        --config configs/ci.yaml --dry-run   # linear-probe selectivity
+python scripts/run_rq2.py        --config configs/ci.yaml --dry-run   # ablation deltas
 ```

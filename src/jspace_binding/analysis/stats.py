@@ -95,6 +95,38 @@ def cohens_d(scores: Sequence[float] | np.ndarray) -> float:
     return float(arr.mean() / sd)
 
 
+def cohens_d_ci(
+    scores: Sequence[float] | np.ndarray,
+    n_resamples: int = 10_000,
+    ci_level: float = 0.95,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI on Cohen's d itself (proposal, §6: report a CI
+    on d, not just on BS, from the same item-level resamples).
+
+    Uses the same resampling unit as bootstrap_ci (families). Degenerate
+    resamples (zero variance, which would make d infinite) are dropped; if
+    every resample is degenerate the input itself is unusable and we raise.
+    The CI width is what separates "clean negative" (tight around 0) from
+    "underpowered" (wide, e.g. crossing zero from a large point estimate) in
+    the outcome classification.
+    """
+    arr = np.asarray(scores, dtype=float)
+    if arr.size < 2:
+        raise ValueError("cohens_d_ci: need >= 2 scores")
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, arr.size, size=(n_resamples, arr.size))
+    samples = arr[idx]
+    sds = samples.std(axis=1, ddof=1)
+    valid = sds > 0.0
+    if not np.any(valid):
+        raise ValueError("cohens_d_ci: all bootstrap resamples degenerate (zero variance)")
+    ds = samples.mean(axis=1)[valid] / sds[valid]
+    tail = 100.0 * (1.0 - ci_level) / 2.0
+    lo, hi = np.percentile(ds, [tail, 100.0 - tail])
+    return float(lo), float(hi)
+
+
 def holm_bonferroni(pvalues: dict[K, float], alpha: float = 0.05) -> dict[K, bool]:
     """Holm-Bonferroni step-down over the per-group p-values.
 

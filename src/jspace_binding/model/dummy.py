@@ -65,6 +65,12 @@ _SIGMA = 0.05  # logit-space jitter std dev
 
 _FIT_DIM = 32  # synthetic J-space dimensionality for fitting_activation
 _FIT_NOISE = 0.3
+_ORTH_DIM = 16  # synthetic orthogonal-remainder dimensionality (RQ1)
+
+_L_DEGRADED = _logit(0.30)  # post-ablation level: role info flat / recall mildly hit
+_L_MILD_AGENT = _logit(0.65)  # random-subspace ablation: mild, order-preserving
+_L_MILD_PATIENT = _logit(0.08)
+_L_MILD_MENTIONED = _logit(0.40)
 
 _PUSH_EDITS = (
     EditType.ROLE_PUSH,
@@ -158,6 +164,8 @@ class DummyModel:
         self, probe_is_role: bool, edit: EditSpec, entity_is_agent: bool
     ) -> tuple[float, float, float]:
         """(entity, counterpart, other) logits before position bias and jitter."""
+        if edit.edit_type in (EditType.ABLATE_JSPACE, EditType.ABLATE_RANDOM_SUBSPACE):
+            return self._ablation_logits(probe_is_role, edit.edit_type, entity_is_agent)
         if not probe_is_role:
             if edit.edit_type is EditType.IDENTITY_SWAP:
                 return (_L_PATIENT, _L_SWAPPED_IN, _L_MENTIONED)
@@ -181,6 +189,35 @@ class DummyModel:
             # Controls and baseline: sentence effectively untouched.
             return (l_entity, _L_ABSENT, l_other)
         raise ValueError(f"DummyModel: unhandled edit type {edit.edit_type!r}")
+
+    def _ablation_logits(
+        self, probe_is_role: bool, edit_type: EditType, entity_is_agent: bool
+    ) -> tuple[float, float, float]:
+        """RQ2 ground truth (proposal, §4 Ablation).
+
+        binding mode = the workspace is where binding lives (concepts are
+        redundantly recoverable elsewhere): ABLATE_JSPACE flattens the ROLE
+        readout to a tie (role accuracy -> chance) while NEUTRAL recall only
+        degrades mildly and stays correct. bag mode = the workspace holds only
+        concepts, binding computed elsewhere: ABLATE_JSPACE breaks concept
+        recall outright (mentioned participants collapse to the absent
+        token's level -> recall to chance) and thereby the ROLE answer too, so
+        binding degrades NO MORE than recall — no binding-specific deficit.
+        ABLATE_RANDOM_SUBSPACE is mild and order-preserving in both modes and
+        under both probes: the capacity-matched comparison bar.
+        """
+        if edit_type is EditType.ABLATE_RANDOM_SUBSPACE:
+            if probe_is_role:
+                l_entity = _L_MILD_AGENT if entity_is_agent else _L_MILD_PATIENT
+                l_other = _L_MILD_PATIENT if entity_is_agent else _L_MILD_AGENT
+                return (l_entity, _L_ABSENT, l_other)
+            return (_L_MILD_MENTIONED, _L_ABSENT, _L_MILD_MENTIONED)
+        # ABLATE_JSPACE:
+        if probe_is_role:
+            return (_L_DEGRADED, _L_ABSENT, _L_DEGRADED)  # role tie in both modes
+        if self.mode == "bag":
+            return (_L_ABSENT, _L_ABSENT, _L_ABSENT)  # recall collapses to a tie
+        return (_L_DEGRADED, _L_ABSENT, _L_DEGRADED)  # mild but still above absent
 
     # ------------------------------------------------------------------ #
     # FittingActivationSource                                            #
@@ -207,10 +244,51 @@ class DummyModel:
 
     def _planted_direction(self, entity: str, site: InjectionSite) -> list[float]:
         """Deterministic pseudo-random unit vector per (entity, site)."""
-        rng = self._content_rng("planted", entity, site.value)
-        raw = [rng.gauss(0.0, 1.0) for _ in range(_FIT_DIM)]
+        return self._unit_vector("planted", entity, site.value, dim=_FIT_DIM)
+
+    def _unit_vector(self, *key: str, dim: int) -> list[float]:
+        rng = self._content_rng(*key)
+        raw = [rng.gauss(0.0, 1.0) for _ in range(dim)]
         norm = math.sqrt(sum(x * x for x in raw))
         return [x / norm for x in raw]
+
+    # ------------------------------------------------------------------ #
+    # ProbeActivationSource (RQ1)                                        #
+    # ------------------------------------------------------------------ #
+
+    def probe_activation(
+        self, sentence: str, entity: str, site: InjectionSite
+    ) -> dict[str, list[float]]:
+        """Synthetic RQ1 activation sources with mode-dependent ground truth.
+
+        binding mode: the role signal lives in the J-space component (the
+        orthogonal remainder is pure noise), so a linear probe must decode
+        role from "jspace" and "residual" but sit at chance on "orthogonal".
+        bag mode: the workspace holds no role information — the signal is
+        planted in the ORTHOGONAL remainder instead (the model still binds,
+        just elsewhere), so "jspace" must probe at chance while "orthogonal"
+        and "residual" decode. The synthetic residual basis is axis-aligned:
+        residual = jspace coords ++ orthogonal coords.
+
+        The planted RQ1 direction is FILLER-GENERAL (shared across entities,
+        unlike fitting_activation's per-entity directions): the RQ1 split is
+        leave-one-pair-out, so only role information that generalizes across
+        lexical items should be decodable — the dummy's ground truth is that
+        such information exists, in the mode-appropriate subspace.
+        """
+        role_sign = 1.0 if self._infer_role_is_agent(sentence, entity) else -1.0
+        rng = self._content_rng("probe", sentence, entity, site.value)
+        j_noise = [rng.gauss(0.0, _FIT_NOISE) for _ in range(_FIT_DIM)]
+        o_noise = [rng.gauss(0.0, _FIT_NOISE) for _ in range(_ORTH_DIM)]
+        if self.mode == "binding":
+            planted = self._unit_vector("probe-role", site.value, dim=_FIT_DIM)
+            jspace = [role_sign * p + n for p, n in zip(planted, j_noise, strict=True)]
+            orthogonal = o_noise
+        else:
+            planted = self._unit_vector("probe-role-orth", site.value, dim=_ORTH_DIM)
+            jspace = j_noise
+            orthogonal = [role_sign * p + n for p, n in zip(planted, o_noise, strict=True)]
+        return {"jspace": jspace, "orthogonal": orthogonal, "residual": jspace + orthogonal}
 
     # ------------------------------------------------------------------ #
     # Lexical inference helpers                                          #
@@ -243,15 +321,17 @@ class DummyModel:
 
     def _infer_role_is_agent(self, sentence: str, entity: str) -> bool:
         """Role inference when the other participant is unknown (fitting
-        corpus): agent iff the entity follows a "by" (passive agent phrase),
-        else iff it is the earliest profession mentioned (active order)."""
+        corpus and RQ1 probe reads): the entity is the agent iff it follows a
+        "by" (passive agent phrase) or a "whom" (object cleft/relative — in
+        "X whom Y verbed", Y is the agent); otherwise iff it is the earliest
+        profession mentioned (active order)."""
         low = sentence.lower()
         entity_idx = self._find(low, entity)
         if entity_idx is None:
             raise ValueError(f"DummyModel cannot locate {entity!r} in {sentence!r}")
-        by = re.search(r"\bby\b", low)
-        if by is not None:
-            return entity_idx > by.end()
+        marker = re.search(r"\b(?:by|whom)\b", low)
+        if marker is not None:
+            return entity_idx > marker.end()
         earliest = min(
             idx
             for p in PROFESSION_ENTITIES

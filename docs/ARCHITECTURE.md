@@ -31,8 +31,12 @@ experiments/primary.py ──────────┤  for each family x cell
                             data/results/trials.jsonl            (TrialResult records)
                                   │
 analysis/binding_score.py ───────┤  logit -> position-average -> both-sign crossover DiD
-analysis/stats.py ───────────────┤  bootstrap CI / permutation p / Cohen's d / Holm
+analysis/stats.py ───────────────┤  bootstrap CI / permutation p / d (+ d CI) / Holm
 analysis/plots.py ───────────────┘  forest plot + per-condition probability plot
+
+Secondary analyses (proposal §4), each with its own script + figure + JSON:
+scripts/run_rq1.py ─> experiments/rq1_probe.py    (role decodability; selectivity plot)
+scripts/run_rq2.py ─> experiments/rq2_ablation.py (ablation deltas; causal-use check)
 ```
 
 The runner is written against the `WorkspaceModel` protocol, so the whole
@@ -132,12 +136,30 @@ numpy — no model dependencies — so it is unit-testable on any machine.
 ### `experiments/`
 - `primary.py` — the sweep: pushes x both signs at the ROLE probe; NO_EDIT at
   ROLE + NEUTRAL; IDENTITY_SWAP at NEUTRAL only. analyze() adds
-  `gap_change_by_sign` (descriptive crossover breakdown) and
+  `gap_change_by_sign` (descriptive crossover breakdown),
   `neutral_strength_check` (the load-bearing control: fails ⇒ any null is
-  uninterpretable) to the summary JSON.
+  uninterpretable), per-`constructions` stats blocks (Holm-corrected within
+  the construction family — the positive-result criterion quantifies over
+  constructions), a bootstrap CI **on Cohen's d itself**, and a `verdict`
+  block classifying the outcome per the proposal's Benchmarks/Ideal Results:
+  positive_binding / significant_but_tiny / suggestive_not_conclusive /
+  clean_negative / inconclusive_underpowered /
+  uninterpretable_strength_failure.
 - `calibrate.py` — `calibrate_push_coefficient` (fitting corpus only, never
   primary stimuli) and `calibrate_identity_alpha` (neutral probe), both
   "smallest grid value that works".
+- `rq1_probe.py` — RQ1: leave-one-pair-out ridge probes over three activation
+  sources (J-space component / orthogonal remainder / full residual) with
+  Hewitt–Liang control-task selectivity (analysis/probes.py). Decodability,
+  not use; a linear null is nearly uninformative (Smolensky caveat) — the
+  summary carries that note.
+- `rq2_ablation.py` — RQ2: NO_EDIT vs ABLATE_JSPACE vs
+  ABLATE_RANDOM_SUBSPACE (matched-dimension capacity control) scored on the
+  binding task (ROLE probe: does the higher-ranked participant match the
+  true agent?) and the recall task (NEUTRAL probe: do both mentioned
+  participants outrank the absent token?) over the SAME sentences —
+  difficulty matching by construction. Causal involvement = the J-space
+  binding-specific deficit exceeding both zero and the random bar.
 
 ### `analysis/`
 - `binding_score.py` — see above. `collect_scores` groups by
@@ -157,6 +179,12 @@ numpy — no model dependencies — so it is unit-testable on any machine.
 - `run_primary.py --config ... [--dry-run] [--dummy-mode binding|bag]` —
   exits 2 with a one-shot everything-missing message when the qwen backend
   is not runnable yet.
+- `run_rq1.py` / `run_rq2.py` — same flags; the secondary analyses.
+
+### CI (.github/workflows/ci.yml)
+Every PR runs ruff, the unit tests, and the full dry-run pipeline in BOTH
+dummy modes — the ground-truth recovery check is a merge gate, not a local
+courtesy.
 
 ## GPU-day runbook
 
@@ -182,10 +210,15 @@ numpy — no model dependencies — so it is unit-testable on any machine.
 - `tests/test_binding_score.py` — hand-computed crossover (BS = 2.2) and bag
   (BS = 0) cases; the raw-probability phantom-effect demonstration; position
   bias cancellation; missing-cell errors; grouping.
-- `tests/test_stats.py` — bootstrap/permutation/Holm/d contracts.
+- `tests/test_stats.py` — bootstrap/permutation/Holm/d + d-CI contracts.
+- `tests/test_probes.py` — ridge probe separates separable data; leave-one-
+  pair-out generalization; control task at chance; chance without signal.
+- `tests/test_rq1_rq2.py` — RQ1 localizes role in the mode-appropriate
+  subspace; RQ2 shows the binding-specific deficit only in binding mode.
 - `tests/test_pipeline.py` — end-to-end dry runs: binding mode recovers the
-  planted effect above the null band with both signed gaps negative; bag mode
-  lands inside the band; strength check passes in both modes.
+  planted effect above the null band with both signed gaps negative and a
+  d CI excluding zero; bag mode lands inside the band and classifies as
+  clean_negative; strength check passes in both modes.
 
 ## What is pinned vs open
 

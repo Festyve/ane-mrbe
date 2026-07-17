@@ -95,6 +95,7 @@ class QwenJLensModel:
         self._lens: dict[int, tuple[Any, Any]] = {}  # layer -> (encoder, decoder) torch tensors
         self._directions: dict[InjectionSite, FittedDirections] = {}
         self._identity_mean: Any = None  # baseline-mean J-space state (identity recipe)
+        self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal basis (RQ2)
 
     # ------------------------------------------------------------------ #
     # WorkspaceModel                                                     #
@@ -152,6 +153,44 @@ class QwenJLensModel:
         encoder, _ = self._lens[layer]
         coords = encoder @ captured["h"].to(encoder.dtype)
         return [float(x) for x in coords.float().cpu()]
+
+    # ------------------------------------------------------------------ #
+    # ProbeActivationSource (RQ1)                                        #
+    # ------------------------------------------------------------------ #
+
+    def probe_activation(
+        self, sentence: str, entity: str, site: InjectionSite
+    ) -> dict[str, list[float]]:
+        """The three RQ1 sources at the read layer: "jspace" = E @ h,
+        "orthogonal" = h - D @ (E @ h) (what the lens cannot reconstruct),
+        "residual" = h. No edit applied."""
+        self._ensure_ready()
+        import torch
+
+        ids = self._tokenizer(sentence, return_tensors="pt").input_ids.to(self._device())
+        anchor = self._site_index(sentence, sentence, site, target_entity=entity)
+        layer = self._read_layer()
+        captured: dict[str, Any] = {}
+
+        def capture(module: Any, inputs: Any, output: Any) -> None:
+            hidden = output[0] if isinstance(output, tuple) else output
+            captured["h"] = hidden[0, anchor, :].detach()
+
+        handle = self._decoder_layer(layer).register_forward_hook(capture)
+        try:
+            with torch.no_grad():
+                self._model(ids)
+        finally:
+            handle.remove()
+        encoder, decoder = self._lens[layer]
+        h = captured["h"].to(encoder.dtype)
+        coords = encoder @ h
+        orthogonal = h - decoder @ coords
+        return {
+            "jspace": [float(x) for x in coords.float().cpu()],
+            "orthogonal": [float(x) for x in orthogonal.float().cpu()],
+            "residual": [float(x) for x in h.float().cpu()],
+        }
 
     # ------------------------------------------------------------------ #
     # Loading                                                            #
@@ -291,6 +330,15 @@ class QwenJLensModel:
         import torch
 
         encoder, decoder = self._lens[layer]
+        if edit.edit_type is EditType.ABLATE_JSPACE:
+            # RQ2: remove the lens-reconstructable component at the site.
+            return -(decoder @ (encoder @ h.to(encoder.dtype)))
+        if edit.edit_type is EditType.ABLATE_RANDOM_SUBSPACE:
+            # RQ2 capacity control: project out a seeded random orthonormal
+            # subspace of the SAME dimension as the J-space (matched dim).
+            basis = self._random_subspace(edit.seed or 0, encoder)
+            h_cast = h.to(basis.dtype)
+            return -(basis @ (basis.T @ h_cast))
         if edit.edit_type is EditType.IDENTITY_SWAP:
             v_s = self._concept_direction(edit.swap_source)  # type: ignore[arg-type]
             v_t = self._concept_direction(edit.swap_target)  # type: ignore[arg-type]
@@ -338,6 +386,20 @@ class QwenJLensModel:
         if site not in self._directions:
             self._directions[site] = load_directions(self.directions_dir, site)
         return self._directions[site]
+
+    def _random_subspace(self, seed: int, encoder: Any) -> Any:
+        """Seeded random orthonormal (d_model, k) basis, cached per seed."""
+        import torch
+
+        if seed not in self._random_subspaces:
+            k, d_model = encoder.shape
+            rng = np.random.default_rng(seed)
+            raw = rng.standard_normal((d_model, k))
+            q, _ = np.linalg.qr(raw)
+            self._random_subspaces[seed] = torch.as_tensor(
+                q, device=encoder.device, dtype=encoder.dtype
+            )
+        return self._random_subspaces[seed]
 
     # ------------------------------------------------------------------ #
     # Identity directions ("Tell me about {concept}" recipe)             #
