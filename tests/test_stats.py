@@ -8,6 +8,7 @@ import pytest
 from jspace_binding.analysis.stats import (
     bootstrap_ci,
     cohens_d,
+    cohens_d_ci,
     holm_bonferroni,
     null_band,
     permutation_pvalue,
@@ -63,6 +64,24 @@ def test_cohens_d_matches_hand_computation() -> None:
     # mean 3, sd (ddof=1) sqrt(2.5) -> d = 3 / sqrt(2.5)
     assert cohens_d([1.0, 2.0, 3.0, 4.0, 5.0]) == pytest.approx(3.0 / np.sqrt(2.5))
     assert cohens_d([-2.0, -1.0, 1.0, 2.0]) == pytest.approx(0.0, abs=1e-12)
+
+
+def test_cohens_d_ci_brackets_point_estimate_and_is_deterministic() -> None:
+    rng = np.random.default_rng(3)
+    scores = list(rng.normal(0.8, 0.4, 60))
+    lo, hi = cohens_d_ci(scores, n_resamples=2000, seed=0)
+    assert lo < cohens_d(scores) < hi
+    assert lo > 0.5  # clearly-shifted sample: the d CI excludes zero
+    assert (lo, hi) == cohens_d_ci(scores, n_resamples=2000, seed=0)
+
+
+def test_cohens_d_ci_tight_around_zero_for_null_sample() -> None:
+    rng = np.random.default_rng(4)
+    half = rng.normal(0.0, 0.3, 30)
+    scores = list(np.concatenate([half, -half]))  # mean exactly 0
+    lo, hi = cohens_d_ci(scores, n_resamples=2000, seed=0)
+    assert lo < 0.0 < hi
+    assert hi - lo < 1.0  # the "clean negative" tightness criterion
 
 
 def test_null_band_is_percentile_band() -> None:

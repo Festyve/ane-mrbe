@@ -25,7 +25,11 @@ from pathlib import Path
 import numpy as np
 
 from jspace_binding.analysis import stats
-from jspace_binding.analysis.binding_score import collect_scores
+from jspace_binding.analysis.binding_score import (
+    AGENT_PATIENT_CONSTRUCTIONS,
+    ScoreTable,
+    collect_scores,
+)
 from jspace_binding.analysis.plots import forest_plot, per_condition_plot
 from jspace_binding.config import Config
 from jspace_binding.interventions.edits import plan_edit
@@ -143,6 +147,31 @@ def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
     )
     pooled = _stats_block([score for scores in table.real.values() for score in scores], config)
 
+    # Per-construction blocks (pooled over pairs): the positive-result
+    # criterion quantifies over constructions, not (construction x pair)
+    # slices (proposal, Ideal Results #3). Holm-corrected within this family.
+    by_construction: dict[str, list[float]] = {}
+    for (construction, _), scores in table.real.items():
+        by_construction.setdefault(construction, []).extend(scores)
+    construction_stats = {
+        construction: _stats_block(scores, config)
+        for construction, scores in by_construction.items()
+    }
+    construction_significant = stats.holm_bonferroni(
+        {c: block["p_perm"] for c, block in construction_stats.items()},
+        alpha=config.analysis.alpha_level,
+    )
+    neutral_check = _neutral_strength_check(trials, site)
+    verdict = _verdict(
+        config,
+        pooled,
+        construction_stats,
+        construction_significant,
+        table,
+        (band_lo, band_hi),
+        neutral_check,
+    )
+
     figures_dir = Path(config.paths.figures)
     forest_path = figures_dir / "forest.png"
     per_condition_path = figures_dir / "per_condition.png"
@@ -163,7 +192,15 @@ def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
             sign: {"n": len(values), "mean": float(np.mean(values))}
             for sign, values in table.gap_changes.items()
         },
-        "neutral_strength_check": _neutral_strength_check(trials, site),
+        "neutral_strength_check": neutral_check,
+        "constructions": {
+            construction: {
+                **construction_stats[construction],
+                "significant_holm": bool(construction_significant[construction]),
+                "agent_patient_family": construction in AGENT_PATIENT_CONSTRUCTIONS,
+            }
+            for construction in construction_stats
+        },
         "groups": {
             f"{construction}|{pair_id}": {
                 "construction": construction,
@@ -173,6 +210,7 @@ def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
             }
             for construction, pair_id in group_stats
         },
+        "verdict": verdict,
         "figures": {"forest": str(forest_path), "per_condition": str(per_condition_path)},
     }
 
@@ -220,8 +258,13 @@ def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> d
     }
 
 
+_D_MEANINGFUL = 0.5  # a-priori effect-size threshold (proposal, §6)
+_D_CI_TIGHT = 1.0  # max CI width on d for a null to count as "clean" not "underpowered"
+
+
 def _stats_block(scores: list[float], config: Config) -> dict[str, float | int]:
-    """Mean, bootstrap CI, permutation p, and effect size for one score list."""
+    """Mean, bootstrap CI, permutation p, and effect size (with its own
+    bootstrap CI, per proposal §6) for one score list."""
     ci_lo, ci_hi = stats.bootstrap_ci(
         scores,
         n_resamples=config.analysis.n_bootstrap,
@@ -231,6 +274,12 @@ def _stats_block(scores: list[float], config: Config) -> dict[str, float | int]:
     p_perm = stats.permutation_pvalue(
         scores, n_permutations=config.analysis.n_permutation, seed=config.experiment.seed
     )
+    d_ci_lo, d_ci_hi = stats.cohens_d_ci(
+        scores,
+        n_resamples=config.analysis.n_bootstrap,
+        ci_level=config.analysis.ci_level,
+        seed=config.experiment.seed,
+    )
     return {
         "n": len(scores),
         "mean": float(np.mean(scores)),
@@ -238,6 +287,88 @@ def _stats_block(scores: list[float], config: Config) -> dict[str, float | int]:
         "ci_hi": float(ci_hi),
         "p_perm": float(p_perm),
         "cohens_d": float(stats.cohens_d(scores)),
+        "cohens_d_ci_lo": float(d_ci_lo),
+        "cohens_d_ci_hi": float(d_ci_hi),
+    }
+
+
+def _verdict(
+    config: Config,
+    pooled: dict[str, float | int],
+    construction_stats: dict[str, dict[str, float | int]],
+    construction_significant: dict[str, bool],
+    table: ScoreTable,
+    band: tuple[float, float],
+    neutral_check: dict[str, object],
+) -> dict[str, object]:
+    """Classify the outcome per the proposal's Benchmarks / Ideal Results.
+
+    Outcomes:
+    - uninterpretable_strength_failure: the neutral-probe control failed, so
+      no binding conclusion is licensed either way.
+    - positive_binding: pooled significant with d >= 0.5, the effect holds
+      (Holm-significant AND d >= 0.5) in >= 2 of the 3 agent/patient
+      constructions, and the random-direction control stays inside the band.
+    - significant_but_tiny: real but too weak to support the monitoring
+      agenda in practice (d < 0.5) — a different story, told separately.
+    - suggestive_not_conclusive: pooled-significant but the per-construction
+      criterion is unmet (e.g. carried by one construction, or underpowered
+      slices).
+    - clean_negative: not significant AND the CI on d is tight — evidence FOR
+      the bag-of-concepts answer, reported as a positive finding.
+    - inconclusive_underpowered: not significant with a wide CI on d —
+      stimulus expansion is the remedy, not a conclusion.
+    """
+    strength_passes = bool(neutral_check.get("available")) and bool(
+        neutral_check.get("passes")
+    )
+    band_lo, band_hi = band
+    random_scores = table.null_by_edit.get("random_direction", [])
+    random_mean = float(np.mean(random_scores)) if random_scores else None
+    random_in_band = bool(
+        random_scores and band_lo <= random_mean <= band_hi  # type: ignore[operator]
+    )
+    meaningful = [
+        construction
+        for construction in AGENT_PATIENT_CONSTRUCTIONS
+        if construction in construction_stats
+        and construction_significant[construction]
+        and construction_stats[construction]["cohens_d"] >= _D_MEANINGFUL
+    ]
+    pooled_significant = pooled["p_perm"] < config.analysis.alpha_level
+    d_ci_width = pooled["cohens_d_ci_hi"] - pooled["cohens_d_ci_lo"]
+
+    if not strength_passes:
+        outcome = "uninterpretable_strength_failure"
+    elif (
+        pooled_significant
+        and pooled["cohens_d"] >= _D_MEANINGFUL
+        and len(meaningful) >= 2
+        and random_in_band
+    ):
+        outcome = "positive_binding"
+    elif pooled_significant and pooled["cohens_d"] < _D_MEANINGFUL:
+        outcome = "significant_but_tiny"
+    elif pooled_significant:
+        outcome = "suggestive_not_conclusive"
+    elif d_ci_width <= _D_CI_TIGHT:
+        outcome = "clean_negative"
+    else:
+        outcome = "inconclusive_underpowered"
+
+    return {
+        "outcome": outcome,
+        "strength_check_passes": strength_passes,
+        "pooled_significant": bool(pooled_significant),
+        "pooled_d": pooled["cohens_d"],
+        "pooled_d_ci": [pooled["cohens_d_ci_lo"], pooled["cohens_d_ci_hi"]],
+        "d_threshold": _D_MEANINGFUL,
+        "meaningful_constructions": meaningful,
+        "random_direction_mean": random_mean,
+        "random_direction_in_band": random_in_band,
+        "control_means": {
+            edit: float(np.mean(scores)) for edit, scores in table.null_by_edit.items()
+        },
     }
 
 
