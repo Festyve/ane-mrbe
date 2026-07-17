@@ -163,6 +163,19 @@ def test_control_binding_score_runs_the_same_statistic() -> None:
         assert control_binding_score(trials, "doctor", control) == pytest.approx(0.0, abs=1e-9)
 
 
+def test_control_movement_propagates_to_nonzero_score() -> None:
+    """A control that DOES move behavior must yield a nonzero control score —
+    guards against a regression that hard-zeroes the null band (which would
+    make any real effect spuriously 'clear' a degenerate band)."""
+    moving = {
+        (NO_EDIT, None): (L_AGENT, L_PATIENT),
+        (NULL, TO_A): (L_AGENT + 0.2, L_PATIENT + 1.0),  # dG(+) = -0.8
+        (NULL, TO_P): (L_AGENT, L_PATIENT),  # dG(-) = 0
+    }
+    trials = _family_trials(moving)
+    assert control_binding_score(trials, "doctor", NULL) == pytest.approx(0.4, abs=1e-9)
+
+
 def test_control_binding_score_rejects_non_control_edits() -> None:
     trials = _family_trials(BINDING)
     with pytest.raises(ValueError, match="not a control edit"):

@@ -86,15 +86,17 @@ def per_condition_plot(
     pattern: the toward-agent push lifting the patient bars, the
     toward-patient push dropping the agent bars.
 
-    Only trials whose answer set contains `entity_token` contribute, so passing
-    the full trial list plots the one concept pair that token belongs to.
+    Trials are selected by pair_id — the families whose TARGET entity is
+    `entity_token`. Token membership in answer_probs would not do: the same
+    token appears in other pairs' answer sets as the distractor participant,
+    where its actual role is the opposite of the trial's role label.
     """
     rows = [
         t
         for t in all_trials
         if t.probe_kind is ProbeKind.ROLE
         and t.injection_site is InjectionSite.FINAL_TOKEN
-        and entity_token in t.answer_probs
+        and t.pair_id.split("->", 1)[0] == entity_token
     ]
     if not rows:
         raise ValueError(f"no ROLE-probe final-token trials carry answer token {entity_token!r}")

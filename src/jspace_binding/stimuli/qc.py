@@ -52,7 +52,14 @@ def find_cross_leaks(
 
 
 def structure_report(corpus: list[FittingExample]) -> dict[str, object]:
-    """Counts, balance, and vocabulary hygiene for one corpus file."""
+    """Counts, balance, and vocabulary hygiene for one corpus file.
+
+    missing_roles lists (entity, role) combinations with zero exemplars — a
+    difference-of-means fit needs both roles for every entity, so any entry
+    here means the corpus cannot fit that entity's direction at all (which
+    position_balanced alone would not catch: a one-role corpus is trivially
+    "balanced").
+    """
     balance = Counter((ex.role.value, ex.position.value) for ex in corpus)
     per_role = {
         role.value: {
@@ -62,6 +69,14 @@ def structure_report(corpus: list[FittingExample]) -> dict[str, object]:
         }
         for role in Role
     }
+    entities = sorted({ex.entity for ex in corpus})
+    covered = {(ex.entity, ex.role) for ex in corpus}
+    missing_roles = sorted(
+        f"{entity}:{role.value}"
+        for entity in entities
+        for role in Role
+        if (entity, role) not in covered
+    )
     duplicate_sentences = sorted(
         sentence
         for sentence, count in Counter(ex.sentence for ex in corpus).items()
@@ -75,9 +90,10 @@ def structure_report(corpus: list[FittingExample]) -> dict[str, object]:
     )
     return {
         "n": len(corpus),
-        "entities": sorted({ex.entity for ex in corpus}),
+        "entities": entities,
         "per_role": per_role,
         "position_balanced": position_balanced,
+        "missing_roles": missing_roles,
         "duplicate_sentences": duplicate_sentences,
         "unknown_entities": unknown_entities,
     }
