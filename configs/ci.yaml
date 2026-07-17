@@ -8,7 +8,9 @@ model:
   lens_repo: anthropics/jacobian-lens
   layer_band: null
   alpha: null
+  push_coefficient: null
   dtype: bfloat16
+  load_in_4bit: false
   dummy_mode: binding
 
 stimuli:
@@ -17,10 +19,18 @@ stimuli:
     - [doctor, nurse]
     - [teacher, student]
     - [driver, passenger]
-  non_participant_concept: tuesday
+  non_participant_entities: [chef, farmer, coach]
+
+directions:
+  exemplars_per_role: 6
+  n_bootstrap: 50
+  stability_threshold: 0.8
+  variant: fitted
+  seed: 0
 
 experiment:
-  edit_types: [real, no_edit, null_non_participant, random_direction]
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
   injection_sites: [final_token, entity_token]
   seed: 0
 
@@ -32,5 +42,8 @@ analysis:
 
 paths:
   stimuli: data/stimuli/stimuli_ci.jsonl
+  fitting_corpus: data/stimuli/fitting_corpus_ci.jsonl
+  directions: data/directions_ci
+  calibration: data/calibration_ci.json
   results: data/results_ci
   figures: figures_ci

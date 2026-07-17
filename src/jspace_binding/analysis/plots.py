@@ -22,6 +22,7 @@ from jspace_binding.types import (  # noqa: E402
     EditType,
     InjectionSite,
     ProbeKind,
+    PushSign,
     Role,
     TrialResult,
 )
@@ -68,7 +69,7 @@ def forest_plot(
         )
     ax.set_yticks(ys)
     ax.set_yticklabels([f"{construction} | {pair_id}" for construction, pair_id in groups])
-    ax.set_xlabel("binding score (difference-in-differences)")
+    ax.set_xlabel("binding score (log-odds, both-sign crossover)")
     ax.set_title("Role-filler binding score by construction and concept pair")
     ax.legend(loc="lower right", fontsize=8)
     _save(fig, out_path)
@@ -76,13 +77,16 @@ def forest_plot(
 
 def per_condition_plot(
     all_trials: list[TrialResult],
-    target_token: str,
+    entity_token: str,
     out_path: str | Path,
 ) -> None:
-    """Raw agent-vs-patient P(target) under each edit type — the undifferenced
-    view behind the binding score (ROLE probe, FINAL_TOKEN site).
+    """Raw agent-vs-patient P(entity) under each (edit type x push sign)
+    condition — the undifferenced view behind the binding score (ROLE probe,
+    FINAL_TOKEN site). This is the figure where the crossover is visible as a
+    pattern: the toward-agent push lifting the patient bars, the
+    toward-patient push dropping the agent bars.
 
-    Only trials whose answer set contains `target_token` contribute, so passing
+    Only trials whose answer set contains `entity_token` contribute, so passing
     the full trial list plots the one concept pair that token belongs to.
     """
     rows = [
@@ -90,32 +94,43 @@ def per_condition_plot(
         for t in all_trials
         if t.probe_kind is ProbeKind.ROLE
         and t.injection_site is InjectionSite.FINAL_TOKEN
-        and target_token in t.answer_probs
+        and entity_token in t.answer_probs
     ]
     if not rows:
-        raise ValueError(f"no ROLE-probe final-token trials carry answer token {target_token!r}")
-    edit_types = [e for e in EditType if any(t.edit_type is e for t in rows)]
-    x = np.arange(len(edit_types), dtype=float)
+        raise ValueError(f"no ROLE-probe final-token trials carry answer token {entity_token!r}")
+    conditions = []
+    for edit_type in EditType:
+        for sign in (None, *PushSign):
+            if any(t.edit_type is edit_type and t.push_sign is sign for t in rows):
+                conditions.append((edit_type, sign))
+    x = np.arange(len(conditions), dtype=float)
     width = 0.38
-    fig, ax = plt.subplots(figsize=(7.0, 4.0))
+    fig, ax = plt.subplots(figsize=(max(7.0, 1.1 * len(conditions)), 4.0))
     for offset, role in ((-width / 2, Role.AGENT), (width / 2, Role.PATIENT)):
         means, spreads = [], []
-        for edit_type in edit_types:
+        for edit_type, sign in conditions:
             values = [
-                t.answer_probs[target_token]
+                t.answer_probs[entity_token]
                 for t in rows
-                if t.edit_type is edit_type and t.role is role
+                if t.edit_type is edit_type and t.push_sign is sign and t.role is role
             ]
             means.append(float(np.mean(values)))
             spreads.append(float(np.std(values)))
-        ax.bar(x + offset, means, width, yerr=spreads, capsize=3, label=f"target is {role.value}")
+        ax.bar(x + offset, means, width, yerr=spreads, capsize=3, label=f"entity is {role.value}")
     ax.set_xticks(x)
-    ax.set_xticklabels([e.value for e in edit_types], rotation=15, ha="right")
-    ax.set_ylabel(f"P({target_token}) at the ROLE probe")
-    ax.set_title("Per-condition target probability (final-token site)")
+    ax.set_xticklabels([_condition_label(e, s) for e, s in conditions], rotation=25, ha="right")
+    ax.set_ylabel(f"P({entity_token}) at the ROLE probe")
+    ax.set_title("Per-condition entity probability (final-token site)")
     ax.set_ylim(bottom=0.0)
     ax.legend(fontsize=8)
     _save(fig, out_path)
+
+
+def _condition_label(edit_type: EditType, sign: PushSign | None) -> str:
+    if sign is None:
+        return edit_type.value
+    arrow = "→agent" if sign is PushSign.TOWARD_AGENT else "→patient"
+    return f"{edit_type.value} {arrow}"
 
 
 def _save(fig: plt.Figure, out_path: str | Path) -> None:

@@ -5,8 +5,10 @@ Usage: run_primary.py --config configs/default.yaml [--dry-run] [--dummy-mode bi
 
 --dry-run forces the GPU-free DummyModel regardless of config.model.backend, so
 the whole pipeline can be validated on any machine. Exits with status 2 when
-the requested backend is the not-yet-implemented qwen_jlens stub. Progress
-messages go to stderr; stdout carries only the summary.
+the qwen_jlens backend is not runnable yet (open config decisions, missing
+lens artifact, or directions not fitted — run scripts/fit_directions.py and
+scripts/calibrate.py first). Progress messages go to stderr; stdout carries
+only the summary.
 """
 
 from __future__ import annotations
@@ -32,7 +34,11 @@ def _build_model(config: Config, dry_run: bool, dummy_mode: str | None) -> Works
         # Imported lazily: the only backend that will ever need the heavy `model` extras.
         from jspace_binding.model.qwen_jlens import QwenJLensModel
 
-        return QwenJLensModel(config.model)
+        return QwenJLensModel(
+            config.model,
+            directions_dir=config.paths.directions,
+            direction_variant=config.directions.variant,
+        )
     sys.exit(f"unknown model.backend {config.model.backend!r}; expected 'dummy' or 'qwen_jlens'")
 
 
@@ -64,9 +70,11 @@ def main() -> None:
     families = _load_or_generate(config)
     try:
         trials = run_primary(config, model, families)
-    except NotImplementedError as exc:
-        # qwen_jlens stub path: construction succeeds, the first forward raises.
-        print(f"backend {config.model.backend!r} is not implemented yet: {exc}", file=sys.stderr)
+    except (RuntimeError, FileNotFoundError) as exc:
+        # qwen_jlens path: construction succeeds, the first forward reports
+        # everything still missing (config decisions, lens artifact, fitted
+        # directions) in one shot.
+        print(f"backend {config.model.backend!r} cannot run yet: {exc}", file=sys.stderr)
         sys.exit(2)
     print(json.dumps(analyze(config, trials), indent=2))
 
