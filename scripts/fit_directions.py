@@ -32,7 +32,13 @@ from jspace_binding.config import Config
 from jspace_binding.directions.fit import fit_all, save_directions
 from jspace_binding.model.base import FittingActivationSource
 from jspace_binding.model.dummy import DummyModel
-from jspace_binding.stimuli.fitting_corpus import generate_fitting_corpus, save_fitting_corpus
+from jspace_binding.stimuli.fitting_corpus import (
+    generate_fitting_corpus,
+    load_fitting_corpus,
+    save_fitting_corpus,
+)
+from jspace_binding.stimuli.generate import generate_families
+from jspace_binding.stimuli.qc import find_primary_collisions
 from jspace_binding.types import Role
 
 
@@ -54,24 +60,54 @@ def main() -> None:
         "--dry-run", action="store_true", help="force the GPU-free DummyModel backend"
     )
     parser.add_argument("--dummy-mode", choices=("binding", "bag"), default=None)
+    parser.add_argument(
+        "--corpus",
+        type=Path,
+        default=None,
+        help="hand-written fitting corpus JSONL (default: generate from the frame templates)",
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
     model = _build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
 
-    entities = tuple(
+    needed = tuple(
         dict.fromkeys(
             [pair.entity for pair in config.stimuli.concept_pairs]
             + list(config.stimuli.non_participant_entities)
         )
     )
-    corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
-    save_fitting_corpus(corpus, config.paths.fitting_corpus)
-    print(
-        f"fitting corpus: {len(corpus)} sentences ({len(entities)} entities x 2 roles "
-        f"x {config.directions.exemplars_per_role}) -> {config.paths.fitting_corpus}",
-        file=sys.stderr,
-    )
+    if args.corpus is not None:
+        corpus = load_fitting_corpus(args.corpus)
+        entities = tuple(sorted({ex.entity for ex in corpus}))
+        missing = [e for e in needed if e not in entities]
+        if missing:
+            print(
+                f"WARNING --corpus covers only {list(entities)}; the primary experiment "
+                f"also needs directions for {missing} (fine for an integration test, "
+                "not for the full sweep)",
+                file=sys.stderr,
+            )
+        collisions = find_primary_collisions(corpus, generate_families(config))
+        if collisions:
+            print(
+                f"WARNING {len(collisions)} corpus sentences occur verbatim in the "
+                "primary stimulus set at this config's scale — fitting and testing on "
+                "the same sentences contaminates the causal test. Run "
+                "scripts/check_corpus.py for the list; fix the corpus before a real run.",
+                file=sys.stderr,
+            )
+        print(f"fitting corpus: {len(corpus)} sentences (hand-written, {args.corpus})",
+              file=sys.stderr)
+    else:
+        entities = needed
+        corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
+        save_fitting_corpus(corpus, config.paths.fitting_corpus)
+        print(
+            f"fitting corpus: {len(corpus)} sentences ({len(entities)} entities x 2 roles "
+            f"x {config.directions.exemplars_per_role}) -> {config.paths.fitting_corpus}",
+            file=sys.stderr,
+        )
 
     summary: dict[str, object] = {"entities": list(entities), "sites": {}}
     for site in config.experiment.injection_sites:
