@@ -3,13 +3,16 @@
 The unit of resampling and permutation is the ItemFamily: each family i
 contributes one score
 
-    BS_i = [p(agent, real) - p(patient, real)]
-         - [p(agent, no_edit) - p(patient, no_edit)]
+    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2,
+    dG(s) = [L(agent, push_s) - L(patient, push_s)]
+          - [L(agent, no_edit) - L(patient, no_edit)]
 
-(position-averaged; see analysis.binding_score). The DiD pairing lives inside
-BS_i, so family-level resampling preserves it. All randomness flows through a
-local np.random.default_rng(seed) — no global RNG state — so every reported
-number is reproducible from the config seed alone.
+in position-averaged log-odds (see analysis.binding_score). The pairing lives
+inside BS_i, so family-level resampling preserves it, and a within-family
+agent/patient label swap negates BS_i exactly (each dG flips sign), keeping
+the sign-flip permutation test exact. All randomness flows through a local
+np.random.default_rng(seed) — no global RNG state — so every reported number
+is reproducible from the config seed alone.
 """
 
 from __future__ import annotations
@@ -54,17 +57,16 @@ def permutation_pvalue(
     """Two-sided sign-flip permutation test of mean(BS_i) = 0.
 
     Under H0 (no role binding) the agent/patient labels within a family are
-    exchangeable. Swapping the labels in family i exchanges p(agent, e) with
-    p(patient, e) for BOTH e = real and e = no_edit, which negates each
-    bracket of
+    exchangeable. Swapping the labels in family i exchanges L(agent, e, s)
+    with L(patient, e, s) for every edit condition, which negates each gap
+    change dG(s) and hence negates
 
-        BS_i = [p(agent, real) - p(patient, real)]
-             - [p(agent, no_edit) - p(patient, no_edit)]
+        BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2
 
-    and hence negates BS_i itself: the within-family label swap is exactly a
-    sign flip of that family's score. The permutation null is therefore built
-    by drawing s_i in {-1, +1} uniformly and recomputing mean(s_i * BS_i).
-    Two-sided, with the add-one correction that keeps p > 0:
+    itself: the within-family label swap is exactly a sign flip of that
+    family's score. The permutation null is therefore built by drawing s_i in
+    {-1, +1} uniformly and recomputing mean(s_i * BS_i). Two-sided, with the
+    add-one correction that keeps p > 0:
     p = (1 + #{|T_perm| >= |T_obs|}) / (1 + n_permutations).
     """
     arr = np.asarray(scores, dtype=float)
