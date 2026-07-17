@@ -54,3 +54,20 @@ class FittingActivationSource(Protocol):
         `site` (the entity's token, or the sentence-final token). No edit is
         applied; the caller (directions.fit) does the difference-of-means."""
         ...
+
+
+@runtime_checkable
+class ProbeActivationSource(Protocol):
+    """A model that exposes the three RQ1 activation sources (proposal, §4)."""
+
+    def probe_activation(
+        self,
+        sentence: str,
+        entity: str,
+        site: InjectionSite,
+    ) -> dict[str, Sequence[float]]:
+        """No-edit activations at `site` keyed by source: "jspace" (J-space
+        coordinates), "orthogonal" (residual component the lens cannot see),
+        and "residual" (the full residual-stream activation). The RQ1 linear
+        probe trains on each source separately."""
+        ...

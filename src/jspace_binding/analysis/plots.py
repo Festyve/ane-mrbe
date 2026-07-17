@@ -133,6 +133,65 @@ def _condition_label(edit_type: EditType, sign: PushSign | None) -> str:
     return f"{edit_type.value} {arrow}"
 
 
+def selectivity_plot(
+    reports: dict[InjectionSite, dict[str, object]],
+    out_path: str | Path,
+) -> None:
+    """RQ1 figure: probe accuracy vs control-task accuracy per activation
+    source, one panel per injection site. The vertical gap between the task
+    bar and the control bar is the selectivity; a genuine role probe sits
+    high on accuracy and near chance on the control, while a memorizing
+    probe collapses the gap (Hewitt & Liang, 2019).
+
+    `reports` values must expose .accuracy and .control_accuracy (the
+    analysis.probes.ProbeReport shape).
+    """
+    sites = list(reports)
+    fig, axes = plt.subplots(
+        1, len(sites), figsize=(4.2 * len(sites), 3.8), sharey=True, squeeze=False
+    )
+    width = 0.38
+    for ax, site in zip(axes[0], sites, strict=True):
+        by_source = reports[site]
+        sources = list(by_source)
+        x = np.arange(len(sources), dtype=float)
+        task = [by_source[s].accuracy for s in sources]
+        control = [by_source[s].control_accuracy for s in sources]
+        ax.bar(x - width / 2, task, width, label="role task")
+        ax.bar(x + width / 2, control, width, label="control task", color="0.7")
+        ax.axhline(0.5, color="0.5", linewidth=0.8, linestyle="--")
+        ax.set_xticks(x)
+        ax.set_xticklabels(sources, rotation=15, ha="right")
+        ax.set_title(site.value)
+        ax.set_ylim(0.0, 1.05)
+    axes[0][0].set_ylabel("held-out accuracy (leave-one-pair-out)")
+    axes[0][0].legend(fontsize=8)
+    fig.suptitle("RQ1: role decodability by activation source")
+    _save(fig, out_path)
+
+
+def ablation_deltas_plot(
+    deltas: dict[str, dict[str, float]],
+    out_path: str | Path,
+) -> None:
+    """RQ2 figure: per ablation, the binding-specific deficit
+    (binding degradation - recall degradation), with the matched-norm
+    random-subspace ablation as the comparison bar beside the J-space bar.
+    Causal involvement = the J-space bar exceeding both zero and the random
+    bar; matching bars = generic capacity loss.
+    """
+    names = list(deltas)
+    values = [deltas[name]["binding_specific_deficit"] for name in names]
+    fig, ax = plt.subplots(figsize=(5.5, 3.8))
+    ax.bar(np.arange(len(names)), values, 0.55, color=["C0", "0.7"][: len(names)])
+    ax.axhline(0.0, color="0.4", linewidth=0.8)
+    ax.set_xticks(np.arange(len(names)))
+    ax.set_xticklabels(names, rotation=10, ha="right")
+    ax.set_ylabel("binding deficit − recall deficit")
+    ax.set_title("RQ2: binding-specific ablation deficit")
+    _save(fig, out_path)
+
+
 def _save(fig: plt.Figure, out_path: str | Path) -> None:
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)

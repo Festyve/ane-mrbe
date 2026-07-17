@@ -75,6 +75,9 @@ class EditType(str, Enum):
     RANDOM_DIRECTION = "random_direction"  # matched-norm random direction, same site
     SHUFFLED_LABEL_DIRECTION = "shuffled_label_direction"  # r refit with shuffled role labels
     IDENTITY_SWAP = "identity_swap"  # CONTROL ONLY: lexical coordinate swap (strength check)
+    # RQ2 ablations (experiments.rq2_ablation; never part of the primary sweep):
+    ABLATE_JSPACE = "ablate_jspace"  # remove the J-space component at the site
+    ABLATE_RANDOM_SUBSPACE = "ablate_random_subspace"  # remove a matched-dim random subspace
 
 
 # Edit types that push a direction and therefore run in both PushSigns.

@@ -59,6 +59,16 @@ CONTROL_EDIT_TYPES: tuple[EditType, ...] = (
     EditType.SHUFFLED_LABEL_DIRECTION,
 )
 
+# The three constructions testing agent/patient proper; DATIVE tests
+# recipient/theme and is reported separately (proposal, Experimental Setup §2),
+# so the "meaningful in >= 2 of 3 constructions" positive-result criterion
+# quantifies over these only.
+AGENT_PATIENT_CONSTRUCTIONS: tuple[str, ...] = (
+    "active_passive",
+    "cleft",
+    "relative_clause",
+)
+
 _EPS = 1e-9  # probability clamp so a hard 0/1 read cannot produce +/- inf
 
 
@@ -225,11 +235,15 @@ class ScoreTable:
     PushSign.value) for the descriptive per-sign summary. null_band pools
     control-edit scores across all groups: controls estimate the same
     statistic with no role information, so they share one null distribution.
+    null_by_edit keeps the same control scores split per control edit type
+    (keyed by EditType.value) so the verdict can check each control — in
+    particular the random direction — individually against the band.
     """
 
     real: dict[tuple[str, str], list[float]] = field(default_factory=dict)
     gap_changes: dict[str, list[float]] = field(default_factory=dict)
     null_band: list[float] = field(default_factory=list)
+    null_by_edit: dict[str, list[float]] = field(default_factory=dict)
 
 
 def collect_scores(all_trials: list[TrialResult], site: InjectionSite) -> ScoreTable:
@@ -261,5 +275,7 @@ def collect_scores(all_trials: list[TrialResult], site: InjectionSite) -> ScoreT
                 table.gap_changes.setdefault(sign.value, []).append(value)
         for control in CONTROL_EDIT_TYPES:
             if control in edits_present:
-                table.null_band.append(control_binding_score(trials, entity_token, control))
+                score = control_binding_score(trials, entity_token, control)
+                table.null_band.append(score)
+                table.null_by_edit.setdefault(control.value, []).append(score)
     return table
