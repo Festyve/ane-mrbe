@@ -171,15 +171,23 @@ numpy — no model dependencies — so it is unit-testable on any machine.
   visible directly.
 
 ### `scripts/`
+All five entry points share `model/factory.py` (build_model + the common
+flags + `preflight_or_exit`): backend readiness is checked BEFORE any sweep,
+so exit 2 always means "not configured/fitted yet" and a mid-sweep error is a
+genuine failure, never mislabeled. `experiments.primary.validate_config`
+additionally rejects unusable sweep configs (single push sign, RQ2 ablation
+edit types) before any model call.
 - `generate_stimuli.py --config configs/default.yaml [--out PATH]`
-- `fit_directions.py --config ... [--dry-run] [--dummy-mode binding|bag]` —
-  fitting corpus -> activations -> directions + stability warnings.
-- `calibrate.py --config ... [--dry-run]` — writes data/calibration.json;
-  copy the values into the config's model section.
-- `run_primary.py --config ... [--dry-run] [--dummy-mode binding|bag]` —
-  exits 2 with a one-shot everything-missing message when the qwen backend
-  is not runnable yet.
-- `run_rq1.py` / `run_rq2.py` — same flags; the secondary analyses.
+- `fit_directions.py [--corpus PATH] [--allow-contaminated]` — fitting
+  corpus -> activations -> directions + stability warnings. A hand-written
+  corpus colliding with the primary set is REFUSED unless
+  --allow-contaminated (which stamps the output summary).
+- `calibrate.py` — writes data/calibration.json; copy the values into the
+  config's model section. Exit 3 = intervention-strength failure.
+- `run_primary.py` / `run_rq1.py` / `run_rq2.py` — the experiments.
+- `check_corpus.py --corpus ... [--against ...] [--require-balance]` —
+  corpus QC gate (imbalance is a warning unless --require-balance, so eval
+  grids like 8/7/7/8 pass while fitting corpora can be held to balance).
 
 ### CI (.github/workflows/ci.yml)
 Every PR runs ruff, the unit tests, and the full dry-run pipeline in BOTH

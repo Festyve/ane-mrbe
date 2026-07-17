@@ -103,6 +103,17 @@ class Config:
     analysis: AnalysisConfig = field(default_factory=AnalysisConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
 
+    def direction_entities(self) -> tuple[str, ...]:
+        """Every entity needing a fitted role direction: the pushed pair
+        entities plus the non-participant pool. The canonical definition —
+        fitting and calibration must agree on it."""
+        return tuple(
+            dict.fromkeys(
+                [pair.entity for pair in self.stimuli.concept_pairs]
+                + list(self.stimuli.non_participant_entities)
+            )
+        )
+
     @staticmethod
     def from_yaml(path: str | Path) -> Config:
         raw = yaml.safe_load(Path(path).read_text()) or {}

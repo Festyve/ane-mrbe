@@ -85,17 +85,27 @@ class QwenJLensModel:
                 "layer_band: workspace layer band for Qwen3.6-27B (model.layer_band in config; "
                 "[L, L] matches the source paper's single-layer swaps)"
             )
-        if config.push_coefficient is None:
-            self.missing_decisions.append(
-                "push_coefficient: run scripts/calibrate.py on the fitting corpus "
-                "(model.push_coefficient in config)"
-            )
+        # NOTE: push_coefficient is deliberately NOT a construction-time
+        # requirement — direction fitting and calibration must run before a
+        # calibrated coefficient can exist, so it is enforced at push time
+        # (_edit_delta) instead.
         self._model: Any = None
         self._tokenizer: Any = None
         self._lens: dict[int, tuple[Any, Any]] = {}  # layer -> (encoder, decoder) torch tensors
         self._directions: dict[InjectionSite, FittedDirections] = {}
         self._identity_mean: Any = None  # baseline-mean J-space state (identity recipe)
         self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal basis (RQ2)
+        self._swap_operators: dict[tuple[str, str], Any] = {}  # (source, target) -> (V, pinv V)
+
+    def preflight(self, sites: Sequence[InjectionSite] = ()) -> None:
+        """Fail fast on everything that would block a run: open config
+        decisions, missing heavy extras, the lens artifact, and (for the
+        given sites) fitted directions. Scripts call this once up front so a
+        mid-sweep RuntimeError (e.g. CUDA OOM) is never mistaken for a
+        not-configured-yet condition."""
+        self._ensure_ready()
+        for site in sites:
+            self._site_directions(site)
 
     # ------------------------------------------------------------------ #
     # WorkspaceModel                                                     #
@@ -113,6 +123,12 @@ class QwenJLensModel:
         answer token's probability from the full next-token softmax."""
         self._ensure_ready()  # before any torch import: report missing decisions first
         import torch
+
+        if edit.edit_type is EditType.IDENTITY_SWAP:
+            # Warm the swap operator BEFORE installing hooks: building it runs
+            # ~101 "Tell me about {concept}" forwards, which must never happen
+            # re-entrantly inside the edit hook.
+            self._swap_operator(edit.swap_source, edit.swap_target)  # type: ignore[arg-type]
         text = f"{sentence} {probe}"
         ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
         anchor = self._site_index(sentence, text, site, target_entity=answer_tokens[0])
@@ -134,24 +150,10 @@ class QwenJLensModel:
         (no edit applied). Site anchor: the FITTED entity's own token for
         ENTITY_TOKEN, else the sentence-final token."""
         self._ensure_ready()  # before any torch import: report missing decisions first
-        import torch
-        ids = self._tokenizer(sentence, return_tensors="pt").input_ids.to(self._device())
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
-        captured: dict[str, Any] = {}
-        layer = self._read_layer()
-
-        def capture(module: Any, inputs: Any, output: Any) -> None:
-            hidden = output[0] if isinstance(output, tuple) else output
-            captured["h"] = hidden[0, anchor, :].detach()
-
-        handle = self._decoder_layer(layer).register_forward_hook(capture)
-        try:
-            with torch.no_grad():
-                self._model(ids)
-        finally:
-            handle.remove()
-        encoder, _ = self._lens[layer]
-        coords = encoder @ captured["h"].to(encoder.dtype)
+        h = self._hidden_at(sentence, anchor)
+        encoder, _ = self._lens[self._read_layer()]
+        coords = encoder @ h.to(encoder.dtype)
         return [float(x) for x in coords.float().cpu()]
 
     # ------------------------------------------------------------------ #
@@ -165,25 +167,9 @@ class QwenJLensModel:
         "orthogonal" = h - D @ (E @ h) (what the lens cannot reconstruct),
         "residual" = h. No edit applied."""
         self._ensure_ready()
-        import torch
-
-        ids = self._tokenizer(sentence, return_tensors="pt").input_ids.to(self._device())
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
-        layer = self._read_layer()
-        captured: dict[str, Any] = {}
-
-        def capture(module: Any, inputs: Any, output: Any) -> None:
-            hidden = output[0] if isinstance(output, tuple) else output
-            captured["h"] = hidden[0, anchor, :].detach()
-
-        handle = self._decoder_layer(layer).register_forward_hook(capture)
-        try:
-            with torch.no_grad():
-                self._model(ids)
-        finally:
-            handle.remove()
-        encoder, decoder = self._lens[layer]
-        h = captured["h"].to(encoder.dtype)
+        encoder, decoder = self._lens[self._read_layer()]
+        h = self._hidden_at(sentence, anchor).to(encoder.dtype)
         coords = encoder @ h
         orthogonal = h - decoder @ coords
         return {
@@ -191,6 +177,27 @@ class QwenJLensModel:
             "orthogonal": [float(x) for x in orthogonal.float().cpu()],
             "residual": [float(x) for x in h.float().cpu()],
         }
+
+    def _hidden_at(self, text: str, anchor: int) -> Any:
+        """Residual activation at the read layer for token position `anchor`
+        of an edit-free forward over `text` (the capture-hook pattern shared
+        by fitting_activation / probe_activation / _concept_state)."""
+        import torch
+
+        ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
+        captured: dict[str, Any] = {}
+
+        def capture(module: Any, inputs: Any, output: Any) -> None:
+            hidden = output[0] if isinstance(output, tuple) else output
+            captured["h"] = hidden[0, anchor, :].detach()
+
+        handle = self._decoder_layer(self._read_layer()).register_forward_hook(capture)
+        try:
+            with torch.no_grad():
+                self._model(ids)
+        finally:
+            handle.remove()
+        return captured["h"]
 
     # ------------------------------------------------------------------ #
     # Loading                                                            #
@@ -340,18 +347,27 @@ class QwenJLensModel:
             h_cast = h.to(basis.dtype)
             return -(basis @ (basis.T @ h_cast))
         if edit.edit_type is EditType.IDENTITY_SWAP:
-            v_s = self._concept_direction(edit.swap_source)  # type: ignore[arg-type]
-            v_t = self._concept_direction(edit.swap_target)  # type: ignore[arg-type]
-            V = torch.stack([v_s, v_t], dim=1)  # (k, 2), J-space coords
+            # Warmed before the hooks were installed (answer_distribution);
+            # this lookup must never trigger the ~101 nested baseline forwards.
+            V, pinv_V = self._swap_operator(edit.swap_source, edit.swap_target)  # type: ignore[arg-type]
             h_j = encoder @ h.to(encoder.dtype)
-            c = torch.linalg.pinv(V) @ h_j
+            c = pinv_V @ h_j
             alpha = 1.0 if edit.alpha is None else float(edit.alpha)
             swapped = alpha * torch.stack([c[1], c[0]])
             return decoder @ (V @ (swapped - c))
 
-        # Direction pushes: h += sign * coefficient * decoder @ r_unit.
+        # Direction pushes: h += sign * coefficient * unit(decoder @ r).
+        # Normalized in the RESIDUAL stream, not J-space: the decoder is not
+        # orthonormal, so J-space unit vectors decode to different residual
+        # norms — normalizing after decoding is what makes the random-direction
+        # control genuinely norm-matched to the fitted-role push.
         if edit.sign is None:
             raise ValueError(f"{edit.edit_type.value} EditSpec lacks a PushSign")
+        if edit.coefficient is None and self.config.push_coefficient is None:
+            raise RuntimeError(
+                "no push coefficient: set model.push_coefficient in config "
+                "(scripts/calibrate.py produces it) or pass EditSpec.coefficient"
+            )
         sign = 1.0 if edit.sign is PushSign.TOWARD_AGENT else -1.0
         coefficient = (
             float(edit.coefficient)
@@ -360,7 +376,8 @@ class QwenJLensModel:
         )
         r = self._push_direction(edit, site, k=encoder.shape[0])
         r_t = torch.as_tensor(r, device=decoder.device, dtype=decoder.dtype)
-        return sign * coefficient * (decoder @ r_t)
+        v = decoder @ r_t
+        return sign * coefficient * (v / torch.linalg.vector_norm(v))
 
     def _push_direction(self, edit: EditSpec, site: InjectionSite, k: int) -> np.ndarray:
         """Unit direction in J-space coordinates for a push edit."""
@@ -386,6 +403,21 @@ class QwenJLensModel:
         if site not in self._directions:
             self._directions[site] = load_directions(self.directions_dir, site)
         return self._directions[site]
+
+    def _swap_operator(self, source: str, target: str) -> Any:
+        """(V, pinv(V)) for an identity swap, cached per concept pair — the
+        pseudoinverse is identical across every trial and layer, and building
+        V runs the baseline-concept forwards, which must happen outside any
+        active edit hook."""
+        import torch
+
+        key = (source, target)
+        if key not in self._swap_operators:
+            V = torch.stack(
+                [self._concept_direction(source), self._concept_direction(target)], dim=1
+            )  # (k, 2), J-space coords
+            self._swap_operators[key] = (V, torch.linalg.pinv(V))
+        return self._swap_operators[key]
 
     def _random_subspace(self, seed: int, encoder: Any) -> Any:
         """Seeded random orthonormal (d_model, k) basis, cached per seed."""
@@ -418,26 +450,10 @@ class QwenJLensModel:
         return self._concept_state(word) - self._identity_mean
 
     def _concept_state(self, word: str) -> Any:
-        import torch
-
         text = f"Tell me about {word}"
-        ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
         anchor = self._last_word_token_index(text, word)
-        layer = self._read_layer()
-        captured: dict[str, Any] = {}
-
-        def capture(module: Any, inputs: Any, output: Any) -> None:
-            hidden = output[0] if isinstance(output, tuple) else output
-            captured["h"] = hidden[0, anchor, :].detach()
-
-        handle = self._decoder_layer(layer).register_forward_hook(capture)
-        try:
-            with torch.no_grad():
-                self._model(ids)
-        finally:
-            handle.remove()
-        encoder, _ = self._lens[layer]
-        return encoder @ captured["h"].to(encoder.dtype)
+        encoder, _ = self._lens[self._read_layer()]
+        return encoder @ self._hidden_at(text, anchor).to(encoder.dtype)
 
     # ------------------------------------------------------------------ #
     # Indexing helpers                                                   #

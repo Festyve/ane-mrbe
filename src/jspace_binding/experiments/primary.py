@@ -47,6 +47,35 @@ from jspace_binding.types import (
 )
 
 
+def validate_config(config: Config) -> None:
+    """Reject configs the primary statistic cannot support, BEFORE any model
+    call — a bad sweep config must fail in milliseconds, not after GPU hours.
+
+    - RQ2 ablation edit types never belong in the primary sweep (they have
+      their own runner, experiments.rq2_ablation).
+    - The crossover binding score is defined over BOTH push signs; a
+      single-sign config would only crash in analyze() after the sweep spent
+      its compute (analysis.binding_score._cell_logits requires both).
+    """
+    rq2_only = [
+        e.value
+        for e in config.experiment.edit_types
+        if e in (EditType.ABLATE_JSPACE, EditType.ABLATE_RANDOM_SUBSPACE)
+    ]
+    if rq2_only:
+        raise ValueError(
+            f"edit_types {rq2_only} are RQ2 ablations, not primary-sweep conditions; "
+            "run scripts/run_rq2.py instead"
+        )
+    has_push = any(e in DIRECTION_PUSH_EDIT_TYPES for e in config.experiment.edit_types)
+    if has_push and set(config.experiment.push_signs) != set(PushSign):
+        got = [s.value for s in config.experiment.push_signs]
+        raise ValueError(
+            f"the crossover binding score needs both push signs, got {got}; "
+            "set experiment.push_signs: [toward_agent, toward_patient]"
+        )
+
+
 def run_primary(
     config: Config, model: WorkspaceModel, families: list[ItemFamily]
 ) -> list[TrialResult]:
@@ -55,6 +84,7 @@ def run_primary(
     Trials are written to config.paths.results / "trials.jsonl" and returned
     in sweep order.
     """
+    validate_config(config)
     trials: list[TrialResult] = []
     for family_index, family in enumerate(families):
         if family.answer_set is None:
@@ -231,6 +261,12 @@ def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> d
         if t.edit_type not in (EditType.IDENTITY_SWAP, EditType.NO_EDIT):
             continue
         entity, counterpart = t.pair_id.split("->", 1)
+        missing = [tok for tok in (entity, counterpart) if tok not in t.answer_probs]
+        if missing:
+            raise ValueError(
+                f"neutral strength check: answer tokens {missing} missing from "
+                f"answer_probs of a {t.edit_type.value} trial in family {t.family_id!r}"
+            )
         sums.setdefault((t.edit_type, "entity"), []).append(t.answer_probs[entity])
         sums.setdefault((t.edit_type, "counterpart"), []).append(t.answer_probs[counterpart])
 
