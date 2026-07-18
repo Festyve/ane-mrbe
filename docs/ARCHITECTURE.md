@@ -123,15 +123,26 @@ numpy — no model dependencies — so it is unit-testable on any machine.
   `FittingActivationSource` (fitting_activation) protocols.
 - `dummy.py` — synthetic backend, logit-space tables (see class docstring for
   exact numbers), content-hash-seeded jitter, planted fitting activations.
-- `qwen_jlens.py` — the real backend, fully shaped, lazy torch imports, NOT
-  yet validated on real weights. Open unknown: the released lens's artifact
-  schema (`_load_lens` documents the expected `layer_{L}.encoder/decoder`
-  keys and fails loudly). Layer semantics: edits applied across the inclusive
-  `layer_band`, reads at its top. Site anchors: sentence-final token / the
-  target entity's last token (also for the non-participant push — the site is
-  a sentence position, not a property of the direction). Identity directions
-  via the "Tell me about {concept}" recipe, mean-subtracted over a
-  100-concept baseline.
+- `qwen_jlens.py` — the real backend, written to the SOURCE PAPER'S actual
+  methods (Gurnee et al. 2026 §2), lazy torch imports, NOT yet validated on
+  real weights. Lens facts it encodes: the artifact is a per-layer averaged
+  Jacobian `J_l` (d_model x d_model); the J-lens vector for token t is
+  `J_l^T W_U[t]` (W_U from the model itself); the J-space is sparse
+  nonnegative combinations of those vectors, and an activation's J-space
+  component comes from sparse pursuit (`_jspace_component`, k =
+  `model.jspace_k`); the identity swap patches in lens coordinates using
+  J-lens vectors directly (their §2.5 — no auxiliary concept-vector forwards
+  needed); ABLATE_JSPACE zeroes the top-`ablate_k` active J-lens vectors
+  (their §3.5.2). Remaining unknowns: the artifact's key names
+  (`_JACOBIAN_KEY_PATTERNS`, fails loudly listing what it found) and
+  first-contact bugs. Layer semantics: edits applied across the inclusive
+  raw `layer_band`, reads at its top; their workspace is reindexed layers
+  ~38–92 of 100 with single-layer analyses mid-band (~L75 reindexed). Site
+  anchors: sentence-final token / the target entity's last token (also for
+  the non-participant push — the site is a sentence position, not a property
+  of the direction). Comparability note: several of the paper's swap
+  experiments apply edits at ALL token positions; our site-anchored single
+  position is a deliberate design difference.
 
 ### `experiments/`
 - `primary.py` — the sweep: pushes x both signs at the ROLE probe; NO_EDIT at
@@ -197,13 +208,44 @@ courtesy.
 ## GPU-day runbook
 
 1. `pip install '.[model]'` (+ `bitsandbytes` if `load_in_4bit`).
-2. Verify the HF model id and download the lens; inspect its keys; adapt
-   `_load_lens`'s key mapping if the release schema differs.
-3. Pin `model.layer_band` (single layer `[L, L]` = source-paper comparability).
-4. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities.
+2. Verify the HF model id and download the lens; the loader expects per-layer
+   Jacobian matrices and tries several key spellings
+   (`_JACOBIAN_KEY_PATTERNS`) — if the release names differ, add the real
+   pattern (one line).
+3. Pin `model.layer_band` in RAW layer indices. Guidance from the source
+   paper: workspace = reindexed layers ~38–92 of 100; single-layer swap
+   analyses sit mid-band (~L75 reindexed). Convert via
+   raw = round(reindexed/100 * n_layers).
+4. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities,
+   and confirm the pairs are among the lens's n=1000 attested concepts.
 5. `scripts/fit_directions.py` — check stability per entity per site.
 6. `scripts/calibrate.py` — copy alpha / push_coefficient into the config.
-7. `scripts/run_primary.py` with `backend: qwen_jlens`.
+7. `scripts/run_primary.py` with `backend: qwen_jlens`; then `run_rq1.py`,
+   `run_rq2.py`.
+
+## Proposal ↔ repo map
+
+| Proposal element | Where it lives |
+|---|---|
+| Role directions r_entity (diff-of-means over J-space projections, per site) | `directions/fit.py` + backend `fitting_activation` (sparse-pursuit component) |
+| Fitting corpus, disjoint at template level; stability pilot | `stimuli/fitting_corpus.py`; bootstrap check in `directions/fit.py`; gate in `scripts/fit_directions.py` |
+| 2x2 stimuli x 4 constructions, worked example verbatim | `stimuli/templates.py` (pinned by tests) |
+| Both-sign push, byte-identical, never role-conditioned | `experiments/primary.py` sweep + `interventions/edits.py` |
+| Binding score BS_i = -1/2[dG(+)+dG(-)] in log-odds | `analysis/binding_score.py` (proposal §6, as amended) |
+| Controls: no-edit / neutral-probe swap / non-participant / random / shuffled | `types.EditType` + sweep; strength check verdict in `analyze()` |
+| Bootstrap CI, permutation, Cohen's d + CI on d, Holm | `analysis/stats.py` |
+| Outcome shapes (positive / tiny / clean-negative / underpowered) | `_verdict` in `experiments/primary.py` |
+| RQ1 probe (3 sources, Hewitt–Liang selectivity, split by pair) | `analysis/probes.py`, `experiments/rq1_probe.py` |
+| RQ2 ablation (J-space vs matched random subspace, matched recall task) | `experiments/rq2_ablation.py` + backend ablation edits |
+| Forest / per-condition / selectivity / ablation-delta figures | `analysis/plots.py` |
+| Calibration ("smallest value that works", fitting corpus only) | `experiments/calibrate.py` |
+| Leave-one-out generic direction robustness | `directions/fit.py` (`generic_loo`), `directions.variant` config |
+
+Deliberate deviations from the proposal text (team-flagged): the
+non-participant control pushes an absent PROFESSION's fitted direction
+(a weekday cannot bear a thematic role — proposal's "tuesday" example is
+unfittable under the role-direction design); the dative probe queries the
+giver to keep scoring uniform, with dative reported separately either way.
 
 ## Testing
 - `tests/test_templates.py` — worked example verbatim; probes byte-identical
@@ -233,9 +275,10 @@ courtesy.
 | Pinned (implemented + tested) | Open (team decisions / GPU day) |
 |---|---|
 | 2x2 design, all four construction 2x2s (drafts flagged) | probe wording sign-off |
-| Role-push edit family, both signs, all controls | layer_band for Qwen3.6-27B |
+| Role-push edit family, both signs, all controls | layer_band for Qwen3.6-27B (raw index) |
 | Log-odds crossover DiD + null band + per-sign breakdown | alpha, push_coefficient (calibration) |
-| Direction fitting + stability + shuffled + LOO | lens artifact schema (adapt `_load_lens`) |
+| Direction fitting + stability + shuffled + LOO | lens artifact KEY NAMES (math now pinned to paper) |
 | Fitting corpus (disjoint, balanced) | exemplars_per_role (stability pilot) |
-| Bootstrap / permutation / d / Holm | single-token vocab validation (needs tokenizer) |
+| Bootstrap / permutation / d / Holm | single-token vocab + lens-attestation check |
 | Dummy end-to-end validation, both modes | non-participant = absent profession (review) |
+| Backend math per Gurnee et al. §2 (J_l, pursuit, swap, ablation) | first-contact validation on real weights |
