@@ -1,31 +1,56 @@
 """Qwen3.6-27B + pre-fitted Jacobian-lens backend.
 
-Implements WorkspaceModel + FittingActivationSource against the real model.
-STATUS: fully shaped and importable on GPU-free machines (torch/transformers
-are imported lazily inside methods), but NOT yet validated on real weights —
-the one genuinely open unknown is the released lens's artifact schema, which
-_load_lens documents and fails loudly about. First GPU session: download the
-lens, inspect its keys, and adapt _load_lens (everything else is wired).
+Implements WorkspaceModel + FittingActivationSource + ProbeActivationSource
+against the real model, grounded in the ACTUAL methods of Gurnee et al.
+(2026) — not a guessed schema:
 
-Layer semantics (open knob, flagged for team review): config.layer_band is an
-inclusive (lo, hi) pair. Edits are applied at every layer in the band;
-activations for direction fitting and J-space reads are taken at `hi` (the
-assembled workspace after the band). A single-layer setup — matching the
-source paper's swap experiments, the proposal's lean (a) — is layer_band:
-[L, L].
+- The released lens artifact is a per-layer averaged Jacobian J_l, a
+  (d_model x d_model) matrix mapping layer-l residual directions to their
+  final-layer counterparts (their §2.1). Reading the lens is
+  lens(h) = softmax(W_U norm(J_l h)), with W_U the model's own unembedding.
+- The J-lens VECTOR for vocabulary token t at layer l is
+  v_t = J_l^T W_U[t] — the residual-stream direction whose inner product
+  with h gives t's lens score. These are the atoms every intervention uses.
+- The J-space is NOT a linear subspace (their §2.3): it is the set of sparse
+  nonnegative combinations of at most k J-lens vectors. The "J-space
+  component" of an activation is recovered by sparse pursuit against the
+  J-lens dictionary; the non-J-space component is the remainder. We
+  implement a matching-pursuit approximation of their gradient pursuit
+  (argmax lens score -> refit active set -> clamp negatives), k from
+  config.model.jspace_k.
+- The identity swap patches in lens coordinates (their §2.5):
+  V = [v_s v_t], c = V^+ h, h_patched = h + V(sigma(c) - c), optional alpha.
+  No auxiliary "concept vector" forwards are needed — the swap operator is
+  pure linear algebra over J_l and W_U, so it is safe to build inside hooks
+  (cached per pair and layer).
+- J-space ABLATION zeroes the residual's projection onto the span of the
+  top-k most strongly active J-lens vectors (their §3.5.2, k ~= 10; config
+  model.ablate_k). Their capability evals additionally exclude tokens in the
+  clean forward's top-10 to avoid ablating intended outputs — a refinement
+  to consider on GPU day, not implemented here.
 
-Site anchoring: FINAL_TOKEN = the last token of the SENTENCE (not the probe);
-ENTITY_TOKEN = the last tokenizer token of the family's target entity word.
+Layer semantics: config.layer_band is an inclusive (lo, hi) pair of RAW
+layer indices. Edits apply at every layer in the band; reads (fitting, RQ1)
+use `hi`. [L, L] reproduces the source paper's single-layer swaps. Their
+workspace band is reindexed layers ~38-92 of 100, with single-layer analyses
+typically mid-workspace (~L75 reindexed); convert to raw indices once the
+model's layer count is known.
+
+Site anchoring: FINAL_TOKEN = the last token of the SENTENCE (not the
+probe); ENTITY_TOKEN = the last tokenizer token of the target entity word.
 For the NULL_NON_PARTICIPANT control the pushed direction belongs to an
-absent entity but the site anchor stays the sentence's own target-entity
-token — the site is a sentence position, not a property of the direction.
+absent entity but the anchor stays the sentence's own target-entity token —
+the site is a sentence position, not a property of the direction.
+
+STATUS: written to the paper's spec but never run on real weights. The
+remaining unknowns are the artifact's exact key names (checked loudly in
+_load_lens) and ordinary first-contact bugs.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -35,37 +60,29 @@ from jspace_binding.config import ModelConfig
 from jspace_binding.directions.fit import FittedDirections, load_directions
 from jspace_binding.types import EditSpec, EditType, InjectionSite, PushSign
 
-# Baseline concept set for the "Tell me about {concept}" identity-direction
-# recipe: read the J-space state at the concept token, then subtract the mean
-# over this 100-concept baseline so shared prompt/format components cancel.
-_BASELINE_CONCEPTS: tuple[str, ...] = (
-    "apple", "river", "mountain", "book", "window", "garden", "bridge", "engine",
-    "letter", "market", "forest", "island", "mirror", "bottle", "candle", "castle",
-    "cloud", "desert", "diamond", "door", "dream", "father", "fire", "flower",
-    "friend", "guitar", "hammer", "harbor", "horse", "hotel", "house", "hunter",
-    "journey", "kitchen", "ladder", "lake", "lamp", "library", "machine", "meadow",
-    "money", "moon", "morning", "mother", "museum", "music", "needle", "night",
-    "ocean", "office", "orange", "painter", "paper", "pencil", "piano", "picture",
-    "planet", "pocket", "police", "prince", "prison", "puzzle", "rabbit", "radio",
-    "rain", "road", "rocket", "roof", "rope", "school", "shadow", "ship",
-    "shoulder", "silver", "sister", "snow", "soldier", "song", "spring", "star",
-    "station", "stone", "storm", "street", "summer", "sun", "table", "temple",
-    "theater", "thunder", "ticket", "tiger", "tower", "train", "valley", "village",
-    "water", "winter", "wolf", "zebra",
-)
-
 
 class LensFormatError(RuntimeError):
     """The lens artifact does not match the schema _load_lens expects."""
 
 
+# Key patterns we try, in order, for layer L's Jacobian in the released
+# artifact. The first GPU session confirms which one the release uses (or
+# adds the real one here — nothing else depends on the naming).
+_JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
+    "layer_{L}",
+    "J_{L}",
+    "jacobian_{L}",
+    "layers.{L}.jacobian",
+    "layer_{L}.jacobian",
+)
+
+
 class QwenJLensModel:
-    """WorkspaceModel + FittingActivationSource backend for the real model.
+    """WorkspaceModel backend for the real model.
 
     The constructor is deliberately non-raising: it validates the config and
-    collects still-open decisions into `missing_decisions`, so the runner can
-    construct the backend and report everything missing in one shot when the
-    first forward is attempted.
+    collects still-open decisions into `missing_decisions`, reported in one
+    shot by preflight()/the first forward.
     """
 
     def __init__(
@@ -82,20 +99,21 @@ class QwenJLensModel:
         self.missing_decisions: list[str] = []
         if config.layer_band is None:
             self.missing_decisions.append(
-                "layer_band: workspace layer band for Qwen3.6-27B (model.layer_band in config; "
-                "[L, L] matches the source paper's single-layer swaps)"
+                "layer_band: raw workspace layer band for Qwen3.6-27B (model.layer_band; "
+                "[L, L] matches the source paper's single-layer swaps — their single-layer "
+                "analyses sit mid-workspace, ~reindexed L75 of 100)"
             )
-        # NOTE: push_coefficient is deliberately NOT a construction-time
-        # requirement — direction fitting and calibration must run before a
-        # calibrated coefficient can exist, so it is enforced at push time
-        # (_edit_delta) instead.
+        # push_coefficient is deliberately NOT a construction-time requirement:
+        # direction fitting and calibration must run before it can exist, so it
+        # is enforced at push time (_edit_delta).
         self._model: Any = None
         self._tokenizer: Any = None
-        self._lens: dict[int, tuple[Any, Any]] = {}  # layer -> (encoder, decoder) torch tensors
+        self._jacobians: dict[int, Any] = {}  # raw layer -> J_l (d_model x d_model)
+        self._w_u: Any = None  # unembedding weight (n_vocab x d_model)
         self._directions: dict[InjectionSite, FittedDirections] = {}
-        self._identity_mean: Any = None  # baseline-mean J-space state (identity recipe)
-        self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal basis (RQ2)
-        self._swap_operators: dict[tuple[str, str], Any] = {}  # (source, target) -> (V, pinv V)
+        self._jlens_vectors: dict[tuple[int, int], Any] = {}  # (layer, token_id) -> v_t
+        self._swap_operators: dict[tuple[str, str, int], Any] = {}  # (src, tgt, layer) -> (V, V^+)
+        self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal (d_model, ablate_k)
 
     def preflight(self, sites: Sequence[InjectionSite] = ()) -> None:
         """Fail fast on everything that would block a run: open config
@@ -124,11 +142,6 @@ class QwenJLensModel:
         self._ensure_ready()  # before any torch import: report missing decisions first
         import torch
 
-        if edit.edit_type is EditType.IDENTITY_SWAP:
-            # Warm the swap operator BEFORE installing hooks: building it runs
-            # ~101 "Tell me about {concept}" forwards, which must never happen
-            # re-entrantly inside the edit hook.
-            self._swap_operator(edit.swap_source, edit.swap_target)  # type: ignore[arg-type]
         text = f"{sentence} {probe}"
         ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
         anchor = self._site_index(sentence, text, site, target_entity=answer_tokens[0])
@@ -146,15 +159,16 @@ class QwenJLensModel:
     def fitting_activation(
         self, sentence: str, entity: str, site: InjectionSite
     ) -> list[float]:
-        """J-space coordinates at the read layer for a fitting-corpus sentence
-        (no edit applied). Site anchor: the FITTED entity's own token for
-        ENTITY_TOKEN, else the sentence-final token."""
-        self._ensure_ready()  # before any torch import: report missing decisions first
+        """The J-SPACE COMPONENT (residual-space, d_model) of the activation
+        at the read layer for a fitting-corpus sentence — per the proposal,
+        role directions are diff-of-means over activations projected onto
+        the lens-defined workspace, and per the paper that projection is the
+        sparse-pursuit component, not a matmul. No edit applied."""
+        self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
         h = self._hidden_at(sentence, anchor)
-        encoder, _ = self._lens[self._read_layer()]
-        coords = encoder @ h.to(encoder.dtype)
-        return [float(x) for x in coords.float().cpu()]
+        component, _ = self._jspace_component(h, self._read_layer())
+        return [float(x) for x in component.float().cpu()]
 
     # ------------------------------------------------------------------ #
     # ProbeActivationSource (RQ1)                                        #
@@ -163,41 +177,19 @@ class QwenJLensModel:
     def probe_activation(
         self, sentence: str, entity: str, site: InjectionSite
     ) -> dict[str, list[float]]:
-        """The three RQ1 sources at the read layer: "jspace" = E @ h,
-        "orthogonal" = h - D @ (E @ h) (what the lens cannot reconstruct),
-        "residual" = h. No edit applied."""
+        """The three RQ1 sources at the read layer: "jspace" = the sparse
+        J-space component, "orthogonal" = h minus that component (what the
+        lens cannot see), "residual" = the full activation. No edit applied."""
         self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
-        encoder, decoder = self._lens[self._read_layer()]
-        h = self._hidden_at(sentence, anchor).to(encoder.dtype)
-        coords = encoder @ h
-        orthogonal = h - decoder @ coords
+        h = self._hidden_at(sentence, anchor)
+        component, _ = self._jspace_component(h, self._read_layer())
+        remainder = h - component.to(h.dtype)
         return {
-            "jspace": [float(x) for x in coords.float().cpu()],
-            "orthogonal": [float(x) for x in orthogonal.float().cpu()],
+            "jspace": [float(x) for x in component.float().cpu()],
+            "orthogonal": [float(x) for x in remainder.float().cpu()],
             "residual": [float(x) for x in h.float().cpu()],
         }
-
-    def _hidden_at(self, text: str, anchor: int) -> Any:
-        """Residual activation at the read layer for token position `anchor`
-        of an edit-free forward over `text` (the capture-hook pattern shared
-        by fitting_activation / probe_activation / _concept_state)."""
-        import torch
-
-        ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
-        captured: dict[str, Any] = {}
-
-        def capture(module: Any, inputs: Any, output: Any) -> None:
-            hidden = output[0] if isinstance(output, tuple) else output
-            captured["h"] = hidden[0, anchor, :].detach()
-
-        handle = self._decoder_layer(self._read_layer()).register_forward_hook(capture)
-        try:
-            with torch.no_grad():
-                self._model(ids)
-        finally:
-            handle.remove()
-        return captured["h"]
 
     # ------------------------------------------------------------------ #
     # Loading                                                            #
@@ -233,21 +225,17 @@ class QwenJLensModel:
         self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
         self._model = AutoModelForCausalLM.from_pretrained(self.config.model_id, **kwargs)
         self._model.eval()
+        self._w_u = self._model.get_output_embeddings().weight  # (n_vocab, d_model)
 
     def _load_lens(self) -> None:
-        """Load per-layer J-lens encoder/decoder matrices.
+        """Load the per-layer averaged Jacobians J_l for the layer band.
 
-        EXPECTED SCHEMA (to be confirmed against the actual Neuronpedia/HF
-        release on the first GPU session — this is the project's one open
-        artifact unknown): a single .npz or .safetensors file in
-        config.lens_repo (local path or HF repo id) with, per layer L:
-
-            "layer_{L}.encoder": (k, d_model)  # residual -> J-space coords
-            "layer_{L}.decoder": (d_model, k)  # J-space coords -> residual
-
-        If the release stores different keys (or one matrix with a
-        pseudoinverse convention), adapt the key-mapping below — nothing else
-        in the pipeline depends on the schema.
+        Expected artifact (per the source paper's §2.1 and its companion
+        release): one (d_model x d_model) matrix per layer, in an .npz or
+        .safetensors file under config.lens_repo (local path or HF repo id).
+        We try the key patterns in _JACOBIAN_KEY_PATTERNS; if none match,
+        we fail listing the keys actually present so the mapping can be
+        added in one line.
         """
         import torch
 
@@ -256,7 +244,7 @@ class QwenJLensModel:
             from huggingface_hub import snapshot_download
 
             root = Path(snapshot_download(self.config.lens_repo))
-        candidates = sorted(root.glob("*.npz")) + sorted(root.glob("*.safetensors"))
+        candidates = sorted(root.glob("**/*.npz")) + sorted(root.glob("**/*.safetensors"))
         if not candidates:
             raise LensFormatError(
                 f"no .npz/.safetensors lens artifact under {root}; inspect the release "
@@ -264,18 +252,31 @@ class QwenJLensModel:
             )
         arrays = self._read_arrays(candidates[0])
         lo, hi = self.config.layer_band  # type: ignore[misc]
-        device = self._device()
+        d_model = int(self._w_u.shape[1])
         for layer in range(lo, hi + 1):
-            enc_key, dec_key = f"layer_{layer}.encoder", f"layer_{layer}.decoder"
-            if enc_key not in arrays or dec_key not in arrays:
+            key = next(
+                (
+                    pattern.format(L=layer)
+                    for pattern in _JACOBIAN_KEY_PATTERNS
+                    if pattern.format(L=layer) in arrays
+                ),
+                None,
+            )
+            if key is None:
                 raise LensFormatError(
-                    f"lens artifact {candidates[0].name} lacks {enc_key!r}/{dec_key!r}; "
-                    f"available keys: {sorted(arrays)[:12]}... — adapt _load_lens's "
-                    "key mapping to the actual release schema"
+                    f"no Jacobian key found for layer {layer} in {candidates[0].name}; "
+                    f"tried {[p.format(L=layer) for p in _JACOBIAN_KEY_PATTERNS]}; "
+                    f"available keys: {sorted(arrays)[:12]}... — add the release's "
+                    "naming to _JACOBIAN_KEY_PATTERNS"
                 )
-            self._lens[layer] = (
-                torch.as_tensor(arrays[enc_key], device=device),
-                torch.as_tensor(arrays[dec_key], device=device),
+            matrix = arrays[key]
+            if matrix.shape != (d_model, d_model):
+                raise LensFormatError(
+                    f"Jacobian {key!r} has shape {matrix.shape}, expected "
+                    f"({d_model}, {d_model}) for this model"
+                )
+            self._jacobians[layer] = torch.as_tensor(
+                matrix, device=self._device(), dtype=self._w_u.dtype
             )
 
     @staticmethod
@@ -286,6 +287,51 @@ class QwenJLensModel:
         from safetensors.numpy import load_file
 
         return load_file(path)
+
+    # ------------------------------------------------------------------ #
+    # J-lens primitives                                                  #
+    # ------------------------------------------------------------------ #
+
+    def _lens_scores(self, h: Any, layer: int) -> Any:
+        """Vocab-length lens scores of h at `layer`: W_U (J_l h). First-order
+        (the paper's norm() is omitted for direction work, as is standard)."""
+        return self._w_u @ (self._jacobians[layer] @ h.to(self._w_u.dtype))
+
+    def _jlens_vector(self, token_id: int, layer: int) -> Any:
+        """The J-lens vector v_t = J_l^T W_U[t]: the residual-stream direction
+        whose inner product with h gives token t's lens score. Cached."""
+        key = (layer, token_id)
+        if key not in self._jlens_vectors:
+            self._jlens_vectors[key] = self._jacobians[layer].T @ self._w_u[token_id]
+        return self._jlens_vectors[key]
+
+    def _jspace_component(self, h: Any, layer: int, k: int | None = None) -> Any:
+        """Sparse J-space component of h: matching-pursuit approximation of
+        the paper's gradient pursuit (§2.3). Greedily selects the token whose
+        J-lens vector scores highest on the current residual, refits the
+        active set by least squares, clamps negative coefficients (the
+        nonnegativity constraint), and stops at k atoms or when no positive
+        score remains. Returns (component, active_token_ids)."""
+        import torch
+
+        k = k if k is not None else self.config.jspace_k
+        residual = h.to(self._w_u.dtype)
+        chosen: list[int] = []
+        component = torch.zeros_like(residual)
+        for _ in range(k):
+            scores = self._lens_scores(residual, layer)
+            if chosen:
+                scores[torch.tensor(chosen, device=scores.device)] = float("-inf")
+            token_id = int(torch.argmax(scores))
+            if float(scores[token_id]) <= 0.0:
+                break
+            chosen.append(token_id)
+            V = torch.stack([self._jlens_vector(t, layer) for t in chosen], dim=1)
+            coef = torch.linalg.lstsq(V.float(), h.float().unsqueeze(1)).solution.squeeze(1)
+            coef = torch.clamp(coef, min=0.0)
+            component = (V.float() @ coef).to(residual.dtype)
+            residual = h.to(residual.dtype) - component
+        return component, chosen
 
     # ------------------------------------------------------------------ #
     # Edits                                                              #
@@ -336,31 +382,36 @@ class QwenJLensModel:
         interventions.edits, the canonical description)."""
         import torch
 
-        encoder, decoder = self._lens[layer]
         if edit.edit_type is EditType.ABLATE_JSPACE:
-            # RQ2: remove the lens-reconstructable component at the site.
-            return -(decoder @ (encoder @ h.to(encoder.dtype)))
+            # RQ2: zero the projection onto the span of the top-k most
+            # strongly active J-lens vectors (paper §3.5.2, k = ablate_k).
+            _, active = self._jspace_component(h, layer, k=self.config.ablate_k)
+            if not active:
+                return torch.zeros_like(h)
+            V = torch.stack([self._jlens_vector(t, layer) for t in active], dim=1).float()
+            projection = V @ (torch.linalg.pinv(V) @ h.float())
+            return -projection.to(h.dtype)
         if edit.edit_type is EditType.ABLATE_RANDOM_SUBSPACE:
             # RQ2 capacity control: project out a seeded random orthonormal
-            # subspace of the SAME dimension as the J-space (matched dim).
-            basis = self._random_subspace(edit.seed or 0, encoder)
+            # subspace of the SAME dimension count (ablate_k) as the J-space
+            # ablation removes.
+            basis = self._random_subspace(edit.seed or 0)
             h_cast = h.to(basis.dtype)
-            return -(basis @ (basis.T @ h_cast))
+            return -(basis @ (basis.T @ h_cast)).to(h.dtype)
         if edit.edit_type is EditType.IDENTITY_SWAP:
-            # Warmed before the hooks were installed (answer_distribution);
-            # this lookup must never trigger the ~101 nested baseline forwards.
-            V, pinv_V = self._swap_operator(edit.swap_source, edit.swap_target)  # type: ignore[arg-type]
-            h_j = encoder @ h.to(encoder.dtype)
-            c = pinv_V @ h_j
+            # Coordinate swap in lens coordinates (paper §2.5), using the
+            # J-lens vectors of the two tokens directly. Pure linear algebra
+            # over cached J_l and W_U — safe inside hooks.
+            V, pinv_V = self._swap_operator(edit.swap_source, edit.swap_target, layer)  # type: ignore[arg-type]
+            c = pinv_V @ h.float()
             alpha = 1.0 if edit.alpha is None else float(edit.alpha)
             swapped = alpha * torch.stack([c[1], c[0]])
-            return decoder @ (V @ (swapped - c))
+            return (V @ (swapped - c)).to(h.dtype)
 
-        # Direction pushes: h += sign * coefficient * unit(decoder @ r).
-        # Normalized in the RESIDUAL stream, not J-space: the decoder is not
-        # orthonormal, so J-space unit vectors decode to different residual
-        # norms — normalizing after decoding is what makes the random-direction
-        # control genuinely norm-matched to the fitted-role push.
+        # Direction pushes: h += sign * coefficient * unit(r). The fitted r is
+        # already a residual-space unit direction (a diff-of-means of J-space
+        # components); re-normalizing keeps every push — real or control —
+        # perturbing the stream by exactly `coefficient`.
         if edit.sign is None:
             raise ValueError(f"{edit.edit_type.value} EditSpec lacks a PushSign")
         if edit.coefficient is None and self.config.push_coefficient is None:
@@ -374,16 +425,15 @@ class QwenJLensModel:
             if edit.coefficient is not None
             else float(self.config.push_coefficient)  # type: ignore[arg-type]
         )
-        r = self._push_direction(edit, site, k=encoder.shape[0])
-        r_t = torch.as_tensor(r, device=decoder.device, dtype=decoder.dtype)
-        v = decoder @ r_t
-        return sign * coefficient * (v / torch.linalg.vector_norm(v))
+        r = self._push_direction(edit, site)
+        r_t = torch.as_tensor(r, device=h.device, dtype=torch.float32)
+        return (sign * coefficient * (r_t / torch.linalg.vector_norm(r_t))).to(h.dtype)
 
-    def _push_direction(self, edit: EditSpec, site: InjectionSite, k: int) -> np.ndarray:
-        """Unit direction in J-space coordinates for a push edit."""
+    def _push_direction(self, edit: EditSpec, site: InjectionSite) -> np.ndarray:
+        """Unit direction (residual space) for a push edit."""
         if edit.edit_type is EditType.RANDOM_DIRECTION:
             rng = np.random.default_rng(edit.seed)
-            raw = rng.standard_normal(k)
+            raw = rng.standard_normal(int(self._w_u.shape[1]))
             return raw / np.linalg.norm(raw)
         variant = {
             EditType.ROLE_PUSH: self.direction_variant,
@@ -392,72 +442,68 @@ class QwenJLensModel:
         }[edit.edit_type]
         directions = self._site_directions(site)
         r = directions.direction(edit.entity, variant)  # type: ignore[arg-type]
-        if r.shape[0] != k:
+        if r.shape[0] != int(self._w_u.shape[1]):
             raise ValueError(
-                f"fitted direction dim {r.shape[0]} != lens dim {k}; refit directions "
-                "against this lens (scripts/fit_directions.py)"
+                f"fitted direction dim {r.shape[0]} != d_model {int(self._w_u.shape[1])}; "
+                "refit directions against this model (scripts/fit_directions.py)"
             )
         return r
+
+    def _swap_operator(self, source: str, target: str, layer: int) -> Any:
+        """(V, pinv(V)) for an identity swap at one layer, cached per
+        (pair, layer) — the pseudoinverse is identical across trials."""
+        import torch
+
+        key = (source, target, layer)
+        if key not in self._swap_operators:
+            v_s = self._jlens_vector(self._single_token_id(source), layer)
+            v_t = self._jlens_vector(self._single_token_id(target), layer)
+            V = torch.stack([v_s, v_t], dim=1).float()
+            self._swap_operators[key] = (V, torch.linalg.pinv(V))
+        return self._swap_operators[key]
 
     def _site_directions(self, site: InjectionSite) -> FittedDirections:
         if site not in self._directions:
             self._directions[site] = load_directions(self.directions_dir, site)
         return self._directions[site]
 
-    def _swap_operator(self, source: str, target: str) -> Any:
-        """(V, pinv(V)) for an identity swap, cached per concept pair — the
-        pseudoinverse is identical across every trial and layer, and building
-        V runs the baseline-concept forwards, which must happen outside any
-        active edit hook."""
-        import torch
-
-        key = (source, target)
-        if key not in self._swap_operators:
-            V = torch.stack(
-                [self._concept_direction(source), self._concept_direction(target)], dim=1
-            )  # (k, 2), J-space coords
-            self._swap_operators[key] = (V, torch.linalg.pinv(V))
-        return self._swap_operators[key]
-
-    def _random_subspace(self, seed: int, encoder: Any) -> Any:
-        """Seeded random orthonormal (d_model, k) basis, cached per seed."""
+    def _random_subspace(self, seed: int) -> Any:
+        """Seeded random orthonormal (d_model, ablate_k) basis, cached per seed."""
         import torch
 
         if seed not in self._random_subspaces:
-            k, d_model = encoder.shape
+            d_model = int(self._w_u.shape[1])
             rng = np.random.default_rng(seed)
-            raw = rng.standard_normal((d_model, k))
+            raw = rng.standard_normal((d_model, self.config.ablate_k))
             q, _ = np.linalg.qr(raw)
             self._random_subspaces[seed] = torch.as_tensor(
-                q, device=encoder.device, dtype=encoder.dtype
+                q, device=self._device(), dtype=torch.float32
             )
         return self._random_subspaces[seed]
 
     # ------------------------------------------------------------------ #
-    # Identity directions ("Tell me about {concept}" recipe)             #
+    # Forward-capture and indexing helpers                               #
     # ------------------------------------------------------------------ #
 
-    @lru_cache(maxsize=256)  # noqa: B019 - the model is a long-lived singleton
-    def _concept_direction(self, word: str) -> Any:
-        """Lens-space identity direction for `word`: J-space state at the
-        concept token of "Tell me about {word}", mean-subtracted over the
-        100-concept baseline set (computed once, cached)."""
-        if self._identity_mean is None:
-            states = [self._concept_state(concept) for concept in _BASELINE_CONCEPTS]
-            import torch
+    def _hidden_at(self, text: str, anchor: int) -> Any:
+        """Residual activation at the read layer for token position `anchor`
+        of an edit-free forward over `text`."""
+        import torch
 
-            self._identity_mean = torch.stack(states).mean(dim=0)
-        return self._concept_state(word) - self._identity_mean
+        ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
+        captured: dict[str, Any] = {}
 
-    def _concept_state(self, word: str) -> Any:
-        text = f"Tell me about {word}"
-        anchor = self._last_word_token_index(text, word)
-        encoder, _ = self._lens[self._read_layer()]
-        return encoder @ self._hidden_at(text, anchor).to(encoder.dtype)
+        def capture(module: Any, inputs: Any, output: Any) -> None:
+            hidden = output[0] if isinstance(output, tuple) else output
+            captured["h"] = hidden[0, anchor, :].detach()
 
-    # ------------------------------------------------------------------ #
-    # Indexing helpers                                                   #
-    # ------------------------------------------------------------------ #
+        handle = self._decoder_layer(self._read_layer()).register_forward_hook(capture)
+        try:
+            with torch.no_grad():
+                self._model(ids)
+        finally:
+            handle.remove()
+        return captured["h"]
 
     def _site_index(
         self, sentence: str, full_text: str, site: InjectionSite, target_entity: str
