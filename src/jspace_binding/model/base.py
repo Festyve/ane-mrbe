@@ -1,9 +1,13 @@
-"""Model backend protocol.
+"""Model backend protocols.
 
 Every backend — the real Qwen3.6-27B + J-lens stack and the GPU-free
-DummyModel — implements this one method. The experiment runner is written
+DummyModel — implements WorkspaceModel. The experiment runner is written
 against the protocol only, so the full pipeline can be exercised end-to-end
 without a GPU (scripts/run_primary.py --dry-run).
+
+Backends that can also serve the direction-fitting pipeline additionally
+implement FittingActivationSource (scripts/fit_directions.py is written
+against it).
 """
 
 from __future__ import annotations
@@ -30,6 +34,40 @@ class WorkspaceModel(Protocol):
         next-token probability for each candidate in `answer_tokens`.
 
         Probabilities are read from the full softmax (not renormalized over the
-        candidates), so "the edit moved mass to nurse" is measured absolutely.
+        candidates), so "the edit moved mass to the entity" is measured
+        absolutely. Analysis converts to log-odds (analysis.binding_score).
         """
+        ...
+
+
+@runtime_checkable
+class FittingActivationSource(Protocol):
+    """A model that exposes J-space-projected activations for direction fitting."""
+
+    def fitting_activation(
+        self,
+        sentence: str,
+        entity: str,
+        site: InjectionSite,
+    ) -> Sequence[float]:
+        """J-space coordinates of the residual activation for `sentence` at
+        `site` (the entity's token, or the sentence-final token). No edit is
+        applied; the caller (directions.fit) does the difference-of-means."""
+        ...
+
+
+@runtime_checkable
+class ProbeActivationSource(Protocol):
+    """A model that exposes the three RQ1 activation sources (proposal, §4)."""
+
+    def probe_activation(
+        self,
+        sentence: str,
+        entity: str,
+        site: InjectionSite,
+    ) -> dict[str, Sequence[float]]:
+        """No-edit activations at `site` keyed by source: "jspace" (J-space
+        coordinates), "orthogonal" (residual component the lens cannot see),
+        and "residual" (the full residual-stream activation). The RQ1 linear
+        probe trains on each source separately."""
         ...

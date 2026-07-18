@@ -37,6 +37,15 @@ OTHER_ENTITY_BY_PAIR: dict[str, str] = {
     "driver->passenger": "pilot",
 }
 
+# Candidates for the NULL_NON_PARTICIPANT control: the pushed direction must
+# belong to an entity absent from the sentence, so plan_edit picks the first
+# candidate that is not the family's entity, counterpart, or other participant.
+# NOTE (deviation from the proposal's "tuesday" example, flagged for team
+# review): a day-of-the-week token cannot bear a thematic role, so no r_tuesday
+# can be fitted — the role-direction analogue of "absent concept" is an absent
+# PROFESSION with its own fitted role direction.
+NON_PARTICIPANT_CANDIDATES: tuple[str, ...] = ("chef", "farmer", "coach")
+
 
 class Tokenizer(Protocol):
     """Duck-typed slice of a HuggingFace tokenizer, so this module never

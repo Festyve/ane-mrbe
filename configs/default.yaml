@@ -1,26 +1,37 @@
 # Default experiment configuration.
 # Null fields are open Methods decisions — leave null until the team pins
-# them; code that needs them fails loudly rather than guessing.
+# them (layer band) or calibration produces them (alpha, push_coefficient);
+# code that needs them fails loudly rather than guessing.
 
 model:
   backend: dummy            # dummy | qwen_jlens
   model_id: Qwen/Qwen3.6-27B  # TODO: verify exact HF id against the Neuronpedia lens
   lens_repo: anthropics/jacobian-lens
-  layer_band: null          # open: workspace layer band for Qwen3.6-27B
-  alpha: null               # open: swap scaling (null = coordinate-swap default)
+  layer_band: null          # open: workspace layer band for Qwen3.6-27B ([L, L] = single layer)
+  alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
+  push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
   dtype: bfloat16
+  load_in_4bit: false       # Kaggle 2x T4 path (needs bitsandbytes)
   dummy_mode: binding       # binding | bag — ground truth used by the dummy backend
 
 stimuli:
   items_per_cell: 50        # placeholder pending power calculation
-  concept_pairs:
+  concept_pairs:            # [entity, identity-swap counterpart (control only)]
     - [doctor, nurse]
     - [teacher, student]
     - [driver, passenger]
-  non_participant_concept: tuesday
+  non_participant_entities: [chef, farmer, coach]  # absent-entity pool for the null push
+
+directions:
+  exemplars_per_role: 24    # per entity per role; multiple of 6; OPEN pending stability pilot
+  n_bootstrap: 200          # bootstrap resamples for the stability check
+  stability_threshold: 0.8  # warn below this mean cosine
+  variant: fitted           # fitted | generic_loo (leave-one-entity-out robustness variant)
+  seed: 0
 
 experiment:
-  edit_types: [real, no_edit, null_non_participant, random_direction]
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
   injection_sites: [final_token, entity_token]
   seed: 0
 
@@ -32,5 +43,8 @@ analysis:
 
 paths:
   stimuli: data/stimuli/stimuli.jsonl
+  fitting_corpus: data/stimuli/fitting_corpus.jsonl
+  directions: data/directions
+  calibration: data/calibration.json
   results: data/results
   figures: figures
