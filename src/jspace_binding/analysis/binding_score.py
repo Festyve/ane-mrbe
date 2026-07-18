@@ -1,24 +1,44 @@
-"""Binding score: position-averaged difference-in-differences per ItemFamily.
+"""Binding score: position-averaged, both-sign log-odds crossover per ItemFamily.
 
 Pure numpy — no model dependencies — so the math heart is unit-testable on any
-machine. Probabilities arrive as TrialResult records; this module only reads
-answer_probs[target] and never renormalizes (full-softmax reads, per protocol).
+machine. Probabilities arrive as TrialResult records; this module reads
+answer_probs[entity] (the pushed entity, NOT the identity-swap counterpart),
+converts to log-odds, and never renormalizes (full-softmax reads, per
+protocol).
 
-Notation (proposal): p(role, edit) is P(target token) at the ROLE probe,
-averaged over the two surface positions of the target concept, and
+Why log-odds (proposal, Motivation): a role-blind uniform push shifts the
+entity's answer log-odds by the same increment in both role conditions
+regardless of their starting point, so floor/ceiling effects cannot fake a
+role interaction. In raw probability the same uniform push moves a
+near-ceiling condition less than a mid-range one — exactly the artifact the
+log-odds readout removes.
 
-    BS_i = [p(agent, real) - p(patient, real)]
-         - [p(agent, no_edit) - p(patient, no_edit)]
+Notation: L(role, edit, sign) is logit P(entity) at the ROLE probe, averaged
+over the two surface positions. For each push sign s the gap change is
 
-A binding representation moves mass to the target only when the swapped concept
-occupies the probed role, so BS_i >> 0. A bag-of-concepts representation moves
-mass role-independently, both brackets match, and BS_i ~ 0. Control edits
-(null_non_participant, random_direction) plug into the same DiD in place of
-REAL and form the null band the real scores must clear.
+    dG(s) = [L(agent, push_s) - L(patient, push_s)]
+          - [L(agent, no_edit) - L(patient, no_edit)]
+
+A bag workspace leaves dG(s) ~ 0 for both signs (the uniform increment cancels
+in the agent-patient difference). A binding workspace shrinks the natural gap
+from opposite sides — the agent-pole push lifts patient sentences most, the
+patient-pole push drops agent sentences most (the crossover) — making dG(s)
+negative under both signs. The family binding score folds both signs into one
+positive-means-binding number:
+
+    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2
+
+which is algebraically the edit x role interaction summed over signs. Control
+edits (null_non_participant, random_direction, shuffled_label_direction) plug
+into the same statistic in place of ROLE_PUSH and form the null band the real
+scores must clear. A within-family agent/patient label swap negates every
+dG(s) and hence BS_i, so the sign-flip permutation test in analysis.stats
+remains exact.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -28,6 +48,7 @@ from jspace_binding.types import (
     InjectionSite,
     Position,
     ProbeKind,
+    PushSign,
     Role,
     TrialResult,
 )
@@ -35,117 +56,168 @@ from jspace_binding.types import (
 CONTROL_EDIT_TYPES: tuple[EditType, ...] = (
     EditType.NULL_NON_PARTICIPANT,
     EditType.RANDOM_DIRECTION,
+    EditType.SHUFFLED_LABEL_DIRECTION,
 )
 
+# The three constructions testing agent/patient proper; DATIVE tests
+# recipient/theme and is reported separately (proposal, Experimental Setup §2),
+# so the "meaningful in >= 2 of 3 constructions" positive-result criterion
+# quantifies over these only.
+AGENT_PATIENT_CONSTRUCTIONS: tuple[str, ...] = (
+    "active_passive",
+    "cleft",
+    "relative_clause",
+)
 
-def position_average(probs: dict[tuple[Role, Position], float]) -> dict[Role, float]:
-    """Collapse the position nuisance axis: p(role) = mean over FIRST/SECOND.
+_EPS = 1e-9  # probability clamp so a hard 0/1 read cannot produce +/- inf
 
-    Because the target concept appears once in each position per role, any
+
+def logit(p: float) -> float:
+    """log(p / (1-p)) with clamping to (_EPS, 1-_EPS)."""
+    p = min(max(p, _EPS), 1.0 - _EPS)
+    return math.log(p / (1.0 - p))
+
+
+def position_average(values: dict[tuple[Role, Position], float]) -> dict[Role, float]:
+    """Collapse the position nuisance axis: L(role) = mean over FIRST/SECOND.
+
+    Because the target entity appears once in each position per role, any
     surface-order bias (e.g. earlier tokens easier to recall) contributes
-    equally to p(agent) and p(patient) and cancels in the DiD. A role present
+    equally to L(agent) and L(patient) and cancels in the gap. A role present
     with only one position would silently reintroduce that confound, so it
     raises instead.
     """
     out: dict[Role, float] = {}
     for role in Role:
-        present = [pos for pos in Position if (role, pos) in probs]
+        present = [pos for pos in Position if (role, pos) in values]
         if not present:
             continue
         if len(present) < len(Position):
-            missing = next(pos for pos in Position if (role, pos) not in probs)
+            missing = next(pos for pos in Position if (role, pos) not in values)
             raise ValueError(
                 f"position_average: role {role.value!r} has no {missing.value!r} entry; "
                 "averaging one position would reintroduce the word-order confound"
             )
-        out[role] = float(np.mean([probs[(role, pos)] for pos in Position]))
+        out[role] = float(np.mean([values[(role, pos)] for pos in Position]))
     return out
 
 
-def _did_score(trials: list[TrialResult], target_token: str, treatment: EditType) -> float:
-    """Shared DiD core: [p(agent, treatment) - p(patient, treatment)]
-    - [p(agent, no_edit) - p(patient, no_edit)], each p position-averaged.
+_CellKey = tuple[Role, Position, EditType, PushSign | None]
 
-    Requires exactly one ROLE-probe trial per (role, position, edit) cell for
-    edit in {treatment, NO_EDIT} — 8 cells total. Missing or duplicate cells
+
+def _cell_logits(
+    trials: list[TrialResult], entity_token: str, treatment: EditType
+) -> dict[_CellKey, float]:
+    """ROLE-probe logit P(entity) per (role, position, edit, sign) cell.
+
+    Collects the treatment edit (both signs) plus NO_EDIT. Requires exactly
+    one trial per cell — 12 cells total (2 roles x 2 positions x [2 signed
+    treatment conditions + unsigned no-edit]). Missing or duplicate cells
     raise ValueError naming the cell, never a silently wrong score.
     """
-    wanted = (treatment, EditType.NO_EDIT)
-    probs: dict[tuple[Role, Position, EditType], float] = {}
+    cells: dict[_CellKey, float] = {}
     for t in trials:
-        if t.probe_kind is not ProbeKind.ROLE or t.edit_type not in wanted:
+        if t.probe_kind is not ProbeKind.ROLE:
             continue
-        cell = (t.role, t.position, t.edit_type)
-        cell_name = f"({t.role.value}, {t.position.value}, {t.edit_type.value})"
-        if cell in probs:
+        if t.edit_type is not treatment and t.edit_type is not EditType.NO_EDIT:
+            continue
+        key = (t.role, t.position, t.edit_type, t.push_sign)
+        name = _cell_name(key)
+        if key in cells:
             raise ValueError(
-                f"duplicate trial for cell {cell_name} in family {t.family_id!r}; "
+                f"duplicate trial for cell {name} in family {t.family_id!r}; "
                 "pass one family's trials at one injection site"
             )
-        if target_token not in t.answer_probs:
+        if entity_token not in t.answer_probs:
             raise ValueError(
-                f"target token {target_token!r} missing from answer_probs of cell "
-                f"{cell_name} in family {t.family_id!r}"
+                f"entity token {entity_token!r} missing from answer_probs of cell "
+                f"{name} in family {t.family_id!r}"
             )
-        probs[cell] = t.answer_probs[target_token]
+        cells[key] = logit(t.answer_probs[entity_token])
 
-    missing_cells = [
-        f"({role.value}, {position.value}, {edit.value})"
-        for edit in wanted
-        for role in Role
-        for position in Position
-        if (role, position, edit) not in probs
-    ]
-    if missing_cells:
+    wanted: list[_CellKey] = [
+        (role, pos, treatment, sign) for role in Role for pos in Position for sign in PushSign
+    ] + [(role, pos, EditType.NO_EDIT, None) for role in Role for pos in Position]
+    missing = [_cell_name(key) for key in wanted if key not in cells]
+    if missing:
         raise ValueError(
-            f"cannot compute DiD vs {treatment.value!r}: missing ROLE-probe cells "
-            + ", ".join(missing_cells)
+            f"cannot compute binding score vs {treatment.value!r}: missing ROLE-probe cells "
+            + ", ".join(missing)
         )
+    return cells
 
-    p = {
-        edit: position_average(
-            {(role, pos): probs[(role, pos, edit)] for role in Role for pos in Position}
-        )
-        for edit in wanted
-    }
-    treated, baseline = p[treatment], p[EditType.NO_EDIT]
-    return float(
-        (treated[Role.AGENT] - treated[Role.PATIENT])
-        - (baseline[Role.AGENT] - baseline[Role.PATIENT])
+
+def _cell_name(key: _CellKey) -> str:
+    role, pos, edit, sign = key
+    sign_txt = "" if sign is None else f", {sign.value}"
+    return f"({role.value}, {pos.value}, {edit.value}{sign_txt})"
+
+
+def family_gap_changes(
+    trials: list[TrialResult], entity_token: str, treatment: EditType = EditType.ROLE_PUSH
+) -> dict[PushSign, float]:
+    """dG(sign) for both signs of one family — the edit-induced change of the
+    position-averaged agent-patient log-odds gap, and the descriptive
+    per-sign breakdown (binding predicts both negative; an asymmetry, e.g.
+    promotion works but demotion doesn't, shows up here rather than being
+    averaged away). One trial scan serves both signs.
+    """
+    cells = _cell_logits(trials, entity_token, treatment)
+    baseline = position_average(
+        {
+            (role, pos): cells[(role, pos, EditType.NO_EDIT, None)]
+            for role in Role
+            for pos in Position
+        }
     )
+    natural_gap = baseline[Role.AGENT] - baseline[Role.PATIENT]
+    gaps: dict[PushSign, float] = {}
+    for sign in PushSign:
+        pushed = position_average(
+            {
+                (role, pos): cells[(role, pos, treatment, sign)]
+                for role in Role
+                for pos in Position
+            }
+        )
+        gaps[sign] = float((pushed[Role.AGENT] - pushed[Role.PATIENT]) - natural_gap)
+    return gaps
 
 
-def family_binding_score(trials: list[TrialResult], target_token: str) -> float:
+def _crossover_score(gaps: dict[PushSign, float]) -> float:
+    return -(gaps[PushSign.TOWARD_AGENT] + gaps[PushSign.TOWARD_PATIENT]) / 2.0
+
+
+def family_binding_score(trials: list[TrialResult], entity_token: str) -> float:
     """Binding score of one family from its ROLE-probe trials at one site.
 
-    BS_i = [p(agent, real) - p(patient, real)]
-         - [p(agent, no_edit) - p(patient, no_edit)],
-    each p = P(target_token) position-averaged (see position_average). Raises
-    ValueError, naming the cell, if any of the 8 required
-    (role, position, edit in {real, no_edit}) cells is absent or duplicated.
+    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2 in log-odds, positive
+    under binding, ~0 under a bag workspace. Requires all 12
+    (role x position x [push sign / no-edit]) cells; raises otherwise.
     Primary analysis reads FINAL_TOKEN-site trials; site filtering is the
     caller's job (collect_scores) so the same math serves both sites.
     """
-    return _did_score(trials, target_token, treatment=EditType.REAL)
+    return _crossover_score(family_gap_changes(trials, entity_token, EditType.ROLE_PUSH))
 
 
 def control_binding_score(
-    trials: list[TrialResult], target_token: str, edit_type: EditType
+    trials: list[TrialResult], entity_token: str, edit_type: EditType
 ) -> float:
-    """Same DiD with REAL replaced by a control edit; samples the null band.
+    """Same crossover statistic with ROLE_PUSH replaced by a control edit;
+    samples the null band.
 
-    BS_i^ctrl = [p(agent, ctrl) - p(patient, ctrl)]
-              - [p(agent, no_edit) - p(patient, no_edit)].
-    The control carries no role information, so under any representation its
-    score should sit near 0 — the empirical distribution of these scores is
-    the band a genuine binding effect must clear.
+    The control carries no genuine role information for THIS sentence — the
+    pushed direction belongs to an absent entity, is random, or was fit on
+    shuffled labels — so under any representation its score should sit near
+    0. The empirical distribution of these scores is the band a genuine
+    binding effect must clear.
     """
     if edit_type not in CONTROL_EDIT_TYPES:
         allowed = ", ".join(e.value for e in CONTROL_EDIT_TYPES)
         raise ValueError(
             f"control_binding_score: {edit_type.value!r} is not a control edit ({allowed})"
         )
-    return _did_score(trials, target_token, treatment=edit_type)
+    return _crossover_score(family_gap_changes(trials, entity_token, edit_type))
 
 
 @dataclass
@@ -154,24 +226,31 @@ class ScoreTable:
 
     real maps group_key = (construction.value, pair_id) to that group's
     per-family BS_i, keeping constructions separate so a single-construction
-    effect cannot masquerade as general binding. null_band pools control-edit
-    scores across all groups: controls estimate the same DiD with no role
-    information, so they share one null distribution.
+    effect cannot masquerade as general binding. gap_changes pools the
+    per-sign dG values of the ROLE_PUSH across all families (keyed by
+    PushSign.value) for the descriptive per-sign summary. null_band pools
+    control-edit scores across all groups: controls estimate the same
+    statistic with no role information, so they share one null distribution.
+    null_by_edit keeps the same control scores split per control edit type
+    (keyed by EditType.value) so the verdict can check each control — in
+    particular the random direction — individually against the band.
     """
 
     real: dict[tuple[str, str], list[float]] = field(default_factory=dict)
+    gap_changes: dict[str, list[float]] = field(default_factory=dict)
     null_band: list[float] = field(default_factory=list)
+    null_by_edit: dict[str, list[float]] = field(default_factory=dict)
 
 
 def collect_scores(all_trials: list[TrialResult], site: InjectionSite) -> ScoreTable:
     """Compute every family's real and control binding scores at one site.
 
     Filters to ROLE-probe trials at `site`, groups by family, and computes
-    family_binding_score wherever REAL trials exist plus one
-    control_binding_score per control edit present. The target token is
-    recovered from pair_id ("source->target", see ConceptPair.pair_id) since
-    TrialResult does not carry the AnswerSet. Incomplete cells inside any
-    attempted score raise (via _did_score) rather than being skipped.
+    family_binding_score wherever ROLE_PUSH trials exist plus one
+    control_binding_score per control edit present. The entity token is
+    recovered from pair_id ("entity->counterpart", see ConceptPair.pair_id)
+    since TrialResult does not carry the AnswerSet. Incomplete cells inside
+    any attempted score raise (via _cell_logits) rather than being skipped.
     """
     by_family: dict[str, list[TrialResult]] = {}
     for t in all_trials:
@@ -181,14 +260,18 @@ def collect_scores(all_trials: list[TrialResult], site: InjectionSite) -> ScoreT
     table = ScoreTable()
     for trials in by_family.values():
         first = trials[0]
-        target_token = first.pair_id.split("->", 1)[1]
+        entity_token = first.pair_id.split("->", 1)[0]
         edits_present = {t.edit_type for t in trials}
-        if EditType.REAL in edits_present:
+        if EditType.ROLE_PUSH in edits_present:
+            # One cell scan yields both the per-sign gaps and the score.
+            gaps = family_gap_changes(trials, entity_token)
             group_key = (first.construction.value, first.pair_id)
-            table.real.setdefault(group_key, []).append(
-                family_binding_score(trials, target_token)
-            )
+            table.real.setdefault(group_key, []).append(_crossover_score(gaps))
+            for sign, value in gaps.items():
+                table.gap_changes.setdefault(sign.value, []).append(value)
         for control in CONTROL_EDIT_TYPES:
             if control in edits_present:
-                table.null_band.append(control_binding_score(trials, target_token, control))
+                score = control_binding_score(trials, entity_token, control)
+                table.null_band.append(score)
+                table.null_by_edit.setdefault(control.value, []).append(score)
     return table
