@@ -124,6 +124,7 @@ def main() -> None:
             jspace_k=8,
             ablate_k=5,
             dtype="float32",  # CPU-safe
+            device_map=None,  # plain CPU load — "auto" segfaults on Apple Silicon
         ),
         stimuli=StimuliConfig(
             items_per_cell=2,
