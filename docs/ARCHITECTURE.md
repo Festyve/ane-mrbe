@@ -207,6 +207,13 @@ courtesy.
 
 ## GPU-day runbook
 
+0. FIRST, on any laptop: `pip install '.[model]'` then
+   `python scripts/smoke_test.py` — runs the ENTIRE real backend (loading,
+   lens, pursuit, hooks, all edits, fitting, calibration, all three
+   experiments) on a tiny open model with a synthetic identity-Jacobian lens
+   (= the logit lens, per the paper's §2.4). Numbers are not science; PASS
+   means the code paths work, so GPU time is spent on the experiment rather
+   than on typos.
 1. `pip install '.[model]'` (+ `bitsandbytes` if `load_in_4bit`).
 2. Verify the HF model id and download the lens; the loader expects per-layer
    Jacobian matrices and tries several key spellings
