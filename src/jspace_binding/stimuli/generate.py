@@ -34,7 +34,7 @@ def _other_entity_pool(pair: ConceptPair) -> tuple[str, ...]:
             "add it to stimuli.vocab.OTHER_ENTITY_BY_PAIR"
         )
     default = OTHER_ENTITY_BY_PAIR[pair.pair_id]
-    used = {pair.source, pair.target, default}
+    used = {pair.entity, pair.counterpart, default}
     return (default, *(e for e in PROFESSION_ENTITIES if e not in used))
 
 
@@ -77,7 +77,7 @@ def _to_record(family: ItemFamily) -> dict[str, Any]:
     pair, answers = family.concept_pair, family.answer_set
     return {
         "family_id": family.family_id,
-        "concept_pair": {"source": pair.source, "target": pair.target},
+        "concept_pair": {"entity": pair.entity, "counterpart": pair.counterpart},
         "construction": family.construction.value,
         "other_entity": family.other_entity,
         "verb_lemma": family.verb_lemma,
@@ -89,7 +89,11 @@ def _to_record(family: ItemFamily) -> dict[str, Any]:
         "neutral_probe": family.neutral_probe,
         "answer_set": None
         if answers is None
-        else {"source": answers.source, "target": answers.target, "other": answers.other},
+        else {
+            "entity": answers.entity,
+            "counterpart": answers.counterpart,
+            "other": answers.other,
+        },
     }
 
 
