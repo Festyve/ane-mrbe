@@ -1,4 +1,4 @@
-﻿NURSE AGENT ACTIVE,NURSE AGENT PASSIVE,NURSE AGENT PASSIVE,NURSE PATIENT PASSIVE,EVAL SET agent + active,EVAL SET agent + passive,EVAL SET patient + active,EVAL SET patient + passive
+﻿NURSE AGENT ACTIVE,NURSE AGENT PASSIVE,NURSE PATIENT ACTIVE,NURSE PATIENT PASSIVE,EVAL SET agent + active,EVAL SET agent + passive,EVAL SET patient + active,EVAL SET patient + passive
 The nurse paid the lawyer.,The lawyer was paid by the nurse.,The lawyer paid the nurse.,The nurse was paid by the lawyer.,The nurse advised the lawyer.,The lawyer was advised by the nurse.,The lawyer advised the nurse.,The nurse was advised by the lawyer.
 The nurse followed the judge.,The judge was followed by the nurse.,The judge followed the nurse.,The nurse was followed by the judge.,The nurse welcomed the judge.,The judge was welcomed by the nurse.,The judge welcomed the nurse.,The nurse was welcomed by the judge.
 The nurse called the teacher.,The teacher was called by the nurse.,The teacher called the nurse.,The nurse was called by the teacher.,The nurse informed the teacher.,The teacher was informed by the nurse.,The teacher informed the nurse.,The nurse was informed by the teacher.
@@ -9,7 +9,7 @@ The nurse questioned the pilot.,The pilot was questioned by the nurse.,The pilot
 The nurse congratulated the chef.,The chef was congratulated by the nurse.,The chef congratulated the nurse.,The nurse was congratulated by the chef.,The nurse invited the chef.,,The chef invited the nurse.,
 The nurse visited the farmer.,The farmer was visited by the nurse.,The farmer visited the nurse.,The nurse was visited by the farmer.,,,,
 The nurse encouraged the coach.,The coach was encouraged by the nurse.,The coach encouraged the nurse.,The nurse was encouraged by the coach.,,,,
-The nurse helped the nurse.,The nurse was helped by the nurse.,The nurse helped the nurse.,The nurse was helped by the nurse.,,,,
+The nurse helped the doctor.,The doctor was helped by the nurse.,The doctor helped the nurse.,The nurse was helped by the doctor.,,,,
 The nurse recognized the lawyer.,The lawyer was recognized by the nurse.,The lawyer recognized the nurse.,The nurse was recognized by the lawyer.,,,,
 The nurse introduced the judge.,The judge was introduced by the nurse.,The judge introduced the nurse.,The nurse was introduced by the judge.,,,,
 The nurse comforted the student.,The student was comforted by the nurse.,The student comforted the nurse.,The nurse was comforted by the student.,,,,
