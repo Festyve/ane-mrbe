@@ -17,6 +17,10 @@ model = [
     "torch>=2.3",
     "transformers>=4.44",
     "accelerate>=0.33",
+    "safetensors>=0.4",
+    "huggingface_hub>=0.24",
+    # 4-bit loading (model.load_in_4bit, the Kaggle 2x T4 path) additionally
+    # needs bitsandbytes, which only installs on CUDA boxes — add it there.
 ]
 dev = [
     "pytest>=8.0",

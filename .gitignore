@@ -6,11 +6,15 @@ __pycache__/
 dist/
 build/
 
-# Experiment outputs (regenerable; keep the repo lean)
+# Experiment outputs (regenerable; keep the repo lean). Checked-in source
+# data (e.g. data/handwritten/) is tracked by default — ignore generated
+# OUTPUT locations wholesale instead of blanket-ignoring by extension, so
+# new curated data files never need a negation rule to be seen by git.
 data/results*/
+data/directions*/
+data/calibration*.json
+data/stimuli/*.jsonl
 figures*/
-*.jsonl
-!data/stimuli/.gitkeep
 
 # Tooling
 .pytest_cache/

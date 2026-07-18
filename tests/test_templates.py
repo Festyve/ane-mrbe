@@ -62,9 +62,9 @@ def test_probes_byte_identical_and_entity_free() -> None:
     assert "treated" in family.role_probe  # the role probe is verb-anchored
 
 
-def test_answer_set_is_source_target_other() -> None:
+def test_answer_set_is_entity_counterpart_other() -> None:
     family = _worked_family()
-    assert family.answer_set == AnswerSet(source="doctor", target="nurse", other="lawyer")
+    assert family.answer_set == AnswerSet(entity="doctor", counterpart="nurse", other="lawyer")
     assert family.answer_set.tokens == ("doctor", "nurse", "lawyer")
 
 
