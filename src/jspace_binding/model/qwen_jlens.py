@@ -213,7 +213,12 @@ class QwenJLensModel:
                 "the qwen_jlens backend needs the heavy extras: pip install '.[model]'"
             ) from exc
 
-        kwargs: dict[str, Any] = {"device_map": "auto"}
+        # device_map="auto" routes through accelerate's sharded dispatch — right
+        # for multi-GPU, but it segfaults on a CPU-only Mac. device_map=None
+        # takes the classic single-device load path (config.device_map).
+        kwargs: dict[str, Any] = {}
+        if self.config.device_map is not None:
+            kwargs["device_map"] = self.config.device_map
         if self.config.load_in_4bit:
             from transformers import BitsAndBytesConfig
 
