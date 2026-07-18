@@ -45,13 +45,13 @@ def test_fitting_doctor_structure() -> None:
 def test_eval_doctor_structure() -> None:
     corpus = load_fitting_corpus(DATA / "eval_doctor.jsonl")
     report = structure_report(corpus)
-    assert report["n"] == 30
+    assert report["n"] == 32
     assert report["entities"] == ["doctor"]
     assert report["duplicate_sentences"] == []
     assert report["unknown_entities"] == []
-    # 8/7/8/7 by design: the eval grid is not fully position-balanced.
+    # 8 combos x 4 forms, balanced across the 2x2.
     counts = Counter((ex.role, ex.position) for ex in corpus)
-    assert sorted(counts.values()) == [7, 7, 8, 8]
+    assert sorted(counts.values()) == [8, 8, 8, 8]
     # The eval set itself must be clean against the primary stimulus set.
     families = generate_families(Config())
     assert find_primary_collisions(corpus, families) == {}
