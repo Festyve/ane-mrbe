@@ -1,0 +1,27 @@
+{
+  "site": "final_token",
+  "accuracy": {
+    "no_edit|role": 0.640625,
+    "no_edit|neutral": 1.0,
+    "ablate_jspace|role": 0.625,
+    "ablate_jspace|neutral": 1.0,
+    "ablate_random_subspace|role": 0.640625,
+    "ablate_random_subspace|neutral": 1.0
+  },
+  "baseline_task_accuracy_gap": 0.359375,
+  "difficulty_matched": false,
+  "deltas": {
+    "ablate_jspace": {
+      "binding_deficit": 0.015625,
+      "recall_deficit": 0.0,
+      "binding_specific_deficit": 0.015625
+    },
+    "ablate_random_subspace": {
+      "binding_deficit": 0.0,
+      "recall_deficit": 0.0,
+      "binding_specific_deficit": 0.0
+    }
+  },
+  "workspace_causally_involved": true,
+  "figure": "data/smoke/figures/rq2_ablation_deltas.png"
+}
