@@ -30,6 +30,8 @@ class ModelConfig:
     ablate_k: int = 10  # atoms zeroed by ABLATE_JSPACE (paper's §3.5.2 uses k=10)
     dtype: str = "bfloat16"
     load_in_4bit: bool = False  # Kaggle 2x T4 path (proposal, Compute)
+    device_map: str | None = "auto"  # "auto" = accelerate multi-GPU sharding (GPU day);
+    # None = plain single-device load (CPU/Mac — "auto" segfaults there)
     dummy_mode: str = "binding"  # "binding" | "bag" — ground truth for the dummy backend
 
 
