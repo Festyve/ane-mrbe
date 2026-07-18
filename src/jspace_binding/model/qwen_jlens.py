@@ -230,7 +230,11 @@ class QwenJLensModel:
         self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
         self._model = AutoModelForCausalLM.from_pretrained(self.config.model_id, **kwargs)
         self._model.eval()
-        self._w_u = self._model.get_output_embeddings().weight  # (n_vocab, d_model)
+        # Detached: we only READ the unembedding for lens math. Without this,
+        # every J-lens score / pursuit step builds an autograd graph through
+        # the (huge) unembedding weight — wasted memory that can OOM a
+        # memory-tight GPU, plus a requires_grad scalar-conversion warning.
+        self._w_u = self._model.get_output_embeddings().weight.detach()  # (n_vocab, d_model)
 
     def _load_lens(self) -> None:
         """Load the per-layer averaged Jacobians J_l for the layer band.
