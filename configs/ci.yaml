@@ -5,10 +5,12 @@
 model:
   backend: dummy
   model_id: Qwen/Qwen3.6-27B
-  lens_repo: anthropics/jacobian-lens
+  lens_repo: anthropics/jacobian-lens  # per-layer averaged Jacobians J_l
   layer_band: null
   alpha: null
   push_coefficient: null
+  jspace_k: 16
+  ablate_k: 10
   dtype: bfloat16
   load_in_4bit: false
   dummy_mode: binding

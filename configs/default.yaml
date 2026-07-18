@@ -6,10 +6,12 @@
 model:
   backend: dummy            # dummy | qwen_jlens
   model_id: Qwen/Qwen3.6-27B  # TODO: verify exact HF id against the Neuronpedia lens
-  lens_repo: anthropics/jacobian-lens
+  lens_repo: anthropics/jacobian-lens  # per-layer averaged Jacobians J_l
   layer_band: null          # open: workspace layer band for Qwen3.6-27B ([L, L] = single layer)
   alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
   push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
+  jspace_k: 16              # sparsity of the J-space pursuit (paper: k=16, occupancy ~25)
+  ablate_k: 10              # atoms zeroed by ABLATE_JSPACE (paper 3.5.2: k=10)
   dtype: bfloat16
   load_in_4bit: false       # Kaggle 2x T4 path (needs bitsandbytes)
   dummy_mode: binding       # binding | bag — ground truth used by the dummy backend
