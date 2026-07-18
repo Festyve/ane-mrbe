@@ -1,11 +1,11 @@
-"""Structure contracts for the checked-in hand-written dataset + QC helpers.
+"""Structure + cleanliness contracts for the checked-in hand-written dataset.
 
-The known disjointness problems in the first drop (12 primary-set collisions
-via praised/criticized/interviewed; recognized x lawyer leaking between
-fitting and eval) are DATA issues for the team to fix, so they are surfaced
-by scripts/check_corpus.py and the fit_directions warning rather than
-asserted here — these tests pin structure only, plus the QC helpers'
-behavior on synthetic cases.
+The first drop had 12 primary-set collisions (praised/criticized/interviewed
+shared with the primary verb pool) and a recognized x lawyer leak between
+fitting and eval. Those are fixed (the corpus is regenerated from the CSVs
+via scripts/csv_to_jsonl.py), and test_doctor_corpus_is_clean below locks
+the fix in so a future CSV edit can't silently reintroduce contamination.
+The rest pin structure and the QC helpers' behavior on synthetic cases.
 """
 
 from __future__ import annotations
@@ -55,6 +55,17 @@ def test_eval_doctor_structure() -> None:
     # The eval set itself must be clean against the primary stimulus set.
     families = generate_families(Config())
     assert find_primary_collisions(corpus, families) == {}
+
+
+def test_doctor_corpus_is_clean() -> None:
+    """The load-bearing guarantee: the doctor fitting corpus shares no
+    sentence with the primary stimulus set (can't fit and test on the same
+    data) and none with the eval set (no fit/eval leakage)."""
+    fitting = load_fitting_corpus(DATA / "fitting_doctor.jsonl")
+    eval_set = load_fitting_corpus(DATA / "eval_doctor.jsonl")
+    families = generate_families(Config())  # full 50-items/cell scale
+    assert find_primary_collisions(fitting, families) == {}
+    assert find_cross_leaks(fitting, eval_set) == []
 
 
 def test_qc_helpers_detect_synthetic_collision_and_leak() -> None:
