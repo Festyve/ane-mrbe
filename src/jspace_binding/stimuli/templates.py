@@ -1,9 +1,10 @@
 """Sentence templates: one matched 2x2 (role x position) quadruple per construction.
 
-The sentence-side "target" is pair.source — the sentences contain the
-swapped-out concept, and the edit later replaces it with pair.target. Target
-and other entity each appear exactly once per sentence, and only their role
-and linear order differ across the four cells, so a role effect that survives
+The sentence-side "target" is pair.entity — the entity whose fitted role axis
+the ROLE_PUSH intervenes on (pair.counterpart never appears in any sentence;
+it exists only for the IDENTITY_SWAP strength control). Target and other
+entity each appear exactly once per sentence, and only their role and linear
+order differ across the four cells, so a role effect that survives
 position-averaging cannot be a word-order artifact.
 
 Verbs are stored in simple-past form (identical to the past participle for
@@ -120,7 +121,7 @@ def build_family(
         cell_key(role, position): Stimulus(
             role=role,
             position=position,
-            sentence=template.format(target=pair.source, other=other_entity, verb_past=verb_lemma),
+            sentence=template.format(target=pair.entity, other=other_entity, verb_past=verb_lemma),
         )
         for (role, position), template in _TEMPLATES[construction].items()
     }
@@ -133,7 +134,7 @@ def build_family(
         cells=cells,
         role_probe=_ROLE_PROBE_TEMPLATES[construction].format(verb_past=verb_lemma),
         neutral_probe=_NEUTRAL_PROBE,
-        answer_set=AnswerSet(source=pair.source, target=pair.target, other=other_entity),
+        answer_set=AnswerSet(entity=pair.entity, counterpart=pair.counterpart, other=other_entity),
     )
     _validate_family(family)
     return family
@@ -146,7 +147,7 @@ def _validate_family(family: ItemFamily) -> None:
     so the load-bearing check is surface order: the target entity must precede
     the other entity exactly when Position is FIRST.
     """
-    target = family.concept_pair.source
+    target = family.concept_pair.entity
     other = family.other_entity
     for stimulus in family.cells.values():
         sentence = stimulus.sentence.lower()

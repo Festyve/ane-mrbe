@@ -3,13 +3,16 @@
 The unit of resampling and permutation is the ItemFamily: each family i
 contributes one score
 
-    BS_i = [p(agent, real) - p(patient, real)]
-         - [p(agent, no_edit) - p(patient, no_edit)]
+    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2,
+    dG(s) = [L(agent, push_s) - L(patient, push_s)]
+          - [L(agent, no_edit) - L(patient, no_edit)]
 
-(position-averaged; see analysis.binding_score). The DiD pairing lives inside
-BS_i, so family-level resampling preserves it. All randomness flows through a
-local np.random.default_rng(seed) — no global RNG state — so every reported
-number is reproducible from the config seed alone.
+in position-averaged log-odds (see analysis.binding_score). The pairing lives
+inside BS_i, so family-level resampling preserves it, and a within-family
+agent/patient label swap negates BS_i exactly (each dG flips sign), keeping
+the sign-flip permutation test exact. All randomness flows through a local
+np.random.default_rng(seed) — no global RNG state — so every reported number
+is reproducible from the config seed alone.
 """
 
 from __future__ import annotations
@@ -54,17 +57,16 @@ def permutation_pvalue(
     """Two-sided sign-flip permutation test of mean(BS_i) = 0.
 
     Under H0 (no role binding) the agent/patient labels within a family are
-    exchangeable. Swapping the labels in family i exchanges p(agent, e) with
-    p(patient, e) for BOTH e = real and e = no_edit, which negates each
-    bracket of
+    exchangeable. Swapping the labels in family i exchanges L(agent, e, s)
+    with L(patient, e, s) for every edit condition, which negates each gap
+    change dG(s) and hence negates
 
-        BS_i = [p(agent, real) - p(patient, real)]
-             - [p(agent, no_edit) - p(patient, no_edit)]
+        BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2
 
-    and hence negates BS_i itself: the within-family label swap is exactly a
-    sign flip of that family's score. The permutation null is therefore built
-    by drawing s_i in {-1, +1} uniformly and recomputing mean(s_i * BS_i).
-    Two-sided, with the add-one correction that keeps p > 0:
+    itself: the within-family label swap is exactly a sign flip of that
+    family's score. The permutation null is therefore built by drawing s_i in
+    {-1, +1} uniformly and recomputing mean(s_i * BS_i). Two-sided, with the
+    add-one correction that keeps p > 0:
     p = (1 + #{|T_perm| >= |T_obs|}) / (1 + n_permutations).
     """
     arr = np.asarray(scores, dtype=float)
@@ -91,6 +93,38 @@ def cohens_d(scores: Sequence[float] | np.ndarray) -> float:
     if sd == 0.0:
         raise ValueError("cohens_d: zero variance across scores — d is undefined")
     return float(arr.mean() / sd)
+
+
+def cohens_d_ci(
+    scores: Sequence[float] | np.ndarray,
+    n_resamples: int = 10_000,
+    ci_level: float = 0.95,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI on Cohen's d itself (proposal, §6: report a CI
+    on d, not just on BS, from the same item-level resamples).
+
+    Uses the same resampling unit as bootstrap_ci (families). Degenerate
+    resamples (zero variance, which would make d infinite) are dropped; if
+    every resample is degenerate the input itself is unusable and we raise.
+    The CI width is what separates "clean negative" (tight around 0) from
+    "underpowered" (wide, e.g. crossing zero from a large point estimate) in
+    the outcome classification.
+    """
+    arr = np.asarray(scores, dtype=float)
+    if arr.size < 2:
+        raise ValueError("cohens_d_ci: need >= 2 scores")
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, arr.size, size=(n_resamples, arr.size))
+    samples = arr[idx]
+    sds = samples.std(axis=1, ddof=1)
+    valid = sds > 0.0
+    if not np.any(valid):
+        raise ValueError("cohens_d_ci: all bootstrap resamples degenerate (zero variance)")
+    ds = samples.mean(axis=1)[valid] / sds[valid]
+    tail = 100.0 * (1.0 - ci_level) / 2.0
+    lo, hi = np.percentile(ds, [tail, 100.0 - tail])
+    return float(lo), float(hi)
 
 
 def holm_bonferroni(pvalues: dict[K, float], alpha: float = 0.05) -> dict[K, bool]:
