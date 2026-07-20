@@ -8,15 +8,27 @@ about Qwen. Rerun both commands without `--dry-run` once the real backend is
 runnable (layer band pinned, working arm64 torch) and replace this section's
 numbers before circulating.
 
-Reproduce:
+Reproduce with the hand-written evaluation JSONL below. Its sentences,
+`frame_id`s, and normalized surface templates are distinct from the generated
+fitting corpus; the checker enforces all three boundaries:
 
 ```bash
 python scripts/fit_directions.py   --dry-run --dummy-mode binding \
-    --entities doctor,nurse,teacher,driver,chef,farmer,coach
-python scripts/direction_sanity.py --dry-run --dummy-mode binding --entity doctor,nurse
+    --entities doctor,nurse,teacher,driver,chef,farmer,coach \
+    --directions-dir data/directions/sanity-binding \
+    --fitting-corpus-out data/stimuli/fitting_corpus_sanity-binding.jsonl
+python scripts/direction_sanity.py --dry-run --dummy-mode binding \
+    --directions-dir data/directions/sanity-binding \
+    --fit-corpus data/stimuli/fitting_corpus_sanity-binding.jsonl \
+    --eval-corpus data/handwritten/eval_doctor.jsonl \
+    --entity doctor,nurse
 # negative control:
 python scripts/fit_directions.py   --dry-run --dummy-mode bag --entities doctor,nurse
-python scripts/direction_sanity.py --dry-run --dummy-mode bag --entity doctor,nurse
+python scripts/direction_sanity.py --dry-run --dummy-mode bag \
+    --directions-dir data/directions/partial/doctor-nurse \
+    --fit-corpus data/stimuli/fitting_corpus_doctor-nurse.jsonl \
+    --eval-corpus data/handwritten/eval_doctor.jsonl \
+    --entity doctor,nurse
 ```
 
 ## What the check does
@@ -29,9 +41,9 @@ directions relate.
 
 1. **Held-out separation.** Directions are fit on the fitting corpus only
    (24 exemplars per role per entity). The check projects *held-out* sentences
-   — either the hand-written `data/handwritten/eval_doctor.jsonl` or generated
-   frames verified verbatim-disjoint from the fitting set — onto each entity's
-   fitted unit direction, and scores the 1-D split: Mann-Whitney AUC
+   from a separately authored eval corpus whose frame/template IDs are also
+   different from the fitting set onto each entity's fitted unit direction, and
+   scores the 1-D split: Mann-Whitney AUC
    (threshold-free), accuracy at the class-mean midpoint (the "2-line
    classifier"), and Cohen's d. A strip-scatter per site lands in
    `figures/direction_sanity_{site}.png` where matplotlib is available.
