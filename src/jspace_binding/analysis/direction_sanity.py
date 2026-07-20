@@ -1,7 +1,9 @@
-"""Sanity check for fitted role-directions (proposal, Datasets §1 pilot check).
+"""Sanity check for fitted role-directions.
 
-Two questions, both cheap and both a precondition for trusting any binding
-score built on a direction:
+Complements the proposal's Datasets §1 pilot check (the bootstrap-stability
+resample, which lives in directions.fit) with two further questions — both
+cheap, both a precondition for trusting any binding score built on a
+direction:
 
 1. *Does the fitted direction linearly separate role on HELD-OUT sentences?*
    Project held-out agent/patient J-space activations onto the entity's fitted

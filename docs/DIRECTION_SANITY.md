@@ -21,6 +21,12 @@ python scripts/direction_sanity.py --dry-run --dummy-mode bag --entity doctor,nu
 
 ## What the check does
 
+This complements — not replaces — the proposal's Datasets §1 pilot check (the
+bootstrap-stability resample, run at fit time by `scripts/fit_directions.py`):
+stability asks whether the fitting corpus pins down *a* direction; the checks
+below ask whether that direction *generalizes* and how the per-entity
+directions relate.
+
 1. **Held-out separation.** Directions are fit on the fitting corpus only
    (24 exemplars per role per entity). The check projects *held-out* sentences
    — either the hand-written `data/handwritten/eval_doctor.jsonl` or generated
