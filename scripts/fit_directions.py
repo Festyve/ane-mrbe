@@ -62,6 +62,18 @@ def main() -> None:
         action="store_true",
         help="proceed despite primary-set collisions (integration tests only; stamped in output)",
     )
+    parser.add_argument(
+        "--export-pt",
+        action="store_true",
+        help="also write {entity}_role_direction.pt (Group A handoff; needs the torch extra)",
+    )
+    parser.add_argument(
+        "--entities",
+        type=lambda s: tuple(e.strip() for e in s.split(",") if e.strip()),
+        default=None,
+        help="fit these entities instead of config.direction_entities() "
+        "(e.g. doctor,nurse for a pair handoff; ignored with --corpus)",
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
@@ -98,7 +110,15 @@ def main() -> None:
         print(f"fitting corpus: {len(corpus)} sentences (hand-written, {args.corpus})",
               file=sys.stderr)
     else:
-        entities = needed
+        entities = args.entities or needed
+        if args.entities:
+            missing = [e for e in needed if e not in args.entities]
+            if missing:
+                print(
+                    f"WARNING --entities covers only {list(args.entities)}; the primary "
+                    f"experiment also needs directions for {missing}",
+                    file=sys.stderr,
+                )
         corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
         save_fitting_corpus(corpus, config.paths.fitting_corpus)
         print(
@@ -112,6 +132,7 @@ def main() -> None:
         "contaminated": contaminated,
         "sites": {},
     }
+    fitted_by_site = {}
     for site in config.experiment.injection_sites:
         activations = {}
         for entity in entities:
@@ -129,6 +150,7 @@ def main() -> None:
             n_bootstrap=config.directions.n_bootstrap,
             seed=config.directions.seed,
         )
+        fitted_by_site[site] = directions
         path = save_directions(directions, config.paths.directions)
         site_summary = {
             "path": str(path),
@@ -153,6 +175,20 @@ def main() -> None:
                     file=sys.stderr,
                 )
         print(f"[{site.value}] fitted {len(entities)} directions -> {path}", file=sys.stderr)
+
+    if args.export_pt:
+        from jspace_binding.directions.export_pt import export_pt
+
+        try:
+            written = export_pt(fitted_by_site, config.paths.directions)
+        except ModuleNotFoundError as exc:
+            # The .npz fit already succeeded; a missing torch shouldn't fail the run.
+            print(f"WARNING --export-pt skipped: {exc}", file=sys.stderr)
+            summary["pt_export"] = {"skipped": str(exc)}
+        else:
+            print(f"exported {len(written)} .pt files -> {config.paths.directions}",
+                  file=sys.stderr)
+            summary["pt_export"] = {"written": [str(p) for p in written]}
 
     print(json.dumps(summary, indent=2))
 
