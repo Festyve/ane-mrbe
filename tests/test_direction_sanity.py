@@ -8,9 +8,11 @@ import pytest
 from jspace_binding.analysis.direction_sanity import (
     compare_directions,
     cosine_matrix,
+    overlapping_templates,
     project,
     scatter_projections,
     separation_report,
+    template_signature,
 )
 
 D = 16
@@ -27,6 +29,23 @@ def _held_out(planted: np.ndarray, noise: float, n: int, seed: int):
     agent = planted + noise * rng.standard_normal((n, D))
     patient = -planted + noise * rng.standard_normal((n, D))
     return agent, patient
+
+
+def test_overlapping_templates_reports_only_shared_frame_ids() -> None:
+    assert overlapping_templates(
+        ["fit_active", "fit_passive"],
+        ["eval_active", "fit_passive", "fit_passive"],
+    ) == ("fit_passive",)
+
+
+def test_template_signature_catches_relabelled_template() -> None:
+    fit = template_signature(
+        "The doctor helped the lawyer this morning.", "doctor", "lawyer", "helped"
+    )
+    held = template_signature(
+        "The nurse helped the judge this morning.", "nurse", "judge", "helped"
+    )
+    assert fit == held
 
 
 def test_project_dim_mismatch() -> None:
@@ -56,15 +75,16 @@ def test_separation_pure_noise_is_chance() -> None:
     assert not res.separates
 
 
-def test_separation_is_sign_agnostic() -> None:
-    """A flipped direction (patient projects higher) must not read as chance:
-    orientation is inferred from the data."""
+def test_separation_preserves_direction_sign() -> None:
+    """A flipped direction must fail rather than be silently reoriented."""
     planted = _planted(3)
     agent, patient = _held_out(planted, noise=0.2, n=40, seed=4)
     flipped = -planted
     res = separation_report(project(agent, flipped), project(patient, flipped), "e", "s")
     assert res.auc < 0.05  # agent now projects LOW -> raw ranking near 0
-    assert res.accuracy > 0.9  # ...but the classifier orients itself
+    assert res.accuracy < 0.1
+    assert res.cohens_d < -2.0
+    assert not res.separates
 
 
 def test_separation_rejects_empty() -> None:

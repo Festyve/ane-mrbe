@@ -26,6 +26,8 @@ which imports matplotlib lazily and degrades to a no-op if it is unavailable.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -41,17 +43,46 @@ class SeparationResult:
     n_agent: int
     n_patient: int
     auc: float  # P(agent proj > patient proj); 0.5 = chance, 1.0 = perfect
-    accuracy: float  # at the mean-midpoint threshold
+    accuracy: float  # expected orientation: agent above the mean-midpoint threshold
     threshold: float  # midpoint of the two class means (in projection units)
     agent_mean: float
     patient_mean: float
-    cohens_d: float  # standardized separation of the two projection clouds
+    cohens_d: float  # signed standardized separation: agent minus patient
 
     @property
     def separates(self) -> bool:
         """Heuristic pass flag: clearly-above-chance ranking. Diagnostic only —
         the numbers travel in the summary regardless."""
         return self.auc >= 0.75
+
+
+def overlapping_templates(
+    fitting_frame_ids: Iterable[str], held_out_frame_ids: Iterable[str]
+) -> tuple[str, ...]:
+    """Return frame/template IDs shared by fitting and held-out examples.
+
+    Sentence-level disjointness is weaker than the proposal's intended
+    template-level holdout. Keeping this check pure makes the corpus boundary
+    testable without loading a model.
+    """
+    return tuple(sorted(set(fitting_frame_ids) & set(held_out_frame_ids)))
+
+
+def template_signature(sentence: str, entity: str, other: str, verb: str) -> str:
+    """Normalize a fitting example to its surface template.
+
+    The explicit ``frame_id`` is useful metadata, but a caller could assign a
+    new ID to an old template. Replacing the three lexical slots catches that
+    accidental relabeling while preserving the surrounding syntax.
+    """
+    signature = sentence.lower()
+    for word, replacement in sorted(
+        ((entity, "{entity}"), (other, "{other}"), (verb, "{verb}")),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        signature = re.sub(rf"\b{re.escape(word.lower())}\b", replacement, signature)
+    return signature
 
 
 def project(activations: np.ndarray, unit_direction: np.ndarray) -> np.ndarray:
@@ -84,10 +115,9 @@ def separation_report(
 ) -> SeparationResult:
     """Score the 1-D separation of held-out agent vs patient projections.
 
-    The classifier is the honest held-out one: threshold at the midpoint of the
-    two class means, predict "agent" on the side of the higher agent mean (a
-    fitted agent-minus-patient direction should put agents higher, but we orient
-    by the data so a sign flip does not read as chance).
+    The classifier preserves the fitted direction's orientation: because the
+    fit is mean(agent) - mean(patient), agent is expected above the midpoint.
+    A held-out sign reversal is reported as a failure, not silently reoriented.
     """
     agent_proj = np.asarray(agent_proj, dtype=float).ravel()
     patient_proj = np.asarray(patient_proj, dtype=float).ravel()
@@ -96,15 +126,11 @@ def separation_report(
 
     a_mean, p_mean = float(agent_proj.mean()), float(patient_proj.mean())
     threshold = 0.5 * (a_mean + p_mean)
-    # Orient the decision so the class with the higher mean is "positive".
-    sign = 1.0 if a_mean >= p_mean else -1.0
-    correct = np.sum(sign * agent_proj > sign * threshold) + np.sum(
-        sign * patient_proj <= sign * threshold
-    )
+    correct = np.sum(agent_proj > threshold) + np.sum(patient_proj <= threshold)
     accuracy = float(correct) / (len(agent_proj) + len(patient_proj))
 
     pooled_var = 0.5 * (agent_proj.var(ddof=0) + patient_proj.var(ddof=0))
-    cohens_d = 0.0 if pooled_var == 0 else abs(a_mean - p_mean) / float(np.sqrt(pooled_var))
+    cohens_d = 0.0 if pooled_var == 0 else (a_mean - p_mean) / float(np.sqrt(pooled_var))
 
     return SeparationResult(
         entity=entity,

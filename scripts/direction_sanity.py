@@ -3,6 +3,8 @@
 
 Usage: direction_sanity.py --config configs/default.yaml [--dry-run]
                            [--dummy-mode binding|bag] [--eval-corpus PATH]
+                           [--fit-corpus PATH]
+                           [--directions-dir PATH]
                            [--entity doctor,nurse]
 
 Loads the directions_{site}.npz that scripts/fit_directions.py wrote and asks
@@ -16,12 +18,12 @@ the two pilot questions (analysis.direction_sanity):
    directions at each site, with a plain-language verdict (same vector /
    related but distinct / distinct).
 
-Held-out sentences come from --eval-corpus (a FittingExample JSONL such as
-data/handwritten/eval_doctor.jsonl) or, by default, are generated from the
-frame templates at twice the configured exemplars_per_role and stripped of
-every sentence in the archived fitting corpus (config.paths.fitting_corpus) —
-disjoint by construction and re-checked verbatim, so the check never grades
-the direction on sentences it was fit on.
+Held-out sentences come from --eval-corpus (a FittingExample JSONL). The
+training corpus is read from --fit-corpus or the archived
+config.paths.fitting_corpus. Both sentence IDs and frame/template IDs are
+checked; the command refuses to score an eval corpus that reuses a fitting
+template. A custom fitting corpus therefore must be passed explicitly with
+--fit-corpus.
 
 --dry-run uses the GPU-free DummyModel: `binding` mode plants a role axis
 (separation should be near-perfect — the harness validating itself), `bag`
@@ -41,46 +43,73 @@ import numpy as np
 
 from jspace_binding.analysis.direction_sanity import (
     compare_directions,
+    overlapping_templates,
     project,
     scatter_projections,
     separation_report,
+    template_signature,
 )
 from jspace_binding.config import Config
 from jspace_binding.directions.export_pt import load_fitted_by_site
 from jspace_binding.model.factory import add_backend_args, build_model, preflight_or_exit
-from jspace_binding.stimuli.fitting_corpus import (
-    generate_fitting_corpus,
-    load_fitting_corpus,
-)
+from jspace_binding.stimuli.fitting_corpus import load_fitting_corpus
 from jspace_binding.types import Role
 
 
-def _held_out_corpus(config: Config, eval_corpus: Path | None, entities: tuple[str, ...]):
-    """Held-out FittingExamples, guaranteed disjoint from the fitting set."""
-    fitting_sentences: set[str] = set()
-    if config.paths.fitting_corpus.exists():
-        fitting_sentences = {ex.sentence for ex in load_fitting_corpus(config.paths.fitting_corpus)}
-    elif eval_corpus is None:
+def _held_out_corpus(
+    config: Config,
+    eval_corpus: Path | None,
+    fit_corpus: Path | None,
+    entities: tuple[str, ...],
+):
+    """Held-out FittingExamples, disjoint by sentence and template."""
+    fit_path = fit_corpus or config.paths.fitting_corpus
+    if not fit_path.exists():
         sys.exit(
-            f"no archived fitting corpus at {config.paths.fitting_corpus} — run "
-            "scripts/fit_directions.py first, or pass --eval-corpus explicitly"
+            f"no fitting corpus at {fit_path} — pass --fit-corpus with the corpus "
+            "used to fit the directions"
         )
+    fitting_examples = load_fitting_corpus(fit_path)
+    fitting_sentences = {ex.sentence for ex in fitting_examples}
 
-    if eval_corpus is not None:
-        examples = load_fitting_corpus(eval_corpus)
-        source = str(eval_corpus)
-    else:
-        # The generator is deterministic and cycles frames -> verbs -> distractors,
-        # so doubling exemplars_per_role yields a superset; dropping the archived
-        # fitting sentences leaves genuinely unseen verb/distractor combinations.
-        examples = generate_fitting_corpus(entities, 2 * config.directions.exemplars_per_role)
-        source = "generated (2x exemplars_per_role minus the fitting set)"
+    if eval_corpus is None:
+        sys.exit(
+            "pass --eval-corpus with examples built from templates different from "
+            f"the fitting corpus at {fit_path}; the built-in generator reuses fitting templates"
+        )
+    examples = load_fitting_corpus(eval_corpus)
+    source = str(eval_corpus)
 
     held_out = [ex for ex in examples if ex.sentence not in fitting_sentences]
     dropped = len(examples) - len(held_out)
+    overlap_frames = overlapping_templates(
+        (ex.frame_id for ex in fitting_examples), (ex.frame_id for ex in held_out)
+    )
+    overlap_signatures = overlapping_templates(
+        (
+            template_signature(ex.sentence, ex.entity, ex.other, ex.verb)
+            for ex in fitting_examples
+        ),
+        (template_signature(ex.sentence, ex.entity, ex.other, ex.verb) for ex in held_out),
+    )
+    if overlap_frames or overlap_signatures:
+        details = []
+        if overlap_frames:
+            details.append("frame_id(s): " + ", ".join(overlap_frames))
+        if overlap_signatures:
+            details.append("template(s): " + ", ".join(overlap_signatures))
+        sys.exit(
+            "held-out corpus reuses fitting "
+            + "; ".join(details)
+            + "; provide genuinely new frame_id/template definitions"
+        )
     # Re-check verbatim: grading on fitting sentences would inflate separation.
     overlap = {ex.sentence for ex in held_out} & fitting_sentences
-    assert not overlap, f"held-out set still overlaps fitting corpus: {sorted(overlap)[:3]}"
+    if overlap:
+        sys.exit(
+            "held-out corpus reuses fitting sentence(s): "
+            + ", ".join(sorted(overlap)[:3])
+        )
     print(
         f"held-out corpus: {len(held_out)} sentences from {source}"
         + (f" ({dropped} fitting-set sentences dropped)" if dropped else ""),
@@ -96,7 +125,19 @@ def main() -> None:
         "--eval-corpus",
         type=Path,
         default=None,
-        help="held-out FittingExample JSONL (default: generate frames beyond the fitting set)",
+        help="required held-out FittingExample JSONL using new frame/template IDs",
+    )
+    parser.add_argument(
+        "--fit-corpus",
+        type=Path,
+        default=None,
+        help="corpus used to fit directions (default: config.paths.fitting_corpus)",
+    )
+    parser.add_argument(
+        "--directions-dir",
+        type=Path,
+        default=None,
+        help="directory containing fitted directions (default: config.paths.directions)",
     )
     parser.add_argument(
         "--entity",
@@ -107,7 +148,8 @@ def main() -> None:
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
-    directions_by_site = load_fitted_by_site(config.paths.directions)
+    directions_dir = args.directions_dir or config.paths.directions
+    directions_by_site = load_fitted_by_site(directions_dir)
     model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
     preflight_or_exit(model, tuple(directions_by_site))
 
@@ -117,8 +159,12 @@ def main() -> None:
     if missing:
         sys.exit(f"no fitted direction for: {', '.join(missing)}; fitted: {fitted_entities}")
 
-    corpus = _held_out_corpus(config, args.eval_corpus, entities)
-    summary: dict[str, object] = {"held_out_sentences": len(corpus), "sites": {}}
+    corpus = _held_out_corpus(config, args.eval_corpus, args.fit_corpus, entities)
+    summary: dict[str, object] = {
+        "directions_dir": str(directions_dir),
+        "held_out_sentences": len(corpus),
+        "sites": {},
+    }
 
     for site, fitted in directions_by_site.items():
         site_summary: dict[str, object] = {"separation": {}, "comparison": None}
