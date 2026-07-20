@@ -9,23 +9,70 @@ installed.
 
 Usage:
     export_directions_pt.py --config configs/default.yaml [--in DIR] [--out DIR]
-                            [--entity doctor,nurse]
+                            [--fit-corpus PATH] [--entity doctor,nurse]
 
 --in defaults to config.paths.directions; --out defaults to --in. --entity
 restricts the export to a subset (e.g. just the concept pair handed off first);
-by default every fitted entity is exported. Progress goes to stderr; a JSON
-summary of what was written goes to stdout.
+by default every fitted entity is exported. --fit-corpus identifies the corpus
+used to fit the directions for the exported provenance metadata. Progress goes
+to stderr; a JSON summary of what was written goes to stdout.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 from jspace_binding.config import Config
 from jspace_binding.directions.export_pt import build_pt_payloads, export_pt, load_fitted_by_site
+
+
+def _sha256(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _git_commit() -> str | None:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _export_metadata(config: Config, corpus_path: Path, directions_dir: Path) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "model_id": config.model.model_id,
+        "lens_repo": config.model.lens_repo,
+        "layer_band": None
+        if config.model.layer_band is None
+        else list(config.model.layer_band),
+        "injection_sites": [site.value for site in config.experiment.injection_sites],
+        "direction_variant": config.directions.variant,
+        "directions_dir": str(directions_dir),
+        "fitting_corpus": str(corpus_path),
+        "fitting_corpus_sha256": _sha256(corpus_path),
+        "exemplars_per_role": config.directions.exemplars_per_role,
+        "bootstrap_resamples": config.directions.n_bootstrap,
+        "direction_seed": config.directions.seed,
+        "push_coefficient": config.model.push_coefficient,
+        "git_commit": _git_commit(),
+    }
 
 
 def main() -> None:
@@ -45,6 +92,12 @@ def main() -> None:
         help="output dir for .pt files (default: same as --in)",
     )
     parser.add_argument(
+        "--fit-corpus",
+        type=Path,
+        default=None,
+        help="corpus used to fit directions (default: config.paths.fitting_corpus)",
+    )
+    parser.add_argument(
         "--entity",
         type=lambda s: tuple(e.strip() for e in s.split(",") if e.strip()),
         default=None,
@@ -55,6 +108,7 @@ def main() -> None:
     config = Config.from_yaml(args.config)
     in_dir = args.in_dir or config.paths.directions
     out_dir = args.out or in_dir
+    fit_corpus = args.fit_corpus or config.paths.fitting_corpus
 
     directions_by_site = load_fitted_by_site(in_dir)
     sites = sorted(s.value for s in directions_by_site)
@@ -75,7 +129,8 @@ def main() -> None:
         # Drop unwanted entities from each site's fit before writing.
         directions_by_site = _restrict(directions_by_site, set(args.entity))
 
-    written = export_pt(directions_by_site, out_dir)
+    metadata = _export_metadata(config, fit_corpus, in_dir)
+    written = export_pt(directions_by_site, out_dir, metadata=metadata)
     for path in written:
         print(f"wrote {path}", file=sys.stderr)
 
