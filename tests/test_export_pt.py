@@ -81,6 +81,17 @@ def test_payload_structure_and_unit_norms() -> None:
         assert isinstance(site["stability"], float)
 
 
+def test_payload_preserves_provenance_metadata() -> None:
+    metadata = {
+        "model_id": "test/model",
+        "layer_band": [4, 8],
+        "fitting_corpus": "data/fitting.jsonl",
+        "git_commit": "abc123",
+    }
+    payload = build_pt_payloads(_two_site_fit(), metadata=metadata)["doctor"]
+    assert payload["metadata"] == metadata
+
+
 def test_payload_single_entity_has_no_generic_loo() -> None:
     """A single-entity fit leaves generic_loo undefined — carried as None, not
     a zero vector Group A could push into a silent no-op."""
@@ -118,7 +129,8 @@ def test_load_fitted_by_site_skips_absent_and_errors_on_none(tmp_path: Path) -> 
 def test_export_pt_roundtrip(tmp_path: Path) -> None:
     torch = _require_torch()
     fit = _two_site_fit()
-    written = export_pt(fit, tmp_path)
+    metadata = {"model_id": "test/model", "git_commit": "abc123"}
+    written = export_pt(fit, tmp_path, metadata=metadata)
     assert [p.name for p in written] == [
         "chef_role_direction.pt",
         "doctor_role_direction.pt",
@@ -126,6 +138,7 @@ def test_export_pt_roundtrip(tmp_path: Path) -> None:
     ]
     loaded = torch.load(tmp_path / "doctor_role_direction.pt", weights_only=False)
     assert loaded["entity"] == "doctor"
+    assert loaded["metadata"] == metadata
     assert set(loaded["sites"]) == {"final_token", "entity_token"}
     fitted = loaded["sites"]["final_token"]["fitted"]
     assert fitted.dtype == torch.float32

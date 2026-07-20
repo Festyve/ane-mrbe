@@ -16,6 +16,7 @@ Payload schema (``{entity}_role_direction.pt``; a plain dict, load with
 ``torch.load(path, weights_only=False)``)::
 
     entity:       str
+    metadata:     dict                    # model/layer/corpus/commit provenance
     d_jspace:     int                     # direction dimensionality
     primary_site: str                     # the first site present (final_token)
     variants:     list[str]               # variant keys present per site
@@ -33,6 +34,7 @@ documents.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 import numpy as np
@@ -72,6 +74,7 @@ def load_fitted_by_site(
 
 def build_pt_payloads(
     directions_by_site: dict[InjectionSite, FittedDirections],
+    metadata: Mapping[str, object] | None = None,
 ) -> dict[str, dict]:
     """Assemble one per-entity payload of numpy arrays + metadata.
 
@@ -113,6 +116,7 @@ def build_pt_payloads(
             continue
         payloads[entity] = {
             "entity": entity,
+            "metadata": dict(metadata or {}),
             "d_jspace": d_jspace,
             "primary_site": next(iter(sites_payload)),
             "variants": list(_VARIANTS),
@@ -141,6 +145,7 @@ def _to_tensor(array, torch):
 def export_pt(
     directions_by_site: dict[InjectionSite, FittedDirections],
     out_dir: str | Path,
+    metadata: Mapping[str, object] | None = None,
 ) -> list[Path]:
     """Write one ``{entity}_role_direction.pt`` per entity under ``out_dir``.
 
@@ -152,7 +157,7 @@ def export_pt(
     torch = _torch()
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    payloads = build_pt_payloads(directions_by_site)
+    payloads = build_pt_payloads(directions_by_site, metadata=metadata)
 
     written: list[Path] = []
     for entity, payload in sorted(payloads.items()):
@@ -181,6 +186,7 @@ def export_pt_from_npz(
     directory: str | Path,
     out_dir: str | Path | None = None,
     sites: tuple[InjectionSite, ...] | None = None,
+    metadata: Mapping[str, object] | None = None,
 ) -> list[Path]:
     """Load fitted ``.npz`` directions from ``directory`` and export ``.pt``.
 
@@ -188,4 +194,8 @@ def export_pt_from_npz(
     without re-running the model. ``out_dir`` defaults to ``directory``.
     """
     directions_by_site = load_fitted_by_site(directory, sites)
-    return export_pt(directions_by_site, out_dir if out_dir is not None else directory)
+    return export_pt(
+        directions_by_site,
+        out_dir if out_dir is not None else directory,
+        metadata=metadata,
+    )
