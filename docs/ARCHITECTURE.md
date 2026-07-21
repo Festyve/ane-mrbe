@@ -189,10 +189,25 @@ genuine failure, never mislabeled. `experiments.primary.validate_config`
 additionally rejects unusable sweep configs (single push sign, RQ2 ablation
 edit types) before any model call.
 - `generate_stimuli.py --config configs/default.yaml [--out PATH]`
-- `fit_directions.py [--corpus PATH] [--allow-contaminated]` — fitting
-  corpus -> activations -> directions + stability warnings. A hand-written
-  corpus colliding with the primary set is REFUSED unless
-  --allow-contaminated (which stamps the output summary).
+- `fit_directions.py [--corpus PATH] [--allow-contaminated] [--entities a,b]
+  [--directions-dir PATH] [--fitting-corpus-out PATH] [--export-pt]` — fitting
+  corpus -> activations -> directions + stability warnings. Partial entity fits
+  automatically use tagged output paths so they cannot overwrite canonical
+  full-fit directions/corpus files. A hand-written corpus colliding with the
+  primary set is REFUSED unless --allow-contaminated (which stamps the output
+  summary). --export-pt additionally writes per-entity `.pt` bundles with
+  model/layer/corpus/commit provenance (directions/export_pt.py) for the
+  torch-based handoff.
+- `export_directions_pt.py [--in DIR] [--out DIR] [--fit-corpus PATH]
+  [--entity a,b]` — convert already-fitted `directions_{site}.npz` to
+  `{entity}_role_direction.pt` without re-running the model, recording the
+  source corpus and repository commit in each payload.
+- `direction_sanity.py --eval-corpus PATH [--fit-corpus PATH]
+  [--directions-dir PATH] [--entity a,b]` — held-out separation (AUC / midpoint
+  accuracy / Cohen's d + strip scatter) and pairwise direction cosines
+  (analysis/direction_sanity.py). It refuses eval examples that reuse fitting
+  sentences, frame IDs, or normalized surface templates; results in
+  `docs/DIRECTION_SANITY.md`.
 - `calibrate.py` — writes data/calibration.json; copy the values into the
   config's model section. Exit 3 = intervention-strength failure.
 - `run_primary.py` / `run_rq1.py` / `run_rq2.py` — the experiments.
