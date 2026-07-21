@@ -2,7 +2,8 @@
 """Generate the fitting corpus, cache activations, fit role directions.
 
 Usage: fit_directions.py --config configs/default.yaml [--dry-run] [--dummy-mode binding|bag]
-                         [--corpus PATH] [--allow-contaminated]
+                         [--corpus PATH] [--allow-contaminated] [--entities a,b]
+                         [--directions-dir PATH] [--fitting-corpus-out PATH]
 
 Runs the one-time direction-fitting pass (proposal, Methods / Role directions):
 for every entity that any condition pushes (the concept-pair entities plus the
@@ -10,6 +11,8 @@ non-participant candidates), at every configured injection site, fit
 r_entity = mean(agent) - mean(patient) over J-space activations, plus the
 shuffled-label and leave-one-out generic control variants, and run the
 bootstrap stability pilot check. Directions land in config.paths.directions;
+a partial --entities fit is routed to a tagged subdirectory under it so it
+cannot overwrite a canonical full fit;
 the fitting corpus is archived to config.paths.fitting_corpus.
 
 --corpus PATH fits from a hand-written JSONL instead of the generated frames.
@@ -29,7 +32,9 @@ Progress goes to stderr; stdout carries only the JSON summary.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -48,6 +53,50 @@ from jspace_binding.stimuli.qc import find_primary_collisions
 from jspace_binding.types import Role
 
 
+def _sha256(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _git_commit() -> str | None:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _export_metadata(config: Config, corpus_path: Path, directions_dir: Path) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "model_id": config.model.model_id,
+        "lens_repo": config.model.lens_repo,
+        "layer_band": None
+        if config.model.layer_band is None
+        else list(config.model.layer_band),
+        "injection_sites": [site.value for site in config.experiment.injection_sites],
+        "direction_variant": config.directions.variant,
+        "directions_dir": str(directions_dir),
+        "fitting_corpus": str(corpus_path),
+        "fitting_corpus_sha256": _sha256(corpus_path),
+        "exemplars_per_role": config.directions.exemplars_per_role,
+        "bootstrap_resamples": config.directions.n_bootstrap,
+        "direction_seed": config.directions.seed,
+        "push_coefficient": config.model.push_coefficient,
+        "git_commit": _git_commit(),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fit role directions from the fitting corpus.")
     add_backend_args(parser)
@@ -62,6 +111,30 @@ def main() -> None:
         action="store_true",
         help="proceed despite primary-set collisions (integration tests only; stamped in output)",
     )
+    parser.add_argument(
+        "--export-pt",
+        action="store_true",
+        help="also write {entity}_role_direction.pt (Group A handoff; needs the torch extra)",
+    )
+    parser.add_argument(
+        "--entities",
+        type=lambda s: tuple(e.strip() for e in s.split(",") if e.strip()),
+        default=None,
+        help="fit these entities instead of config.direction_entities() "
+        "(e.g. doctor,nurse for a pair handoff; ignored with --corpus)",
+    )
+    parser.add_argument(
+        "--directions-dir",
+        type=Path,
+        default=None,
+        help="output directory for directions (partial fits default to a safe subdirectory)",
+    )
+    parser.add_argument(
+        "--fitting-corpus-out",
+        type=Path,
+        default=None,
+        help="where to archive the fitting corpus (partial fits default to a safe filename)",
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
@@ -69,6 +142,22 @@ def main() -> None:
     preflight_or_exit(model)  # fitting itself needs no already-fitted directions
 
     needed = config.direction_entities()
+    partial_entities = bool(
+        args.corpus is None and args.entities and set(args.entities) != set(needed)
+    )
+    directions_dir = args.directions_dir or config.paths.directions
+    fitting_corpus_path = args.fitting_corpus_out or args.corpus or config.paths.fitting_corpus
+    if partial_entities:
+        tag = "-".join(sorted(args.entities))
+        directions_dir = args.directions_dir or config.paths.directions / "partial" / tag
+        fitting_corpus_path = args.fitting_corpus_out or config.paths.fitting_corpus.with_name(
+            f"{config.paths.fitting_corpus.stem}_{tag}{config.paths.fitting_corpus.suffix}"
+        )
+        print(
+            f"partial fit: writing to {directions_dir} and {fitting_corpus_path}; "
+            "the canonical full-fit outputs will not be overwritten",
+            file=sys.stderr,
+        )
     contaminated = False
     if args.corpus is not None:
         corpus = load_fitting_corpus(args.corpus)
@@ -98,20 +187,33 @@ def main() -> None:
         print(f"fitting corpus: {len(corpus)} sentences (hand-written, {args.corpus})",
               file=sys.stderr)
     else:
-        entities = needed
+        entities = args.entities or needed
+        if args.entities:
+            missing = [e for e in needed if e not in args.entities]
+            if missing:
+                print(
+                    f"WARNING --entities covers only {list(args.entities)}; the primary "
+                    f"experiment also needs directions for {missing}",
+                    file=sys.stderr,
+                )
         corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
-        save_fitting_corpus(corpus, config.paths.fitting_corpus)
+        save_fitting_corpus(corpus, fitting_corpus_path)
         print(
             f"fitting corpus: {len(corpus)} sentences ({len(entities)} entities x 2 roles "
-            f"x {config.directions.exemplars_per_role}) -> {config.paths.fitting_corpus}",
+            f"x {config.directions.exemplars_per_role}) -> {fitting_corpus_path}",
             file=sys.stderr,
         )
+    if args.corpus is not None and args.fitting_corpus_out is not None:
+        save_fitting_corpus(corpus, fitting_corpus_path)
 
     summary: dict[str, object] = {
         "entities": list(entities),
         "contaminated": contaminated,
+        "directions_dir": str(directions_dir),
+        "fitting_corpus": str(fitting_corpus_path),
         "sites": {},
     }
+    fitted_by_site = {}
     for site in config.experiment.injection_sites:
         activations = {}
         for entity in entities:
@@ -129,7 +231,8 @@ def main() -> None:
             n_bootstrap=config.directions.n_bootstrap,
             seed=config.directions.seed,
         )
-        path = save_directions(directions, config.paths.directions)
+        fitted_by_site[site] = directions
+        path = save_directions(directions, directions_dir)
         site_summary = {
             "path": str(path),
             "stability": {
@@ -153,6 +256,24 @@ def main() -> None:
                     file=sys.stderr,
                 )
         print(f"[{site.value}] fitted {len(entities)} directions -> {path}", file=sys.stderr)
+
+    if args.export_pt:
+        from jspace_binding.directions.export_pt import export_pt
+
+        try:
+            written = export_pt(
+                fitted_by_site,
+                directions_dir,
+                metadata=_export_metadata(config, fitting_corpus_path, directions_dir),
+            )
+        except ModuleNotFoundError as exc:
+            # The .npz fit already succeeded; a missing torch shouldn't fail the run.
+            print(f"WARNING --export-pt skipped: {exc}", file=sys.stderr)
+            summary["pt_export"] = {"skipped": str(exc)}
+        else:
+            print(f"exported {len(written)} .pt files -> {directions_dir}",
+                  file=sys.stderr)
+            summary["pt_export"] = {"written": [str(p) for p in written]}
 
     print(json.dumps(summary, indent=2))
 
