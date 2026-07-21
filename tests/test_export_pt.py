@@ -95,7 +95,11 @@ def test_payload_preserves_provenance_metadata() -> None:
 def test_payload_single_entity_has_no_generic_loo() -> None:
     """A single-entity fit leaves generic_loo undefined — carried as None, not
     a zero vector Group A could push into a silent no-op."""
-    fit = {InjectionSite.FINAL_TOKEN: fit_all(_multi_entity(("doctor",)), InjectionSite.FINAL_TOKEN, n_bootstrap=20)}
+    fit = {
+        InjectionSite.FINAL_TOKEN: fit_all(
+            _multi_entity(("doctor",)), InjectionSite.FINAL_TOKEN, n_bootstrap=20
+        )
+    }
     payload = build_pt_payloads(fit)["doctor"]
     assert payload["sites"]["final_token"]["generic_loo"] is None
     # fitted is still a real unit direction.
