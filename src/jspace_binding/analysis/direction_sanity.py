@@ -158,7 +158,7 @@ def cosine_matrix(
     mat = np.stack([np.asarray(directions[e], dtype=float) for e in entities])
     norms = np.linalg.norm(mat, axis=1)
     if np.any(norms < 1e-12):
-        zero = [e for e, n in zip(entities, norms) if n < 1e-12]
+        zero = [e for e, n in zip(entities, norms, strict=True) if n < 1e-12]
         raise ValueError(f"cosine_matrix: zero-norm direction(s) for {zero}")
     unit = mat / norms[:, None]
     return entities, unit @ unit.T
