@@ -248,8 +248,15 @@ courtesy.
    raw = round(reindexed/100 * n_layers). For Qwen3.6-27B (**64 layers,
    d_model 5120**) that is raw **24–59**, mid-band **~48**. The lens covers
    raw layers **0–62**, so the whole band is available.
-5. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities,
-   and confirm the pairs are among the lens's n=1000 attested concepts.
+5. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities.
+   DONE for Qwen3.6-27B — all 12 PROFESSION_ENTITIES encode to a single
+   token with a leading space.
+   (Correction to an earlier version of this step: there is no "n=1000
+   attested concepts" list to check the pairs against. The artifact's
+   `n_prompts: 1000` is the number of prompts the per-layer Jacobian was
+   AVERAGED OVER, not a concept whitelist — the J-lens dictionary is
+   `J_l^T W_U[t]` over the whole vocabulary, so any single token has a
+   J-lens vector.)
 6. `scripts/fit_directions.py` — check stability per entity per site.
 7. `scripts/calibrate.py` — copy alpha / push_coefficient into the config.
 8. `scripts/run_primary.py` with `backend: qwen_jlens`; then `run_rq1.py`,
@@ -311,6 +318,6 @@ giver to keep scoring uniform, with dative reported separately either way.
 | Log-odds crossover DiD + null band + per-sign breakdown | alpha, push_coefficient (calibration) |
 | Direction fitting + stability + shuffled + LOO | ~~lens artifact KEY NAMES~~ (confirmed + tested) |
 | Fitting corpus (disjoint, balanced) | exemplars_per_role (stability pilot) |
-| Bootstrap / permutation / d / Holm | single-token vocab + lens-attestation check |
+| Bootstrap / permutation / d / Holm | ~~single-token vocab~~ (verified on Qwen3.6-27B); no attestation list exists |
 | Dummy end-to-end validation, both modes | non-participant = absent profession (review) |
 | Backend math per Gurnee et al. §2 (J_l, pursuit, swap, ablation) | first-contact validation on real weights |

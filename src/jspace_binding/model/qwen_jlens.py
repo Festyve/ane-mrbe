@@ -357,7 +357,14 @@ class QwenJLensModel:
 
             # weights_only=True: the artifact is plain tensors + scalars, so
             # never execute pickle code from a downloaded file.
-            obj = torch.load(path, map_location="cpu", weights_only=True)
+            # mmap=True: the Qwen release is 3.3 GB of Jacobians but a run
+            # touches only its layer band, so map the file and let the OS page
+            # in the few layers actually read. Falls back to a full load for
+            # artifacts not saved in the zipfile format mmap requires.
+            try:
+                obj = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+            except (RuntimeError, ValueError):
+                obj = torch.load(path, map_location="cpu", weights_only=True)
             if not isinstance(obj, dict):
                 raise LensFormatError(
                     f"{path.name} holds a {type(obj).__name__}, expected a dict of Jacobians"
