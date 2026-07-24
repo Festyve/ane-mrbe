@@ -5,9 +5,15 @@
 
 model:
   backend: dummy            # dummy | qwen_jlens
-  model_id: Qwen/Qwen3.6-27B  # TODO: verify exact HF id against the Neuronpedia lens
-  lens_repo: anthropics/jacobian-lens  # per-layer averaged Jacobians J_l
+  model_id: Qwen/Qwen3.6-27B  # verified on HF: 64 layers, d_model 5120
+  lens_repo: neuronpedia/jacobian-lens  # per-layer averaged Jacobians J_l
+  # Scopes the download + file search to this model's lens. The repo carries a
+  # lens per model and totals ~57 GB; without this the loader would fetch all
+  # of them (and could pick another model's Jacobians).
+  lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
   layer_band: null          # open: workspace layer band for Qwen3.6-27B ([L, L] = single layer)
+                            # paper's reindexed L38-92 of 100 -> raw 24-59 here; mid-band ~48.
+                            # Released lens covers raw layers 0-62.
   alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
   push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
   jspace_k: 16              # sparsity of the J-space pursuit (paper: k=16, occupancy ~25)

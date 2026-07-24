@@ -76,8 +76,12 @@ def main() -> None:
 
     _stage(f"model config: {args.model_id}")
     hf_config = AutoConfig.from_pretrained(args.model_id)
-    d_model = int(hf_config.hidden_size)
-    n_layers = int(hf_config.num_hidden_layers)
+    # Multimodal checkpoints (e.g. Qwen3.6-27B, a *ForConditionalGeneration)
+    # nest the text tower's dims under .text_config and expose neither at the
+    # top level, so read through to it when present.
+    text_config = getattr(hf_config, "text_config", hf_config)
+    d_model = int(text_config.hidden_size)
+    n_layers = int(text_config.num_hidden_layers)
     # Mid-band single layer, mirroring the source paper's single-layer swaps
     # (~reindexed L75 of 100).
     layer = max(1, round(0.75 * n_layers) - 1)
@@ -120,6 +124,8 @@ def main() -> None:
             backend="qwen_jlens",
             model_id=args.model_id,
             lens_repo=str(lens_dir),
+            lens_subpath=None,  # the synthetic lens is written flat into lens_dir,
+            # not in the published {model}/jlens/{corpus}/ layout
             layer_band=(layer, layer),
             jspace_k=8,
             ablate_k=5,
