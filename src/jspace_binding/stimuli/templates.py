@@ -57,6 +57,16 @@ _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
 }
 _NEUTRAL_PROBE = "Question: Which professions are mentioned? Answer: The"
 
+# The ROLE probe above queries the dative's GIVER, so the recipient — arguably
+# the dative's more interesting participant — is never asked about. This second
+# probe queries the recipient, so the dative can be scored from both sides.
+# DATIVE only: the other three constructions have no recipient reading, and
+# build_family leaves their recipient_probe empty so the sweep skips them.
+# Byte-identical across the four cells, like every other probe.
+_RECIPIENT_PROBE_TEMPLATES: dict[Construction, str] = {
+    Construction.DATIVE: "Question: Who was {verb_past} the letter by someone? Answer: The",
+}
+
 _Cell = tuple[Role, Position]
 
 # Pinned by the proposal's worked example (doctor/lawyer/treated).
@@ -134,6 +144,9 @@ def build_family(
         cells=cells,
         role_probe=_ROLE_PROBE_TEMPLATES[construction].format(verb_past=verb_lemma),
         neutral_probe=_NEUTRAL_PROBE,
+        recipient_probe=_RECIPIENT_PROBE_TEMPLATES.get(construction, "").format(
+            verb_past=verb_lemma
+        ),
         answer_set=AnswerSet(entity=pair.entity, counterpart=pair.counterpart, other=other_entity),
     )
     _validate_family(family)

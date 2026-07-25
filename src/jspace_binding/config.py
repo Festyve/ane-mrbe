@@ -18,10 +18,15 @@ from jspace_binding.types import ConceptPair, EditType, InjectionSite, PushSign
 @dataclass(frozen=True)
 class ModelConfig:
     backend: str = "dummy"  # "dummy" | "qwen_jlens"
-    model_id: str = "Qwen/Qwen3.6-27B"  # TODO: verify exact HF id against Neuronpedia lens
-    lens_repo: str = "anthropics/jacobian-lens"  # per-layer averaged Jacobians J_l
+    model_id: str = "Qwen/Qwen3.6-27B"  # verified on HF: 64 layers, d_model 5120
+    lens_repo: str = "neuronpedia/jacobian-lens"  # per-layer averaged Jacobians J_l
+    # The lens repo holds one lens per model (~57 GB in total); lens_subpath scopes
+    # BOTH the download and the file search to this model's directory.
+    lens_subpath: str | None = "qwen3.6-27b/jlens/Salesforce-wikitext"
     layer_band: tuple[int, int] | None = None  # open: RAW layer band; [L, L] = single layer
-    # (source paper: workspace ~= reindexed L38-92 of 100; single-layer swaps mid-band)
+    # (source paper: workspace ~= reindexed L38-92 of 100; single-layer swaps mid-band.
+    # For 64 layers that converts to raw 24-59, mid-band ~48. The released lens covers
+    # raw layers 0-62, so any band inside that range is loadable.)
     alpha: float | None = None  # open: IDENTITY_SWAP scaling (calibrated; None = pure swap)
     push_coefficient: float | None = None  # open: role-push scaling, calibrated on the
     # fitting corpus, NEVER on the primary stimuli (experiments.calibrate)

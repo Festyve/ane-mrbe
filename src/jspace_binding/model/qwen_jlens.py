@@ -42,9 +42,11 @@ For the NULL_NON_PARTICIPANT control the pushed direction belongs to an
 absent entity but the anchor stays the sentence's own target-entity token —
 the site is a sentence position, not a property of the direction.
 
-STATUS: written to the paper's spec but never run on real weights. The
-remaining unknowns are the artifact's exact key names (checked loudly in
-_load_lens) and ordinary first-contact bugs.
+STATUS: written to the paper's spec but never run on real weights. The lens
+artifact's schema is confirmed against the release (neuronpedia/jacobian-lens:
+a .pt holding a nested "J" mapping of int layer -> Jacobian; see _read_arrays
+and tests/test_lens_loading.py), so the remaining unknown is ordinary
+first-contact bugs.
 """
 
 from __future__ import annotations
@@ -66,8 +68,11 @@ class LensFormatError(RuntimeError):
 
 
 # Key patterns we try, in order, for layer L's Jacobian in the released
-# artifact. The first GPU session confirms which one the release uses (or
-# adds the real one here — nothing else depends on the naming).
+# artifact. CONFIRMED against neuronpedia/jacobian-lens (2026-07): the release
+# is a torch .pt holding {"J": {int_layer: (d_model, d_model) fp16 tensor},
+# "source_layers": [...], "d_model": int, "n_prompts": int}. _read_arrays
+# normalises that nested mapping to flat "layer_{L}" keys, which is why the
+# first pattern matches; the rest are kept for other/older spellings.
 _JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
     "layer_{L}",
     "J_{L}",
@@ -75,6 +80,9 @@ _JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
     "layers.{L}.jacobian",
     "layer_{L}.jacobian",
 )
+
+# Artifact file extensions we know how to read, in preference order.
+_LENS_SUFFIXES: tuple[str, ...] = (".pt", ".npz", ".safetensors")
 
 
 class QwenJLensModel:
@@ -240,28 +248,61 @@ class QwenJLensModel:
         """Load the per-layer averaged Jacobians J_l for the layer band.
 
         Expected artifact (per the source paper's §2.1 and its companion
-        release): one (d_model x d_model) matrix per layer, in an .npz or
+        release): one (d_model x d_model) matrix per layer, in a .pt / .npz /
         .safetensors file under config.lens_repo (local path or HF repo id).
         We try the key patterns in _JACOBIAN_KEY_PATTERNS; if none match,
         we fail listing the keys actually present so the mapping can be
         added in one line.
+
+        config.lens_subpath scopes BOTH the download and the file search to
+        one model's directory. The published repo holds a lens per model in
+        `{model}/jlens/{corpus}/` and totals ~57 GB, so an unscoped
+        snapshot_download would pull every other model's Jacobians (and an
+        unscoped glob could silently load the WRONG model's lens).
         """
         import torch
 
+        subpath = (self.config.lens_subpath or "").strip("/")
         root = Path(self.config.lens_repo)
         if not root.exists():
             from huggingface_hub import snapshot_download
 
-            root = Path(snapshot_download(self.config.lens_repo))
-        candidates = sorted(root.glob("**/*.npz")) + sorted(root.glob("**/*.safetensors"))
+            root = Path(
+                snapshot_download(
+                    self.config.lens_repo,
+                    allow_patterns=[f"{subpath}/*"] if subpath else None,
+                )
+            )
+        search_root = root / subpath if subpath else root
+        if not search_root.exists():
+            raise LensFormatError(
+                f"lens_subpath {subpath!r} not found under {root}; check "
+                "model.lens_subpath against the release layout"
+            )
+        candidates = [
+            p for suffix in _LENS_SUFFIXES for p in sorted(search_root.glob(f"**/*{suffix}"))
+        ]
         if not candidates:
             raise LensFormatError(
-                f"no .npz/.safetensors lens artifact under {root}; inspect the release "
-                "and adapt QwenJLensModel._load_lens"
+                f"no {'/'.join(_LENS_SUFFIXES)} lens artifact under {search_root}; "
+                "inspect the release and adapt QwenJLensModel._load_lens"
+            )
+        if not subpath and len(candidates) > 1:
+            raise LensFormatError(
+                f"{len(candidates)} lens artifacts under {root} and no model.lens_subpath "
+                f"to disambiguate: {[p.name for p in candidates[:6]]}... — set "
+                "model.lens_subpath so the right model's lens is loaded"
             )
         arrays = self._read_arrays(candidates[0])
         lo, hi = self.config.layer_band  # type: ignore[misc]
         d_model = int(self._w_u.shape[1])
+        artifact_d_model = arrays.pop("__d_model__", None)
+        if artifact_d_model is not None and int(artifact_d_model) != d_model:
+            raise LensFormatError(
+                f"lens {candidates[0].name} was fitted for d_model={int(artifact_d_model)} "
+                f"but {self.config.model_id} has d_model={d_model} — model.lens_subpath "
+                "almost certainly points at another model's lens"
+            )
         for layer in range(lo, hi + 1):
             key = next(
                 (
@@ -272,6 +313,17 @@ class QwenJLensModel:
                 None,
             )
             if key is None:
+                covered = sorted(
+                    int(k.removeprefix("layer_"))
+                    for k in arrays
+                    if k.startswith("layer_") and k.removeprefix("layer_").isdigit()
+                )
+                if covered:
+                    raise LensFormatError(
+                        f"layer {layer} is outside the lens artifact's coverage "
+                        f"(it holds layers {covered[0]}-{covered[-1]}); narrow "
+                        "model.layer_band to that range"
+                    )
                 raise LensFormatError(
                     f"no Jacobian key found for layer {layer} in {candidates[0].name}; "
                     f"tried {[p.format(L=layer) for p in _JACOBIAN_KEY_PATTERNS]}; "
@@ -289,7 +341,44 @@ class QwenJLensModel:
             )
 
     @staticmethod
-    def _read_arrays(path: Path) -> dict[str, np.ndarray]:
+    def _read_arrays(path: Path) -> dict[str, Any]:
+        """Load a lens artifact as a flat {key: matrix} mapping.
+
+        The released .pt nests its Jacobians one level down under "J", keyed
+        by INT layer index, alongside scalar metadata ("d_model",
+        "source_layers", "n_prompts"). We flatten that to the flat
+        "layer_{L}" spelling the key patterns expect, and pass d_model
+        through as "__d_model__" so _load_lens can reject a lens fitted for
+        a different model. Values stay torch tensors — torch.as_tensor
+        handles both those and numpy arrays.
+        """
+        if path.suffix == ".pt":
+            import torch
+
+            # weights_only=True: the artifact is plain tensors + scalars, so
+            # never execute pickle code from a downloaded file.
+            # mmap=True: the Qwen release is 3.3 GB of Jacobians but a run
+            # touches only its layer band, so map the file and let the OS page
+            # in the few layers actually read. Falls back to a full load for
+            # artifacts not saved in the zipfile format mmap requires.
+            try:
+                obj = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+            except (RuntimeError, ValueError):
+                obj = torch.load(path, map_location="cpu", weights_only=True)
+            if not isinstance(obj, dict):
+                raise LensFormatError(
+                    f"{path.name} holds a {type(obj).__name__}, expected a dict of Jacobians"
+                )
+            nested = obj.get("J")
+            if not isinstance(nested, dict):
+                raise LensFormatError(
+                    f"{path.name} has no 'J' mapping of per-layer Jacobians; "
+                    f"top-level keys: {sorted(map(str, obj))[:12]}"
+                )
+            arrays: dict[str, Any] = {f"layer_{int(layer)}": m for layer, m in nested.items()}
+            if "d_model" in obj:
+                arrays["__d_model__"] = obj["d_model"]
+            return arrays
         if path.suffix == ".npz":
             with np.load(path, allow_pickle=False) as data:
                 return {k: data[k] for k in data.files}
