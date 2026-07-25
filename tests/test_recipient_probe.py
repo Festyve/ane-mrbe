@@ -203,3 +203,57 @@ def test_recipient_probe_is_entity_free() -> None:
     family = _family(Construction.DATIVE)
     for word in ("doctor", "nurse", "lawyer"):
         assert word not in family.recipient_probe
+
+
+# ------------------------------------------------------------------ #
+# Ground-truth recovery through the dummy backend                     #
+# ------------------------------------------------------------------ #
+
+
+def _dative_scores(mode: str) -> dict[ProbeKind, float]:
+    """Run the dummy end-to-end and score the dative from both probes."""
+    import statistics
+    import tempfile
+    from dataclasses import replace
+    from pathlib import Path
+
+    from jspace_binding.config import Config
+    from jspace_binding.experiments.primary import run_primary
+    from jspace_binding.model.dummy import DummyModel
+    from jspace_binding.stimuli.generate import generate_families
+
+    config = Config.from_yaml("configs/ci.yaml")
+    config = replace(
+        config, paths=replace(config.paths, results=Path(tempfile.mkdtemp()))
+    )
+    trials = run_primary(config, DummyModel(mode=mode, seed=0), generate_families(config))
+    out = {}
+    for probe_kind in (ProbeKind.ROLE, ProbeKind.RECIPIENT):
+        table = collect_scores(trials, InjectionSite.FINAL_TOKEN, probe_kind)
+        out[probe_kind] = statistics.mean(table.real[("dative", "doctor->nurse")])
+    return out
+
+
+def test_dummy_models_the_recipient_probe() -> None:
+    """The dummy must plant the mirrored ground truth for the recipient probe.
+
+    It classifies probes by wording, and "Who was handed..." matches its
+    role-probe test — so without the readout swap in answer_distribution it
+    plants ROLE ground truth, PROBE_ORIENTATION negates it, and binding mode
+    reports a large spurious NEGATIVE dative score that looks like a finding.
+    Both probes must recover the same planted ~+2.2.
+    """
+    scores = _dative_scores("binding")
+    assert scores[ProbeKind.ROLE] > 1.5
+    assert scores[ProbeKind.RECIPIENT] > 1.5, (
+        "recipient probe failed to recover the planted binding effect "
+        f"(got {scores[ProbeKind.RECIPIENT]:+.3f}); a negative here means the "
+        "dummy is not modelling the probe's inverted polarity"
+    )
+
+
+def test_dummy_bag_mode_is_null_at_both_probes() -> None:
+    """A role-blind push cancels at both readouts; neither flip invents one."""
+    scores = _dative_scores("bag")
+    assert abs(scores[ProbeKind.ROLE]) < 0.5
+    assert abs(scores[ProbeKind.RECIPIENT]) < 0.5
