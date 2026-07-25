@@ -94,6 +94,15 @@ class ProbeKind(str, Enum):
 
     ROLE = "role"  # role-diagnostic: the answer depends on who is agent/patient
     NEUTRAL = "neutral"  # role-blind: only checks the edit propagated at all
+    # DATIVE only: the ROLE probe there asks for the GIVER (mapped to AGENT),
+    # so the recipient — arguably the dative's more interesting participant —
+    # is never queried. This probe asks for the recipient instead.
+    # ORIENTATION: P(entity) is high when the entity is the RECIPIENT, i.e. the
+    # PATIENT slot, so the agent-patient gap and every push inverts relative to
+    # the ROLE probe. analysis.binding_score negates it (see PROBE_ORIENTATION)
+    # so "positive = binding" still holds. Families whose construction has no
+    # recipient probe (ItemFamily.recipient_probe == "") skip it entirely.
+    RECIPIENT = "recipient"
 
 
 class InjectionSite(str, Enum):
@@ -169,6 +178,9 @@ class ItemFamily:
     cells: dict[str, Stimulus] = field(default_factory=dict)  # key: cell_key(role, position)
     role_probe: str = ""
     neutral_probe: str = ""
+    # DATIVE only; "" for constructions with no recipient reading. See
+    # ProbeKind.RECIPIENT for the orientation caveat.
+    recipient_probe: str = ""
     answer_set: AnswerSet | None = None
 
     def cell(self, role: Role, position: Position) -> Stimulus:
