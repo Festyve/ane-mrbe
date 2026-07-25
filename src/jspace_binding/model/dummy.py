@@ -156,6 +156,16 @@ class DummyModel:
         entity_first, entity_is_agent = self._locate_entity(sentence, entity, other)
         logits = self._logits(self._probe_is_role(probe), edit, entity_is_agent)
         l_entity, l_counterpart, l_other = logits
+        if self._probe_is_recipient(probe):
+            # The dative RECIPIENT probe asks who RECEIVED, so the answer is the
+            # NON-agent: the entity's and the other participant's readouts swap.
+            # The push interaction lives in the logit VALUES, so swapping mirrors
+            # the whole structure — under binding the planted crossover survives
+            # with inverted polarity (which analysis.PROBE_ORIENTATION undoes),
+            # and under bag it still cancels to ~0. Without this the dummy scores
+            # the recipient probe as if it were the role probe, and dry runs
+            # report a large spurious NEGATIVE dative score.
+            l_entity, l_other = l_other, l_entity
         if entity_first:
             l_entity += _POSITION_BIAS
         jitter = self._jitter(sentence, probe, edit, site)
@@ -355,13 +365,29 @@ class DummyModel:
     @staticmethod
     def _probe_is_role(probe: str) -> bool:
         """Classify the probe by its draft wording (stimuli.templates): the
-        role probe asks "Who ...", the neutral probe "Which ... mentioned"."""
+        role probe asks "Who ...", the neutral probe "Which ... mentioned".
+
+        The dative RECIPIENT probe also asks "Who ...", so it lands here as a
+        role probe by design — answer_distribution then swaps its readout via
+        _probe_is_recipient. Both are role-diagnostic; they differ in polarity.
+        """
         low = probe.lower()
         is_role = re.search(r"\bwho\b", low) is not None
         is_neutral = re.search(r"\bwhich\b", low) is not None or "mentioned" in low
         if is_role == is_neutral:
             raise ValueError(f"cannot classify probe as role/neutral: {probe!r}")
         return is_role
+
+    @staticmethod
+    def _probe_is_recipient(probe: str) -> bool:
+        """True for the dative RECIPIENT probe (stimuli.templates).
+
+        It is the PASSIVE "Who was ... by someone?"; every other role probe is
+        the active "Who ...?". Wording-based, like _probe_is_role — the
+        WorkspaceModel protocol passes only the probe string, not its kind.
+        """
+        low = probe.lower()
+        return re.search(r"\bwho was\b", low) is not None and "by someone" in low
 
     def _content_rng(self, *parts: str) -> random.Random:
         key = "\x1f".join((str(self.seed), *parts))
