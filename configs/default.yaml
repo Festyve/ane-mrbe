@@ -11,12 +11,21 @@ model:
   # lens per model and totals ~57 GB; without this the loader would fetch all
   # of them (and could pick another model's Jacobians).
   lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
-  # Source paper's workspace band: reindexed L38-92 of 100 -> raw 24-59 for this
-  # model's 64 layers. Edits apply across the whole inclusive band, reads at 59.
-  # NOTE: the paper's single-layer swap analyses sit mid-band (~L75 reindexed =
-  # raw 48); [48, 48] reproduces those instead, at ~1/36th the edit cost.
-  # Released lens covers raw layers 0-62, so both are loadable.
-  layer_band: [24, 59]
+  # Matches the source paper's SINGLE-LAYER swap analyses, which sit mid-
+  # workspace (~L75 of their reindexed 100). Converted for this model's 64
+  # layers: round(75/100 * 64) = 48.
+  #
+  # Their workspace band is reindexed L38-92 -> raw 24-59 here. Run those two
+  # edges as separate single-layer robustness runs rather than as one band:
+  #     layer_band: [24, 24]   # band start
+  #     layer_band: [48, 48]   # primary (this one)
+  #     layer_band: [59, 59]   # band end
+  # A single [24, 59] band edits all 36 layers at once — ~36x the per-trial
+  # edit cost, and it cannot localise the effect, since one smeared edit
+  # cannot distinguish "binding lives at L48" from "binding is everywhere".
+  #
+  # Released lens covers raw layers 0-62, so all three are loadable.
+  layer_band: [48, 48]
   alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
   push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
   jspace_k: 16              # sparsity of the J-space pursuit (paper: k=16, occupancy ~25)
