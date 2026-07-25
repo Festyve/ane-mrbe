@@ -133,9 +133,10 @@ numpy — no model dependencies — so it is unit-testable on any machine.
   `model.jspace_k`); the identity swap patches in lens coordinates using
   J-lens vectors directly (their §2.5 — no auxiliary concept-vector forwards
   needed); ABLATE_JSPACE zeroes the top-`ablate_k` active J-lens vectors
-  (their §3.5.2). Remaining unknowns: the artifact's key names
-  (`_JACOBIAN_KEY_PATTERNS`, fails loudly listing what it found) and
-  first-contact bugs. Layer semantics: edits applied across the inclusive
+  (their §3.5.2). The artifact's schema is now CONFIRMED against the release
+  (nested `J` mapping in a `.pt`; see the runbook) and covered by
+  `tests/test_lens_loading.py`; the remaining unknown is ordinary
+  first-contact bugs on real weights. Layer semantics: edits applied across the inclusive
   raw `layer_band`, reads at its top; their workspace is reindexed layers
   ~38–92 of 100 with single-layer analyses mid-band (~L75 reindexed). Site
   anchors: sentence-final token / the target entity's last token (also for
@@ -230,19 +231,35 @@ courtesy.
    means the code paths work, so GPU time is spent on the experiment rather
    than on typos.
 1. `pip install '.[model]'` (+ `bitsandbytes` if `load_in_4bit`).
-2. Verify the HF model id and download the lens; the loader expects per-layer
-   Jacobian matrices and tries several key spellings
-   (`_JACOBIAN_KEY_PATTERNS`) — if the release names differ, add the real
-   pattern (one line).
-3. Pin `model.layer_band` in RAW layer indices. Guidance from the source
+2. Check `hf auth whoami`. An expired/invalid stored token makes the Hub
+   return 401 *Repository Not Found* even for these public repos, which reads
+   like a wrong model id — `hf auth login --force`, or clear the token to
+   fetch anonymously.
+3. The lens is `neuronpedia/jacobian-lens`, one lens per model under
+   `{model}/jlens/{corpus}/`; `model.lens_subpath` scopes the download and the
+   file search to ours (`qwen3.6-27b/jlens/Salesforce-wikitext`, 3.3 GB).
+   Leave it set — the repo totals ~57 GB and an unscoped fetch pulls every
+   other model's Jacobians. Verified schema: a torch `.pt` holding
+   `{"J": {int_layer: (5120, 5120) fp16}, "source_layers": [0..62],
+   "d_model": 5120, "n_prompts": 1000}`.
+4. Pin `model.layer_band` in RAW layer indices. Guidance from the source
    paper: workspace = reindexed layers ~38–92 of 100; single-layer swap
    analyses sit mid-band (~L75 reindexed). Convert via
-   raw = round(reindexed/100 * n_layers).
-4. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities,
-   and confirm the pairs are among the lens's n=1000 attested concepts.
-5. `scripts/fit_directions.py` — check stability per entity per site.
-6. `scripts/calibrate.py` — copy alpha / push_coefficient into the config.
-7. `scripts/run_primary.py` with `backend: qwen_jlens`; then `run_rq1.py`,
+   raw = round(reindexed/100 * n_layers). For Qwen3.6-27B (**64 layers,
+   d_model 5120**) that is raw **24–59**, mid-band **~48**. The lens covers
+   raw layers **0–62**, so the whole band is available.
+5. Validate the vocab: `stimuli.vocab.validate_single_token` on all entities.
+   DONE for Qwen3.6-27B — all 12 PROFESSION_ENTITIES encode to a single
+   token with a leading space.
+   (Correction to an earlier version of this step: there is no "n=1000
+   attested concepts" list to check the pairs against. The artifact's
+   `n_prompts: 1000` is the number of prompts the per-layer Jacobian was
+   AVERAGED OVER, not a concept whitelist — the J-lens dictionary is
+   `J_l^T W_U[t]` over the whole vocabulary, so any single token has a
+   J-lens vector.)
+6. `scripts/fit_directions.py` — check stability per entity per site.
+7. `scripts/calibrate.py` — copy alpha / push_coefficient into the config.
+8. `scripts/run_primary.py` with `backend: qwen_jlens`; then `run_rq1.py`,
    `run_rq2.py`.
 
 ## Proposal ↔ repo map
@@ -266,8 +283,19 @@ courtesy.
 Deliberate deviations from the proposal text (team-flagged): the
 non-participant control pushes an absent PROFESSION's fitted direction
 (a weekday cannot bear a thematic role — proposal's "tuesday" example is
-unfittable under the role-direction design); the dative probe queries the
-giver to keep scoring uniform, with dative reported separately either way.
+unfittable under the role-direction design); the dative's ROLE probe queries
+the giver to keep scoring uniform, with dative reported separately either way.
+
+The dative additionally carries a second readout, `ProbeKind.RECIPIENT`
+("Who was handed the letter by someone?"), so the recipient — the participant
+the ROLE probe never asks about — is scored too. It rides along with ROLE on
+every push and on the no-edit baseline, giving the dative a full 12-cell score
+and its own null band from the recipient side. Its polarity is inverted
+(P(entity) rises as the entity becomes more PATIENT-like), so
+`binding_score.PROBE_ORIENTATION` negates it and the two tables stay directly
+comparable. Non-dative families carry `recipient_probe == ""` and the sweep
+skips them. OPEN: which readout the dative's headline score uses — currently
+both are computed and neither is privileged.
 
 ## Testing
 - `tests/test_templates.py` — worked example verbatim; probes byte-identical
@@ -296,11 +324,11 @@ giver to keep scoring uniform, with dative reported separately either way.
 
 | Pinned (implemented + tested) | Open (team decisions / GPU day) |
 |---|---|
-| 2x2 design, all four construction 2x2s (drafts flagged) | probe wording sign-off |
-| Role-push edit family, both signs, all controls | layer_band for Qwen3.6-27B (raw index) |
+| 2x2 design, all four construction 2x2s (drafts flagged) | probe wording sign-off (incl. the new dative RECIPIENT probe, and which dative readout is headline) |
+| Role-push edit family, both signs, all controls | layer_band for Qwen3.6-27B (raw index; candidate band 24–59, mid ~48) |
 | Log-odds crossover DiD + null band + per-sign breakdown | alpha, push_coefficient (calibration) |
-| Direction fitting + stability + shuffled + LOO | lens artifact KEY NAMES (math now pinned to paper) |
+| Direction fitting + stability + shuffled + LOO | ~~lens artifact KEY NAMES~~ (confirmed + tested) |
 | Fitting corpus (disjoint, balanced) | exemplars_per_role (stability pilot) |
-| Bootstrap / permutation / d / Holm | single-token vocab + lens-attestation check |
+| Bootstrap / permutation / d / Holm | ~~single-token vocab~~ (verified on Qwen3.6-27B); no attestation list exists |
 | Dummy end-to-end validation, both modes | non-participant = absent profession (review) |
 | Backend math per Gurnee et al. §2 (J_l, pursuit, swap, ablation) | first-contact validation on real weights |

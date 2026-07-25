@@ -67,9 +67,18 @@ def _run(tmp_path: Path, mode: str) -> dict:
     # Per cell x site: each direction-push edit runs both signs at the ROLE
     # probe, NO_EDIT runs ROLE + NEUTRAL, IDENTITY_SWAP runs NEUTRAL only.
     n_push = sum(1 for e in config.experiment.edit_types if e in DIRECTION_PUSH_EDIT_TYPES)
-    per_cell_site = n_push * len(config.experiment.push_signs) + 2 + 1
+    n_signs = len(config.experiment.push_signs)
+    per_cell_site = n_push * n_signs + 2 + 1
+    # Dative families carry a RECIPIENT probe too, which rides along with ROLE
+    # on every push (both signs) and on the no-edit baseline.
+    per_cell_site_recipient = n_push * n_signs + 1
+    n_recipient_families = sum(1 for f in families if f.recipient_probe)
     n_sites = len(config.experiment.injection_sites)
-    assert len(trials) == len(families) * 4 * n_sites * per_cell_site
+    assert len(trials) == len(families) * 4 * n_sites * per_cell_site + (
+        n_recipient_families * 4 * n_sites * per_cell_site_recipient
+    )
+    # Only the dative should carry them.
+    assert {f.construction for f in families if f.recipient_probe} == {Construction.DATIVE}
     assert (Path(config.paths.results) / "trials.jsonl").exists()
     summary = analyze(config, trials)
     json.dumps(summary)  # must be JSON-serializable exactly as returned
