@@ -42,7 +42,7 @@ class ModelConfig:
 
 @dataclass(frozen=True)
 class StimuliConfig:
-    items_per_cell: int = 50  # placeholder pending power calculation (the team)
+    items_per_cell: int = 50  # placeholder pending power calculation
     concept_pairs: tuple[ConceptPair, ...] = (
         ConceptPair("doctor", "nurse"),
         ConceptPair("teacher", "student"),
