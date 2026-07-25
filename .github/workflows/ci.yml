@@ -30,3 +30,10 @@ jobs:
           python scripts/run_primary.py    --config configs/ci.yaml --dry-run --dummy-mode bag > /dev/null
           python scripts/run_rq1.py        --config configs/ci.yaml --dry-run --dummy-mode binding > /dev/null
           python scripts/run_rq2.py        --config configs/ci.yaml --dry-run --dummy-mode binding > /dev/null
+      # The reviewable stimuli CSV is generated, so it can silently go stale
+      # after a template or config change — exactly what happened to the
+      # gitignored stimuli JSONL. Regenerate and fail if it drifted.
+      - name: Stimuli CSV is current
+        run: |
+          python scripts/stimuli_to_csv.py
+          git diff --exit-code -- data/stimuli/primary_stimuli.csv

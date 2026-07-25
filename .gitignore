@@ -21,4 +21,5 @@ figures*/
 .ruff_cache/
 .DS_Store
 
-PROJECT_MAP.mddata/smoke/
+PROJECT_MAP.md
+data/smoke/
