@@ -109,11 +109,11 @@ def run_primary(
                         stimulus = family.cell(role, position)
                         for site in config.experiment.injection_sites:
                             for probe_kind in probe_kinds:
-                                probe = (
-                                    family.role_probe
-                                    if probe_kind is ProbeKind.ROLE
-                                    else family.neutral_probe
-                                )
+                                probe = _probe_text(family, probe_kind)
+                                if not probe:
+                                    # RECIPIENT is dative-only; the other three
+                                    # constructions carry no recipient probe.
+                                    continue
                                 answer_probs = model.answer_distribution(
                                     stimulus.sentence,
                                     probe,
@@ -142,14 +142,33 @@ def run_primary(
     return trials
 
 
+def _probe_text(family: ItemFamily, probe_kind: ProbeKind) -> str:
+    """The probe string for one kind, or "" when this family has none."""
+    if probe_kind is ProbeKind.ROLE:
+        return family.role_probe
+    if probe_kind is ProbeKind.NEUTRAL:
+        return family.neutral_probe
+    if probe_kind is ProbeKind.RECIPIENT:
+        return family.recipient_probe
+    raise ValueError(f"Unhandled probe kind in sweep: {probe_kind!r}")
+
+
 def _conditions(
     config: Config, edit_type: EditType
 ) -> list[tuple[PushSign | None, tuple[ProbeKind, ...]]]:
-    """(sign, probe kinds) conditions for one edit type."""
+    """(sign, probe kinds) conditions for one edit type.
+
+    RECIPIENT rides along with ROLE on the pushes and the no-edit baseline so
+    the dative gets a complete 12-cell score (and its own null band) from the
+    recipient side too. Non-dative families skip it in the sweep loop.
+    """
     if edit_type in DIRECTION_PUSH_EDIT_TYPES:
-        return [(sign, (ProbeKind.ROLE,)) for sign in config.experiment.push_signs]
+        return [
+            (sign, (ProbeKind.ROLE, ProbeKind.RECIPIENT))
+            for sign in config.experiment.push_signs
+        ]
     if edit_type is EditType.NO_EDIT:
-        return [(None, (ProbeKind.ROLE, ProbeKind.NEUTRAL))]
+        return [(None, (ProbeKind.ROLE, ProbeKind.NEUTRAL, ProbeKind.RECIPIENT))]
     if edit_type is EditType.IDENTITY_SWAP:
         return [(None, (ProbeKind.NEUTRAL,))]
     raise ValueError(f"Unhandled edit type in sweep: {edit_type!r}")

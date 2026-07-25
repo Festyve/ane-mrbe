@@ -283,8 +283,19 @@ courtesy.
 Deliberate deviations from the proposal text (team-flagged): the
 non-participant control pushes an absent PROFESSION's fitted direction
 (a weekday cannot bear a thematic role — proposal's "tuesday" example is
-unfittable under the role-direction design); the dative probe queries the
-giver to keep scoring uniform, with dative reported separately either way.
+unfittable under the role-direction design); the dative's ROLE probe queries
+the giver to keep scoring uniform, with dative reported separately either way.
+
+The dative additionally carries a second readout, `ProbeKind.RECIPIENT`
+("Who was handed the letter by someone?"), so the recipient — the participant
+the ROLE probe never asks about — is scored too. It rides along with ROLE on
+every push and on the no-edit baseline, giving the dative a full 12-cell score
+and its own null band from the recipient side. Its polarity is inverted
+(P(entity) rises as the entity becomes more PATIENT-like), so
+`binding_score.PROBE_ORIENTATION` negates it and the two tables stay directly
+comparable. Non-dative families carry `recipient_probe == ""` and the sweep
+skips them. OPEN: which readout the dative's headline score uses — currently
+both are computed and neither is privileged.
 
 ## Testing
 - `tests/test_templates.py` — worked example verbatim; probes byte-identical
@@ -313,7 +324,7 @@ giver to keep scoring uniform, with dative reported separately either way.
 
 | Pinned (implemented + tested) | Open (team decisions / GPU day) |
 |---|---|
-| 2x2 design, all four construction 2x2s (drafts flagged) | probe wording sign-off |
+| 2x2 design, all four construction 2x2s (drafts flagged) | probe wording sign-off (incl. the new dative RECIPIENT probe, and which dative readout is headline) |
 | Role-push edit family, both signs, all controls | layer_band for Qwen3.6-27B (raw index; candidate band 24–59, mid ~48) |
 | Log-odds crossover DiD + null band + per-sign breakdown | alpha, push_coefficient (calibration) |
 | Direction fitting + stability + shuffled + LOO | ~~lens artifact KEY NAMES~~ (confirmed + tested) |

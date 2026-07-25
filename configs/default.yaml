@@ -11,9 +11,12 @@ model:
   # lens per model and totals ~57 GB; without this the loader would fetch all
   # of them (and could pick another model's Jacobians).
   lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
-  layer_band: null          # open: workspace layer band for Qwen3.6-27B ([L, L] = single layer)
-                            # paper's reindexed L38-92 of 100 -> raw 24-59 here; mid-band ~48.
-                            # Released lens covers raw layers 0-62.
+  # Source paper's workspace band: reindexed L38-92 of 100 -> raw 24-59 for this
+  # model's 64 layers. Edits apply across the whole inclusive band, reads at 59.
+  # NOTE: the paper's single-layer swap analyses sit mid-band (~L75 reindexed =
+  # raw 48); [48, 48] reproduces those instead, at ~1/36th the edit cost.
+  # Released lens covers raw layers 0-62, so both are loadable.
+  layer_band: [24, 59]
   alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
   push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
   jspace_k: 16              # sparsity of the J-space pursuit (paper: k=16, occupancy ~25)
