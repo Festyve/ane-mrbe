@@ -94,10 +94,38 @@ class ProbeReport:
     control_accuracy: float  # mean held-out control-task accuracy over folds
     n_examples: int
     n_folds: int
+    fold_ids: tuple[str, ...] = ()  # held-out pair_id per fold, aligned with below
+    fold_accuracies: tuple[float, ...] = ()
+    control_fold_accuracies: tuple[float, ...] = ()
 
     @property
     def selectivity(self) -> float:
         return self.accuracy - self.control_accuracy
+
+    @property
+    def fold_spread(self) -> float:
+        """max - min held-out accuracy across folds; 0.0 if not recorded.
+
+        Large spread means the mean is not summarizing a stable effect.
+        """
+        if not self.fold_accuracies:
+            return 0.0
+        return float(max(self.fold_accuracies) - min(self.fold_accuracies))
+
+    @property
+    def inverting_folds(self) -> tuple[str, ...]:
+        """Held-out pairs the probe scored materially BELOW chance on.
+
+        Such a fold is not weak evidence of absence: it means the rule learned
+        on the training pairs runs backwards on this one, which is a statement
+        about cross-pair transfer, not about whether role is encoded. Named so
+        the offending lexical pair is identifiable without a rerun.
+        """
+        return tuple(
+            pair
+            for pair, acc in zip(self.fold_ids, self.fold_accuracies, strict=False)
+            if acc < 0.4
+        )
 
 
 def leave_one_pair_out(
@@ -108,6 +136,11 @@ def leave_one_pair_out(
     Each fold holds out every example of one concept pair; the probe never
     sees the held-out professions during training, so above-chance accuracy
     requires role information that generalizes across lexical items.
+
+    Both the mean and the per-fold accuracies are returned. Read the folds
+    first: with one fold per concept pair there are as few as three of them,
+    and the mean alone cannot distinguish "transfers weakly everywhere" from
+    "transfers on most pairs and inverts on one" (see ProbeReport).
     """
     pair_ids = sorted({ex.pair_id for ex in examples})
     if len(pair_ids) < 2:
@@ -132,4 +165,7 @@ def leave_one_pair_out(
         control_accuracy=float(np.mean(control_accs)),
         n_examples=len(examples),
         n_folds=len(pair_ids),
+        fold_ids=tuple(pair_ids),
+        fold_accuracies=tuple(float(a) for a in task_accs),
+        control_fold_accuracies=tuple(float(a) for a in control_accs),
     )
