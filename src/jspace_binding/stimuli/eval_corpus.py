@@ -1,5 +1,5 @@
 """Held-out EVALUATION corpus spanning all four construction families.
-As a note, this generation script was co-authored by Claude Opus 5 and later human reviewed (by Reya).
+As a note, this generation script was co-authored by Claude Opus 5 and later human reviewed.
 Third tier of the dataset, distinct from the two that already exist:
 
     primary set      (templates.py)      -> where directions are PUSHED
