@@ -39,7 +39,7 @@ import random
 import re
 from collections.abc import Sequence
 
-from jspace_binding.stimuli.vocab import PROFESSION_ENTITIES
+from jspace_binding.stimuli.vocab import PROFESSION_CUE, PROFESSION_ENTITIES
 from jspace_binding.types import (
     DIRECTION_PUSH_EDIT_TYPES,
     EditSpec,
@@ -81,6 +81,23 @@ _L_MILD_AGENT = _logit(0.65)  # random-subspace ablation: mild, order-preserving
 _L_MILD_PATIENT = _logit(0.08)
 _L_MILD_MENTIONED = _logit(0.40)
 
+# CONCEPT probe (the RQ2 recall control). Both participants are in the
+# sentence, so the contrast is semantic and the baseline gap is deliberately
+# MODEST — unlike the NEUTRAL probe, whose present-vs-absent gap pinned it at
+# 1.0 and left it unable to register damage. Calibrated to the gap measured on
+# Qwen2.5-1.5B over the committed stimuli (+1.42 log-odds, positive on 80/80
+# families), so the dummy's control carries the same headroom as the real one
+# rather than a made-up amount.
+_L_CONCEPT_MATCH = _logit(0.64)  # participant whose profession fits the cue
+_L_CONCEPT_MISMATCH = _logit(0.31)  # the other participant  -> gap ~1.38
+# ABLATE_JSPACE, binding mode: concepts live outside the workspace and survive
+# the edit, so the semantic contrast narrows but keeps its sign.
+_L_CONCEPT_MATCH_DEGRADED = _logit(0.57)
+_L_CONCEPT_MISMATCH_DEGRADED = _logit(0.42)  # -> gap ~0.60, ~56% of baseline lost
+# ABLATE_RANDOM_SUBSPACE: mild in both modes, the capacity-matched comparison.
+_L_CONCEPT_MATCH_MILD = _logit(0.62)
+_L_CONCEPT_MISMATCH_MILD = _logit(0.35)  # -> gap ~1.11, ~20% of baseline lost
+
 _PUSH_EDITS = DIRECTION_PUSH_EDIT_TYPES
 
 
@@ -109,6 +126,17 @@ class DummyModel:
     counterpart logit(0.55), other logit(0.45) — the edit demonstrably
     propagates role-independently; every other edit -> both mentioned
     participants logit(0.45), counterpart logit(0.01).
+
+    CONCEPT probe (RQ2's recall control): the participant matching the probe's
+    cue reads logit(0.64) and the other logit(0.31) — a ~1.38 gap calibrated to
+    the real model, small enough to have somewhere to fall, unlike NEUTRAL's
+    present-vs-absent gap. Nothing in this branch reads the entity's role, so
+    the readout is identical across the four role x position cells: the control
+    is role-blind here by construction, as it is on the real model.
+    ABLATE_JSPACE narrows the gap to ~0.60 in binding mode (concepts survive,
+    they live outside the workspace) and flattens it to zero in bag mode
+    (concepts WERE the workspace), so bag mode yields no binding-specific
+    deficit. ABLATE_RANDOM_SUBSPACE is mild in both (~1.11).
 
     Then: +0.25 to the entity's logit when it is surface-FIRST (a position
     bias the analysis must cancel by position-averaging); + N(0, 0.05) logit
@@ -154,9 +182,13 @@ class DummyModel:
                 f"got {len(answer_tokens)} tokens"
             )
         entity_first, entity_is_agent = self._locate_entity(sentence, entity, other)
-        logits = self._logits(self._probe_is_role(probe), edit, entity_is_agent)
+        concept_target = self._probe_concept_target(probe)
+        if concept_target is not None:
+            logits = self._concept_logits(concept_target, entity, other, edit)
+        else:
+            logits = self._logits(self._probe_is_role(probe), edit, entity_is_agent)
         l_entity, l_counterpart, l_other = logits
-        if self._probe_is_recipient(probe):
+        if concept_target is None and self._probe_is_recipient(probe):
             # The dative RECIPIENT probe asks who RECEIVED, so the answer is the
             # NON-agent: the entity's and the other participant's readouts swap.
             # The push interaction lives in the logit VALUES, so swapping mirrors
@@ -173,6 +205,50 @@ class DummyModel:
             (entity, counterpart, other), (l_entity, l_counterpart, l_other), jitter, strict=True
         )
         return {token: _sigmoid(logit + j) for token, logit, j in pairs if token is not None}
+
+    def _concept_logits(
+        self, concept_target: str, entity: str, other: str, edit: EditSpec
+    ) -> tuple[float, float, float]:
+        """CONCEPT-probe ground truth: (entity, counterpart, other) logits.
+
+        Role-blind by construction — nothing here reads entity_is_agent, so the
+        readout is identical for "The doctor treated the lawyer" and "The lawyer
+        treated the doctor". That is the property that makes this a control
+        rather than a second binding measure.
+
+        Ablation behaviour mirrors _ablation_logits' concept story:
+        - binding mode: the workspace holds ROLES, concepts are recoverable
+          elsewhere, so ABLATE_JSPACE narrows the semantic gap but keeps its
+          sign — the control registers damage without collapsing.
+        - bag mode: the workspace holds the CONCEPTS, so ablating it flattens
+          the semantic contrast to a tie. Recall then degrades at least as hard
+          as binding and no binding-SPECIFIC deficit survives, which is the
+          ground truth test_rq2_bag_mode asserts.
+        """
+        if concept_target == entity:
+            match_is_entity = True
+        elif concept_target == other:
+            match_is_entity = False
+        else:
+            raise ValueError(
+                f"CONCEPT probe asks for {concept_target!r}, which is neither "
+                f"participant ({entity!r}, {other!r}); the probe and the family "
+                "are mismatched"
+            )
+
+        if edit.edit_type is EditType.ABLATE_JSPACE:
+            if self.mode == "bag":
+                # Concepts lived in the workspace: the contrast is gone.
+                hi = lo = _L_CONCEPT_MISMATCH_DEGRADED
+            else:
+                hi, lo = _L_CONCEPT_MATCH_DEGRADED, _L_CONCEPT_MISMATCH_DEGRADED
+        elif edit.edit_type is EditType.ABLATE_RANDOM_SUBSPACE:
+            hi, lo = _L_CONCEPT_MATCH_MILD, _L_CONCEPT_MISMATCH_MILD
+        else:
+            hi, lo = _L_CONCEPT_MATCH, _L_CONCEPT_MISMATCH
+
+        l_entity, l_other = (hi, lo) if match_is_entity else (lo, hi)
+        return (l_entity, _L_ABSENT, l_other)
 
     def _logits(
         self, probe_is_role: bool, edit: EditSpec, entity_is_agent: bool
@@ -370,6 +446,11 @@ class DummyModel:
         The dative RECIPIENT probe also asks "Who ...", so it lands here as a
         role probe by design — answer_distribution then swaps its readout via
         _probe_is_recipient. Both are role-diagnostic; they differ in polarity.
+
+        CONCEPT probes are also "Which one ...?" and must be classified before
+        this is called (see _probe_concept_target) — they are role-blind but
+        have their own readout, so falling through to the neutral branch would
+        score them as recall and silently discard the semantic contrast.
         """
         low = probe.lower()
         is_role = re.search(r"\bwho\b", low) is not None
@@ -377,6 +458,23 @@ class DummyModel:
         if is_role == is_neutral:
             raise ValueError(f"cannot classify probe as role/neutral: {probe!r}")
         return is_role
+
+    @staticmethod
+    def _probe_concept_target(probe: str) -> str | None:
+        """The profession a CONCEPT probe is asking for, or None if this is not
+        a concept probe.
+
+        Matched on the cue text rather than on the profession name, because the
+        cues deliberately share no stem with the professions they identify
+        (stimuli.vocab.PROFESSION_CUE) — that is what stops the real model
+        answering by surface match, and it means the dummy cannot shortcut it
+        either.
+        """
+        low = probe.lower()
+        for profession, cue in PROFESSION_CUE.items():
+            if cue.lower() in low:
+                return profession
+        return None
 
     @staticmethod
     def _probe_is_recipient(probe: str) -> bool:
