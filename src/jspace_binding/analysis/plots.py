@@ -189,7 +189,7 @@ def ablation_deltas_plot(
     ax.axhline(0.0, color="0.4", linewidth=0.8)
     ax.set_xticks(np.arange(len(names)))
     ax.set_xticklabels(names, rotation=10, ha="right")
-    ax.set_ylabel("binding deficit − recall deficit")
+    ax.set_ylabel("binding deficit − recall deficit (log-odds)")
     ax.set_title("RQ2: binding-specific ablation deficit")
     _save(fig, out_path)
 

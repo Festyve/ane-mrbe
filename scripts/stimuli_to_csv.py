@@ -44,6 +44,11 @@ _COLUMNS = [
     "role_probe",
     "recipient_probe",
     "neutral_probe",
+    # RQ2's recall control, counterbalanced: one asking per participant. Both
+    # are needed — scoring either alone reintroduces the base-rate and primacy
+    # confounds the pair is there to cancel (see ProbeKind.CONCEPT).
+    "concept_probe_entity",
+    "concept_probe_other",
 ]
 
 
@@ -76,12 +81,16 @@ def main() -> None:
                     family.role_probe,
                     family.recipient_probe,
                     family.neutral_probe,
+                    family.concept_probe_entity,
+                    family.concept_probe_other,
                 ]
             )
 
     n_recipient = sum(1 for f in families if f.recipient_probe)
+    n_concept = sum(1 for f in families if f.concept_probe_entity and f.concept_probe_other)
     print(f"wrote {len(families)} families -> {args.out}")
     print(f"  {n_recipient} carry a recipient probe (dative only)")
+    print(f"  {n_concept} carry both CONCEPT probes (RQ2 recall control)")
 
 
 if __name__ == "__main__":
