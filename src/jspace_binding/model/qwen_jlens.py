@@ -122,6 +122,18 @@ class QwenJLensModel:
         self._jlens_vectors: dict[tuple[int, int], Any] = {}  # (layer, token_id) -> v_t
         self._swap_operators: dict[tuple[str, str, int], Any] = {}  # (src, tgt, layer) -> (V, V^+)
         self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal (d_model, ablate_k)
+        # ||delta|| / ||h|| for each applied edit, drained by the caller (RQ2).
+        # An ablation removing ablate_k of d_model directions can move the
+        # residual by a fraction of a percent, and a null deficit measured
+        # next to an unrecorded edit cannot be distinguished from an edit that
+        # never landed. One norm ratio per hook, so recording is unconditional.
+        self._edit_magnitudes: list[float] = []
+
+    def drain_edit_magnitudes(self) -> list[float]:
+        """Relative residual-norm changes since the last call, then reset."""
+        drained = self._edit_magnitudes
+        self._edit_magnitudes = []
+        return drained
 
     def preflight(self, sites: Sequence[InjectionSite] = ()) -> None:
         """Fail fast on everything that would block a run: open config
@@ -457,6 +469,11 @@ class QwenJLensModel:
                     hidden = output[0] if isinstance(output, tuple) else output
                     h = hidden[0, anchor, :]
                     delta = model._edit_delta(edit, site, layer, h)
+                    denom = float(torch.linalg.vector_norm(h.float()))
+                    if denom > 0.0:
+                        model._edit_magnitudes.append(
+                            float(torch.linalg.vector_norm(delta.float())) / denom
+                        )
                     hidden[0, anchor, :] = h + delta.to(h.dtype)
                     return output
 

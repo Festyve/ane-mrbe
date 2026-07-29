@@ -88,6 +88,8 @@ def _to_record(family: ItemFamily) -> dict[str, Any]:
         "role_probe": family.role_probe,
         "neutral_probe": family.neutral_probe,
         "recipient_probe": family.recipient_probe,
+        "concept_probe_entity": family.concept_probe_entity,
+        "concept_probe_other": family.concept_probe_other,
         "answer_set": None
         if answers is None
         else {
@@ -118,5 +120,10 @@ def _from_record(record: dict[str, Any]) -> ItemFamily:
         neutral_probe=record["neutral_probe"],
         # .get: stimuli JSONL written before the recipient probe existed still loads.
         recipient_probe=record.get("recipient_probe", ""),
+        # Likewise for the CONCEPT probes. A file predating them loads with
+        # empty strings, and rq2_ablation raises rather than scoring a family
+        # whose recall control is missing.
+        concept_probe_entity=record.get("concept_probe_entity", ""),
+        concept_probe_other=record.get("concept_probe_other", ""),
         answer_set=None if answers is None else AnswerSet(**answers),
     )

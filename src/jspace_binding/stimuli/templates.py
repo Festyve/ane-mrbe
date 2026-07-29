@@ -13,6 +13,7 @@ every verb used here), so templates need no conjugation logic.
 
 from __future__ import annotations
 
+from jspace_binding.stimuli.vocab import PROFESSION_CUE
 from jspace_binding.types import (
     AnswerSet,
     ConceptPair,
@@ -56,6 +57,12 @@ _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
     Construction.DATIVE: "Question: Who {verb_past} a letter to someone? Answer: The",
 }
 _NEUTRAL_PROBE = "Question: Which professions are mentioned? Answer: The"
+
+# ProbeKind.CONCEPT. Both participants are in the sentence, so the answer turns
+# on knowing what the profession IS, not on whether its token appeared. Shared
+# by every construction: the question references neither the verb nor the roles,
+# which is what makes it role-blind.
+_CONCEPT_PROBE_TEMPLATE = "Question: Which one {cue}? Answer: The"
 
 # The ROLE probe above queries the dative's GIVER, so the recipient — arguably
 # the dative's more interesting participant — is never asked about. This second
@@ -113,6 +120,20 @@ _TEMPLATES: dict[Construction, dict[_Cell, str]] = {
 }
 
 
+def _concept_probe(profession: str) -> str:
+    """CONCEPT probe naming one profession's cue. Missing cue is fatal rather
+    than silently skipped: a family whose participant has no cue cannot be
+    scored on the recall control, and dropping it would quietly unbalance the
+    counterbalancing."""
+    cue = PROFESSION_CUE.get(profession)
+    if cue is None:
+        raise KeyError(
+            f"no PROFESSION_CUE for {profession!r}; every entity used as a "
+            "participant needs one (stimuli.vocab.PROFESSION_CUE)"
+        )
+    return _CONCEPT_PROBE_TEMPLATE.format(cue=cue)
+
+
 def build_family(
     pair: ConceptPair,
     construction: Construction,
@@ -147,6 +168,8 @@ def build_family(
         recipient_probe=_RECIPIENT_PROBE_TEMPLATES.get(construction, "").format(
             verb_past=verb_lemma
         ),
+        concept_probe_entity=_concept_probe(pair.entity),
+        concept_probe_other=_concept_probe(other_entity),
         answer_set=AnswerSet(entity=pair.entity, counterpart=pair.counterpart, other=other_entity),
     )
     _validate_family(family)

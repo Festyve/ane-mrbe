@@ -26,6 +26,7 @@ from jspace_binding.analysis.probes import (
     leave_one_pair_out,
 )
 from jspace_binding.config import Config
+from jspace_binding.experiments.provenance import run_provenance
 from jspace_binding.model.base import ProbeActivationSource
 from jspace_binding.types import InjectionSite, ItemFamily, Position, Role
 
@@ -70,7 +71,14 @@ def run_rq1(
     figure_path = figures_dir / "rq1_selectivity.png"
     selectivity_plot(reports, figure_path)
 
+    inverting = {
+        f"{site.value}|{source}": list(report.inverting_folds)
+        for site, by_source in reports.items()
+        for source, report in by_source.items()
+        if report.inverting_folds
+    }
     summary: dict[str, object] = {
+        "provenance": run_provenance(config, n_families=len(families)),
         "sites": {
             site.value: {
                 source: {
@@ -79,11 +87,23 @@ def run_rq1(
                     "selectivity": report.selectivity,
                     "n_examples": report.n_examples,
                     "n_folds": report.n_folds,
+                    # Read these before the mean (analysis.probes.ProbeReport).
+                    "fold_ids": list(report.fold_ids),
+                    "fold_accuracies": list(report.fold_accuracies),
+                    "control_fold_accuracies": list(report.control_fold_accuracies),
+                    "fold_spread": report.fold_spread,
+                    "inverting_folds": list(report.inverting_folds),
                 }
                 for source, report in by_source.items()
             }
             for site, by_source in reports.items()
         },
+        # A below-chance fold means the rule learned on the training pairs runs
+        # backwards on the held-out pair. Averaging that into a low mean reads
+        # as "no role information"; it is really a transfer failure, and the
+        # distinction changes what the next run should be. Flagged, not buried.
+        "inverting_folds_present": bool(inverting),
+        "inverting_folds": inverting,
         "figure": str(figure_path),
         "note": (
             "decodability, not use; a linear null does not rule out "
