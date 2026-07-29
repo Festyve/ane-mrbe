@@ -103,6 +103,46 @@ class ProbeKind(str, Enum):
     # so "positive = binding" still holds. Families whose construction has no
     # recipient probe (ItemFamily.recipient_probe == "") skip it entirely.
     RECIPIENT = "recipient"
+    # Role-blind recall control for RQ2, replacing NEUTRAL there. Asks which of
+    # the two participants matches a profession cue ("Which one works in
+    # medicine?"), so BOTH candidate answers are present in the sentence and
+    # lexical presence cannot answer it.
+    #
+    # Why NEUTRAL could not do this job: it asks "which professions are
+    # mentioned", pitting two in-context words against one that never appears.
+    # No ablation small enough to be informative about binding can close that
+    # gap, so the control sat at exactly 1.0 under every condition — in
+    # DummyModel as well as on the real model — and could not register damage.
+    #
+    # Measured on Qwen2.5-1.5B over the committed stimuli (n=80 active_passive
+    # families, scored exactly as rq2_ablation does; reproduce with
+    # `python scripts/check_concept_probe.py --limit 80`):
+    #     NEUTRAL margin  +3.77 log-odds  (~43x; nothing to lose)
+    #     CONCEPT margin  +1.42 log-odds, positive on 80/80 families
+    # Both are in the same units, so the comparison is direct: CONCEPT keeps
+    # the model clearly correct while leaving room to fall.
+    #
+    # ROLE-BLIND by construction: the answer is invariant under the agent/
+    # patient swap ("The doctor treated the lawyer" and "The lawyer treated
+    # the doctor" both answer "doctor"). Verified empirically rather than
+    # assumed — the signed agent-minus-patient shift is +0.054 against a SEM of
+    # 0.035 (1.5 SEM, i.e. indistinguishable from zero) and 3.8% of the margin,
+    # so what movement there is is per-cell noise that averaging the four
+    # role x position cells cancels.
+    #
+    # Scored COUNTERBALANCED — asked once per participant and averaged. This is
+    # load-bearing: a one-sided semantic probe is confounded by base rate
+    # ("doctor" is a commoner word than its partners) and by primacy, and
+    # reordering identical tokens moved a one-sided probe by 3.6 log-odds.
+    # Each asking carries both confounds in the opposite direction, so the
+    # mean is free of them and either asking alone is not.
+    #
+    # KNOWN LIMITATION: cue strength varies by pair. Over the same run,
+    # teacher/judge reaches +2.89 while doctor/student sits at +0.61 — every
+    # pair stays above the usability floor and positive on average, but the
+    # weaker pairs have proportionally less room to fall. See
+    # docs/CONCEPT_PROBE.md; the doctor cues are the ones worth revisiting.
+    CONCEPT = "concept"
 
 
 class InjectionSite(str, Enum):
@@ -181,6 +221,13 @@ class ItemFamily:
     # DATIVE only; "" for constructions with no recipient reading. See
     # ProbeKind.RECIPIENT for the orientation caveat.
     recipient_probe: str = ""
+    # ProbeKind.CONCEPT, counterbalanced: the first names the ENTITY's cue (so
+    # the entity is the correct answer), the second names the OTHER
+    # participant's. Scoring averages the two, which is what cancels base-rate
+    # and primacy. Both are byte-identical across the four cells, like every
+    # other probe.
+    concept_probe_entity: str = ""
+    concept_probe_other: str = ""
     answer_set: AnswerSet | None = None
 
     def cell(self, role: Role, position: Position) -> Stimulus:

@@ -5,25 +5,60 @@ ABLATE_JSPACE (remove the J-space component at the site), and
 ABLATE_RANDOM_SUBSPACE (remove a random subspace of matched dimension, the
 capacity control) — under both probes, and score two tasks:
 
-- binding task (ROLE probe): correct iff the participant the model ranks
-  higher is the sentence's actual agent — P(entity) > P(other) exactly when
-  the entity is the agent.
-- recall task (NEUTRAL probe): correct iff both mentioned participants
-  outrank the absent counterpart token — min(P(entity), P(other)) >
-  P(counterpart).
+- binding task (ROLE probe): the signed log-odds gap between the sentence's
+  actual agent and the other participant, `logit(P(entity)) -
+  logit(P(other))` (sign-flipped when the entity is the patient) — positive
+  and large means confidently correct, matching P(entity) > P(other) at the
+  zero crossing but continuous on both sides of it.
+- recall task (CONCEPT probe): the log-odds gap favouring whichever
+  participant matches the probe's profession cue, `logit(P(correct)) -
+  logit(P(incorrect))`, COUNTERBALANCED — asked once for each participant's
+  cue and averaged.
+
+Why CONCEPT and not NEUTRAL. NEUTRAL asks "which professions are mentioned",
+pitting two in-context words against one that never appears. No ablation
+small enough to be informative about binding can close that gap, so the
+control sat at exactly 1.0 under every condition — in DummyModel as well as
+on the real model — and the binding-minus-recall subtraction reduced to the
+raw binding deficit. CONCEPT puts BOTH candidate answers in the sentence, so
+lexical presence cannot answer it and the model has to know what the
+profession is. Measured on Qwen2.5-1.5B over the committed stimuli (n=80
+active_passive families, scored as below): NEUTRAL +3.77 log-odds versus
+CONCEPT +1.42, positive on 80/80 families. Same units, direct comparison —
+CONCEPT keeps the model clearly correct while leaving room to fall. Reproduce
+with `python scripts/check_concept_probe.py --limit 80`; the full write-up,
+including per-pair cue strength, is docs/CONCEPT_PROBE.md.
+
+Counterbalancing is load-bearing, not cosmetic. One-sided semantic probes
+are confounded by base rate and by primacy — reordering identical tokens
+moved a one-sided probe by 3.6 log-odds. Averaging the two askings cancels
+both, because each confound favours the entity in one asking and the other
+participant in the other.
+
+CONCEPT is role-blind by construction — its answer is invariant under the
+agent/patient swap — and measured to be so: the signed agent-minus-patient
+shift is +0.054 against a SEM of 0.035, i.e. 1.5 SEM and 3.8% of the margin,
+so what movement exists is per-cell noise that averaging the four
+role x position cells removes. NEUTRAL is still built and still used by
+primary.py for the IDENTITY_SWAP strength check, which needs its
+present-vs-absent contrast; only RQ2's recall control moves to CONCEPT.
+
+Both tasks are scored in log-odds rather than raw probability for the reason
+analysis.binding_score already uses it: a threshold on raw probability reads
+"correct" regardless of how much confidence eroded underneath, so partial
+damage is invisible until the argmax flips. A plain pass/fail accuracy is
+still reported per probe (`accuracy`) for eyeballing and for
+`difficulty_matched`, but the deficits below are computed from the margin.
 
 Both tasks are scored on the SAME sentences (identical token counts and
 entity counts), so a selective binding deficit cannot be blamed on longer or
 busier inputs. Baseline accuracy matching is NOT guaranteed by that and is
 measured per run: `difficulty_matched` reports whether the two no-edit
-baselines actually landed within the proposal's +/-2%. When they do not — in
-particular when the recall baseline sits at ceiling — the recall term cannot
-move, the binding-minus-recall subtraction degenerates to the raw binding
-deficit, and `recall_control_informative` says so.
+baselines actually landed within the proposal's +/-2%.
 
 The binding-specific deficit for an ablation is
 
-    (binding degradation) - (recall degradation),
+    (binding margin degradation) - (recall margin degradation),
 
 and the causal-involvement claim requires the J-space bar to exceed both
 zero and the random-subspace bar; if the two bars match, the degradation is
@@ -45,6 +80,7 @@ from typing import Any
 
 import numpy as np
 
+from jspace_binding.analysis.binding_score import logit
 from jspace_binding.analysis.plots import ablation_deltas_plot
 from jspace_binding.analysis.stats import bootstrap_ci
 from jspace_binding.config import Config
@@ -65,12 +101,43 @@ _CONDITIONS: tuple[EditType, ...] = (EditType.NO_EDIT, *ABLATIONS)
 # RQ2 scores the binding task against the recall task only. ProbeKind.RECIPIENT
 # is dative-specific and not every family carries it, so it is named out rather
 # than iterated over and silently left empty.
-_SCORED_PROBES: tuple[ProbeKind, ...] = (ProbeKind.ROLE, ProbeKind.NEUTRAL)
+_SCORED_PROBES: tuple[ProbeKind, ...] = (ProbeKind.ROLE, ProbeKind.CONCEPT)
 
 # Baselines within this gap count as difficulty-matched (proposal, §5).
 _DIFFICULTY_TOLERANCE = 0.02
-# A no-edit baseline above this cannot fall far enough to serve as a control.
+# Reporting-only: a no-edit accuracy this high means the pass/fail readout
+# cannot register damage. No longer gates interpretability (the margin can
+# still move below this), kept so a trivially-easy recall task is visible.
 _CEILING = 0.99
+# Family-level margin baseline must show real spread, not a frozen constant
+# (e.g. every trial saturating the logit clamp), to count as informative.
+_MARGIN_SPREAD_EPS = 1e-6
+# Baseline log-odds margin below which a task is not reliably doable, so the
+# share-of-baseline deficits would divide by noise. 0.2 log-odds ~ 55/45; the
+# CONCEPT probe measures +1.42 overall on Qwen2.5-1.5B and its weakest
+# profession pair still reaches +0.61, so every pair clears this comfortably.
+_MIN_BASELINE_MARGIN = 0.2
+
+
+def _role_margin(probs: dict[str, float], entity: str, other: str, role: Role) -> float:
+    """Signed log-odds gap: positive means the model favors the sentence's
+    actual agent, magnitude is confidence. Continuous analogue of
+    `picked_entity == (role is AGENT)` — agrees with it at the zero
+    crossing, but registers a partial shift even when the argmax does not
+    flip."""
+    gap = logit(probs[entity]) - logit(probs[other])
+    return gap if role is Role.AGENT else -gap
+
+
+def _concept_margin(probs: dict[str, float], correct: str, incorrect: str) -> float:
+    """Log-odds gap favouring the participant that matches the probe's cue.
+
+    Both are present in the sentence, so this cannot be answered from lexical
+    presence — which is precisely what the NEUTRAL probe could be, and why it
+    sat at ceiling. One asking is confounded by base rate and primacy; the
+    caller averages the two askings, which cancels both.
+    """
+    return logit(probs[correct]) - logit(probs[incorrect])
 
 
 def _drain_edit_magnitudes(model: WorkspaceModel) -> list[float]:
@@ -106,9 +173,14 @@ def _run_site(
     site: InjectionSite,
 ) -> dict[str, Any]:
     """Score both tasks under all three conditions at one injection site."""
-    # Per-family accuracy, so resampling can happen at the family level (the
-    # unit analysis.stats is written around) rather than over correlated cells.
-    per_family: dict[tuple[EditType, ProbeKind], list[float]] = {
+    # Per-family accuracy (pass/fail, for reporting) and margin (log-odds,
+    # for the deficits below), so resampling can happen at the family level
+    # (the unit analysis.stats is written around) rather than over
+    # correlated cells.
+    per_family_accuracy: dict[tuple[EditType, ProbeKind], list[float]] = {
+        (edit_type, probe): [] for edit_type in _CONDITIONS for probe in _SCORED_PROBES
+    }
+    per_family_margin: dict[tuple[EditType, ProbeKind], list[float]] = {
         (edit_type, probe): [] for edit_type in _CONDITIONS for probe in _SCORED_PROBES
     }
     magnitudes: dict[EditType, list[float]] = {edit: [] for edit in ABLATIONS}
@@ -117,6 +189,13 @@ def _run_site(
         answers = family.answer_set
         if answers is None:
             raise ValueError(f"family {family.family_id!r} has no answer_set")
+        if not (family.concept_probe_entity and family.concept_probe_other):
+            raise ValueError(
+                f"family {family.family_id!r} has no CONCEPT probes; RQ2's recall "
+                "control needs both askings for counterbalancing. Regenerate the "
+                "stimuli (scripts/generate_stimuli.py) — a file written before "
+                "ProbeKind.CONCEPT existed will load with them empty."
+            )
         for edit_type in _CONDITIONS:
             edit = EditSpec(
                 edit_type=edit_type,
@@ -125,41 +204,90 @@ def _run_site(
                 seed=config.experiment.seed + family_index,
             )
             cells: dict[ProbeKind, list[bool]] = {probe: [] for probe in _SCORED_PROBES}
+            margin_cells: dict[ProbeKind, list[float]] = {probe: [] for probe in _SCORED_PROBES}
             for role in Role:
                 for position in Position:
                     sentence = family.cell(role, position).sentence
-                    for probe_kind, probe in (
-                        (ProbeKind.ROLE, family.role_probe),
-                        (ProbeKind.NEUTRAL, family.neutral_probe),
+                    probs = model.answer_distribution(
+                        sentence, family.role_probe, edit, site, answers.tokens
+                    )
+                    picked_entity = probs[answers.entity] > probs[answers.other]
+                    cells[ProbeKind.ROLE].append(bool(picked_entity == (role is Role.AGENT)))
+                    margin_cells[ProbeKind.ROLE].append(
+                        _role_margin(probs, answers.entity, answers.other, role)
+                    )
+
+                    # CONCEPT, counterbalanced: ask once with each participant's
+                    # cue and average. Each asking carries the base-rate and
+                    # primacy advantage in the opposite direction, so the mean
+                    # is free of both; either asking alone is not.
+                    hits, margins = [], []
+                    for probe, correct, incorrect in (
+                        (family.concept_probe_entity, answers.entity, answers.other),
+                        (family.concept_probe_other, answers.other, answers.entity),
                     ):
                         probs = model.answer_distribution(
                             sentence, probe, edit, site, answers.tokens
                         )
-                        if probe_kind is ProbeKind.ROLE:
-                            picked_entity = probs[answers.entity] > probs[answers.other]
-                            hit = picked_entity == (role is Role.AGENT)
-                        else:
-                            hit = (
-                                min(probs[answers.entity], probs[answers.other])
-                                > probs[answers.counterpart]
-                            )
-                        cells[probe_kind].append(bool(hit))
+                        hits.append(probs[correct] > probs[incorrect])
+                        margins.append(_concept_margin(probs, correct, incorrect))
+                    cells[ProbeKind.CONCEPT].append(bool(all(hits)))
+                    margin_cells[ProbeKind.CONCEPT].append(float(np.mean(margins)))
             for probe_kind, hits in cells.items():
-                per_family[(edit_type, probe_kind)].append(float(np.mean(hits)))
+                per_family_accuracy[(edit_type, probe_kind)].append(float(np.mean(hits)))
+            for probe_kind, margins in margin_cells.items():
+                per_family_margin[(edit_type, probe_kind)].append(float(np.mean(margins)))
             if edit_type in magnitudes:
                 magnitudes[edit_type].extend(_drain_edit_magnitudes(model))
 
-    accuracy = {key: float(np.mean(vals)) for key, vals in per_family.items() if vals}
-    base_role = np.asarray(per_family[(EditType.NO_EDIT, ProbeKind.ROLE)])
-    base_neutral = np.asarray(per_family[(EditType.NO_EDIT, ProbeKind.NEUTRAL)])
-    baseline_gap = abs(float(base_role.mean() - base_neutral.mean()))
+    accuracy = {
+        key: float(np.mean(vals)) for key, vals in per_family_accuracy.items() if vals
+    }
+    base_role_acc = np.asarray(per_family_accuracy[(EditType.NO_EDIT, ProbeKind.ROLE)])
+    base_recall_acc = np.asarray(per_family_accuracy[(EditType.NO_EDIT, ProbeKind.CONCEPT)])
+    baseline_gap = abs(float(base_role_acc.mean() - base_recall_acc.mean()))
+
+    base_role_margin = np.asarray(per_family_margin[(EditType.NO_EDIT, ProbeKind.ROLE)])
+    base_recall_margin = np.asarray(per_family_margin[(EditType.NO_EDIT, ProbeKind.CONCEPT)])
+
+    # Deficits are expressed as a FRACTION of each task's own no-edit baseline
+    # margin, not in raw log-odds. The two tasks sit at very different
+    # magnitudes — the role gap is several log-odds, the concept gap is well
+    # under one by design — so a raw subtraction is dimensionally wrong:
+    # under `bag` ground truth BOTH collapse completely, yet
+    # (4.0 - 0.7) still reads as a large binding-specific deficit and the run
+    # wrongly reports causal involvement. Dividing each by its own baseline
+    # puts both on a "share of baseline discriminability lost" scale where 1.0
+    # means total collapse, so two total collapses cancel to ~0 as the design
+    # requires. (The old pass/fail version avoided this only by accident:
+    # accuracy is bounded, so both tasks happened to share a 0-1 scale.)
+    #
+    # Normalised by the MEAN baseline rather than per family: a single family
+    # whose baseline is near zero would otherwise blow up its own ratio, while
+    # the mean keeps per-family variation intact for the bootstrap.
+    role_scale = float(base_role_margin.mean())
+    recall_scale = float(base_recall_margin.mean())
+
+    # A task the model cannot do at baseline has no discriminability to lose,
+    # so a deficit measured against it means nothing. This is the successor to
+    # the ceiling check: NEUTRAL failed by being too easy, and a probe can fail
+    # equally by being too hard.
+    recall_informative = bool(
+        recall_scale > _MIN_BASELINE_MARGIN
+        and float(np.std(base_recall_margin)) > _MARGIN_SPREAD_EPS
+    )
+    binding_baseline_usable = bool(role_scale > _MIN_BASELINE_MARGIN)
 
     deltas: dict[str, Any] = {}
     for ablation in ABLATIONS:
         # Per-family deficits keep the no-edit/ablation pairing inside each
         # resampled unit, so the bootstrap CI is over the paired difference.
-        binding = base_role - np.asarray(per_family[(ablation, ProbeKind.ROLE)])
-        recall = base_neutral - np.asarray(per_family[(ablation, ProbeKind.NEUTRAL)])
+        binding = (
+            base_role_margin - np.asarray(per_family_margin[(ablation, ProbeKind.ROLE)])
+        ) / role_scale
+        recall = (
+            base_recall_margin - np.asarray(per_family_margin[(ablation, ProbeKind.CONCEPT)])
+        ) / recall_scale
         specific = binding - recall
         lo, hi = bootstrap_ci(
             specific,
@@ -188,10 +316,10 @@ def _run_site(
         "n_families": len(families),
         "baseline_task_accuracy_gap": baseline_gap,
         "difficulty_matched": bool(baseline_gap <= _DIFFICULTY_TOLERANCE),
-        # A recall baseline at ceiling cannot register damage, so subtracting
-        # it is a no-op and "binding-specific" means nothing stronger than
-        # "binding". Reported so a degenerate control is never read as a passed one.
-        "recall_control_informative": bool(base_neutral.mean() < _CEILING),
+        # Reporting only: true whenever recall pass/fail is trivially easy.
+        # No longer gates interpretability — see recall_control_informative.
+        "recall_accuracy_at_ceiling": bool(base_recall_acc.mean() >= _CEILING),
+        "recall_control_informative": recall_informative,
         "deltas": deltas,
         # Proposal, §4: causal involvement requires binding to degrade more
         # than recall AND more than the matched random subspace predicts. The
@@ -202,10 +330,18 @@ def _run_site(
             and jspace["binding_specific_deficit"] > random_sub["binding_specific_deficit"]
             and jspace["ci_excludes_zero"]
         ),
+        # Baseline discriminability both deficits are expressed as a share of.
+        "baseline_margin": {
+            "binding": role_scale,
+            "recall": recall_scale,
+            "recall_usable": recall_informative,
+            "binding_usable": binding_baseline_usable,
+        },
         # False = the null is uninterpretable, not evidence against involvement.
         "null_interpretable": bool(
             (magnitude is None or magnitude["edit_landed"])
-            and base_neutral.mean() < _CEILING
+            and recall_informative
+            and binding_baseline_usable
         ),
     }
 

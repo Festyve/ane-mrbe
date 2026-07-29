@@ -29,6 +29,33 @@ PROFESSION_ENTITIES: tuple[str, ...] = (
     "coach",
 )
 
+# One discriminating cue per profession, for the CONCEPT probe (the recall
+# control). The probe asks "Which one {cue}?" of a sentence containing BOTH
+# participants, so lexical presence cannot answer it — the model has to know
+# what the profession is. See ProbeKind.CONCEPT.
+#
+# Two constraints, both load-bearing:
+#   1. NO SHARED STEM with the profession it identifies ("nursing" would let
+#      the model match "nurse" on surface form and skip the semantics).
+#   2. Must discriminate WITHIN any (entity, other_entity) pair the generator
+#      can produce. Counterparts are excluded from other_entity, so the
+#      same-domain collisions (doctor/nurse, teacher/student, driver/passenger)
+#      never co-occur as the two participants.
+PROFESSION_CUE: dict[str, str] = {
+    "doctor": "works in medicine",
+    "nurse": "assists on a hospital ward",
+    "teacher": "leads a classroom",
+    "student": "attends classes to learn",
+    "driver": "operates a car",
+    "passenger": "rides along without steering",
+    "lawyer": "argues cases in court",
+    "judge": "presides over a trial",
+    "pilot": "flies an aircraft",
+    "chef": "cooks in a kitchen",
+    "farmer": "grows crops",
+    "coach": "trains athletes",
+}
+
 # Default non-target participant per concept pair. doctor->nurse uses "lawyer"
 # to match the proposal's worked example.
 OTHER_ENTITY_BY_PAIR: dict[str, str] = {

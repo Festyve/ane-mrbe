@@ -148,11 +148,78 @@ def test_rq2_records_provenance_and_control_health(tmp_path: Path) -> None:
         assert key in provenance
     for site in summary["sites"].values():
         assert len(site["deltas"][EditType.ABLATE_JSPACE.value]["binding_specific_ci"]) == 2
-        # KNOWN LIMITATION, asserted so it cannot regress silently: the recall
-        # task sits at 1.0 under every condition, here and on the real model.
-        # It therefore cannot register damage, the binding-minus-recall
-        # subtraction reduces to the raw binding deficit, and no run using this
-        # neutral probe can support a "binding-SPECIFIC" claim. Flip this to
-        # True once the recall probe is redesigned off ceiling.
-        assert site["accuracy"]["no_edit|neutral"] == 1.0
-        assert site["recall_control_informative"] is False
+        # The recall control can now register damage. Under NEUTRAL this was
+        # False: that probe pitted two in-context words against one that never
+        # appeared, so it sat at exactly 1.0 under every condition and the
+        # binding-minus-recall subtraction was a no-op.
+        assert site["recall_control_informative"] is True
+        # CONCEPT is not at ceiling in MARGIN terms — that is the property
+        # NEUTRAL lacked. Pass/fail accuracy may still be 1.0 (the model rarely
+        # flips its answer); the margin is what has to have room to move.
+        assert site["baseline_margin"]["recall"] > 0.2
+        assert site["baseline_margin"]["recall_usable"] is True
+        # Deficits are shares of baseline, so a total collapse is ~1.0 and the
+        # two tasks are commensurable despite very different raw magnitudes.
+        assert site["baseline_margin"]["binding"] > site["baseline_margin"]["recall"]
+        assert site["deltas"][EditType.ABLATE_JSPACE.value]["binding_deficit"] > 0.9
+
+
+def test_rq2_concept_probe_is_role_blind(tmp_path: Path) -> None:
+    """The recall control must not be a second binding measure.
+
+    Its answer has to be invariant under the agent/patient swap: "The doctor
+    treated the lawyer" and "The lawyer treated the doctor" both answer
+    "doctor" to "which one works in medicine?". If the readout moved with role,
+    the control would absorb part of the binding effect and the subtraction
+    would understate it.
+    """
+    from jspace_binding.model.dummy import DummyModel
+    from jspace_binding.types import EditSpec, InjectionSite, Position, Role
+    from jspace_binding.types import EditType as ET
+
+    config = _config(tmp_path)
+    families = generate_families(config)
+    model = DummyModel(mode="binding", seed=0)
+    family = families[0]
+    answers = family.answer_set
+    edit = EditSpec(edit_type=ET.NO_EDIT)
+
+    for probe in (family.concept_probe_entity, family.concept_probe_other):
+        by_role = {}
+        for role in Role:
+            probs = model.answer_distribution(
+                family.cell(role, Position.FIRST).sentence,
+                probe,
+                edit,
+                InjectionSite.FINAL_TOKEN,
+                answers.tokens,
+            )
+            by_role[role] = probs[answers.entity] > probs[answers.other]
+        # Same winner whether the entity is agent or patient.
+        assert by_role[Role.AGENT] == by_role[Role.PATIENT], (
+            f"CONCEPT probe {probe!r} changed its answer with role — it is "
+            "measuring binding, not acting as a role-blind control"
+        )
+
+
+def test_rq2_rejects_stimuli_without_concept_probes(tmp_path: Path) -> None:
+    """A stimuli file predating ProbeKind.CONCEPT must fail loudly.
+
+    It loads with empty concept probes, and scoring it would silently drop the
+    recall control — reporting a 'binding-specific' deficit with no control
+    subtracted at all.
+    """
+    import dataclasses
+
+    import pytest
+
+    from jspace_binding.model.dummy import DummyModel
+
+    config = _config(tmp_path)
+    families = generate_families(config)
+    stripped = [
+        dataclasses.replace(f, concept_probe_entity="", concept_probe_other="")
+        for f in families
+    ]
+    with pytest.raises(ValueError, match="no CONCEPT probes"):
+        run_rq2(config, DummyModel(mode="binding", seed=0), stripped)
