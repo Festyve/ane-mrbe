@@ -42,6 +42,22 @@ PROFESSION_ENTITIES: tuple[str, ...] = (
 #      same-domain collisions (doctor/nurse, teacher/student, driver/passenger)
 #      never co-occur as the two participants.
 PROFESSION_CUE: dict[str, str] = {
+    # Kept deliberately weak. doctor is the lowest-margin cue in the set, and
+    # "diagnoses illness" raises it a lot (+1.42 -> +1.76 overall, and every
+    # doctor pair improves). It was reverted anyway: role-blindness went from
+    # 1.54 SEM to 3.95 SEM, i.e. the probe started tracking role.
+    #
+    # The mechanism generalises, so read it before "improving" any cue here.
+    # Diagnosing is something a doctor DOES, and so is treating / examining --
+    # the sentence verbs. An ACTION cue aligned with the verb favours whichever
+    # participant is performing it, which is exactly the role information this
+    # probe must not see. Margin is not the criterion; a stronger control that
+    # leaks role is not a control at all.
+    #
+    # Verify any replacement with `python scripts/check_concept_probe.py`, whose
+    # role-blindness check averages all four role x position cells. Ad-hoc
+    # active-vs-passive comparisons confound voice with role and will call a
+    # perfectly good cue a leak.
     "doctor": "works in medicine",
     "nurse": "assists on a hospital ward",
     "teacher": "leads a classroom",

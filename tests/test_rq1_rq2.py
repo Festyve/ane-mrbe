@@ -61,6 +61,32 @@ def test_rq1_bag_mode_localizes_role_outside_jspace(tmp_path: Path) -> None:
         assert by_source["residual"]["accuracy"] > 0.9
 
 
+def test_rq1_capacity_control_separates_localization_from_capacity(
+    tmp_path: Path,
+) -> None:
+    """jspace must beat a random subspace of the SAME rank, not just beat
+    orthogonal.
+
+    jspace has effective rank <= jspace_k while orthogonal has ~d_model, so
+    "jspace decodes better than orthogonal" confounds localisation with
+    capacity — the two sources differ in size as well as in content. The
+    random-subspace source holds rank fixed and varies only which directions
+    are kept, so it is the comparison that isolates localisation. This is
+    RQ1's counterpart to RQ2's ABLATE_RANDOM_SUBSPACE.
+    """
+    binding = _rq1(tmp_path / "binding", "binding")["sites"]
+    for by_source in binding.values():
+        # Signal planted IN jspace: keeping those exact directions beats
+        # keeping the same number of arbitrary ones.
+        assert by_source["jspace"]["accuracy"] > by_source["random_subspace"]["accuracy"]
+
+    bag = _rq1(tmp_path / "bag", "bag")["sites"]
+    for by_source in bag.values():
+        # Signal planted OUTSIDE jspace: an arbitrary subspace of the same rank
+        # now does better, so no localisation claim would survive here.
+        assert by_source["random_subspace"]["accuracy"] > by_source["jspace"]["accuracy"]
+
+
 def test_rq1_reports_per_fold_accuracies(tmp_path: Path) -> None:
     """The mean alone cannot distinguish weak transfer from an inverted fold."""
     summary = _rq1(tmp_path, "binding")

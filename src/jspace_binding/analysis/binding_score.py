@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from jspace_binding.types import (
+    ConceptPair,
     EditType,
     InjectionSite,
     Position,
@@ -317,7 +318,7 @@ def collect_scores(
     table = ScoreTable()
     for trials in by_family.values():
         first = trials[0]
-        entity_token = first.pair_id.split("->", 1)[0]
+        entity_token = ConceptPair.entity_of(first.pair_id)
         edits_present = {t.edit_type for t in trials}
         if EditType.ROLE_PUSH in edits_present:
             # One cell scan yields both the per-sign gaps and the score.
