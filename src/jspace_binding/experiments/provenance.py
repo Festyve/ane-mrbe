@@ -39,25 +39,50 @@ def _git(*args: str) -> str | None:
     return out.stdout.strip() or None if out.returncode == 0 else None
 
 
-def run_provenance(config: Config, n_families: int | None = None) -> dict[str, Any]:
+def run_provenance(
+    config: Config, n_families: int | None = None, model: object | None = None
+) -> dict[str, Any]:
     """Model/lens/layer/commit identity for one run.
 
     `dirty` flags uncommitted changes: a run made from a dirty tree is not
     reproducible from its commit alone, and silently reporting the commit
     would overstate what the SHA pins down.
+
+    Pass `model` — the backend instance that actually ran. Config alone
+    describes what was *requested*, and the two can disagree: constructing
+    `DummyModel(mode="bag")` against a config saying "binding" produced a
+    results file stamped "binding". The scripts build the model from config so
+    they agree in practice, but provenance exists to record what happened, and
+    a field that silently reports the request instead is exactly the failure it
+    is meant to prevent. When they disagree the RUN wins, and the mismatch is
+    recorded rather than hidden.
     """
-    model = config.model
+    cfg_model = config.model
     status = _git("status", "--porcelain")
+
+    dummy_mode = cfg_model.dummy_mode if cfg_model.backend == "dummy" else None
+    mismatch: dict[str, Any] | None = None
+    actual_mode = getattr(model, "mode", None)
+    if actual_mode is not None and actual_mode != dummy_mode:
+        mismatch = {"field": "dummy_mode", "config": dummy_mode, "actual": actual_mode}
+        dummy_mode = actual_mode
+
     return {
-        "backend": model.backend,
-        "model_id": model.model_id,
-        "lens_repo": model.lens_repo,
-        "lens_subpath": model.lens_subpath,
-        "layer_band": list(model.layer_band) if model.layer_band is not None else None,
-        "jspace_k": model.jspace_k,
-        "ablate_k": model.ablate_k,
-        "dtype": model.dtype,
-        "dummy_mode": model.dummy_mode if model.backend == "dummy" else None,
+        "backend": cfg_model.backend,
+        "model_id": cfg_model.model_id,
+        "lens_repo": cfg_model.lens_repo,
+        "lens_subpath": cfg_model.lens_subpath,
+        "layer_band": (
+            list(cfg_model.layer_band) if cfg_model.layer_band is not None else None
+        ),
+        "jspace_k": cfg_model.jspace_k,
+        "ablate_k": cfg_model.ablate_k,
+        "dtype": cfg_model.dtype,
+        "dummy_mode": dummy_mode,
+        # Non-null means the running backend disagreed with the config it was
+        # supposedly built from. Never silently reconciled — a run whose config
+        # does not describe it is not reproducible from that config.
+        "config_model_mismatch": mismatch,
         "n_concept_pairs": len(config.stimuli.concept_pairs),
         "n_families": n_families,
         "seed": config.experiment.seed,

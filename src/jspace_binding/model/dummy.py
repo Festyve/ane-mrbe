@@ -74,7 +74,15 @@ _SIGMA = 0.05  # logit-space jitter std dev
 
 _FIT_DIM = 32  # synthetic J-space dimensionality for fitting_activation
 _FIT_NOISE = 0.3
-_ORTH_DIM = 16  # synthetic orthogonal-remainder dimensionality (RQ1)
+# Synthetic orthogonal-remainder dimensionality (RQ1). Deliberately much larger
+# than _FIT_DIM so the residual is mostly NOT jspace, as on the real model where
+# jspace_k=16 sits inside d_model=5120. This was 16, making jspace 67% of the
+# residual; a random jspace-sized subspace then captured the planted signal
+# wherever it was planted (0.995 in both modes), so RQ1's capacity control could
+# not fail and was useless as ground truth. At 240 jspace is ~12% of the
+# residual — still far from the real 0.3%, but enough for the control to
+# separate localisation from capacity (jspace 1.00 vs random_subspace 0.75).
+_ORTH_DIM = 240
 
 _L_DEGRADED = _logit(0.30)  # post-ablation level: role info flat / recall mildly hit
 _L_MILD_AGENT = _logit(0.65)  # random-subspace ablation: mild, order-preserving
@@ -378,7 +386,45 @@ class DummyModel:
             planted = self._unit_vector("probe-role-orth", site.value, dim=_ORTH_DIM)
             jspace = j_noise
             orthogonal = [role_sign * p + n for p, n in zip(planted, o_noise, strict=True)]
-        return {"jspace": jspace, "orthogonal": orthogonal, "residual": jspace + orthogonal}
+        residual = jspace + orthogonal
+        return {
+            "jspace": jspace,
+            "orthogonal": orthogonal,
+            "residual": residual,
+            "random_subspace": self._random_subspace_projection(residual, site),
+        }
+
+    def _random_subspace_projection(
+        self, residual: list[float], site: InjectionSite
+    ) -> list[float]:
+        """RQ1 capacity control: `residual` projected onto a random subspace of
+        the same rank as jspace (analysis.probes.PROBE_SOURCES).
+
+        Fixed per (seed, site) rather than per sentence — it is a fixed random
+        READOUT BASIS, the same for every example, exactly as jspace is. Drawing
+        it per sentence would make it noise rather than a subspace and would
+        guarantee it probed at chance, which would look like a passing control
+        while testing nothing.
+
+        Ground truth this encodes: the random subspace partially overlaps
+        whichever subspace carries the planted signal, so it decodes ABOVE
+        chance but BELOW the subspace the signal actually lives in. That
+        ordering is the whole point — a control pinned at chance could not
+        distinguish localisation from capacity either.
+        """
+        dim = len(residual)
+        basis = [
+            self._unit_vector("probe-random-subspace", site.value, str(k), dim=dim)
+            for k in range(_FIT_DIM)
+        ]
+        # Project onto the span, expressed back in the residual basis so the
+        # probe sees the same feature count as every other source.
+        out = [0.0] * dim
+        for axis in basis:
+            coefficient = sum(a * r for a, r in zip(axis, residual, strict=True))
+            for i, a in enumerate(axis):
+                out[i] += coefficient * a
+        return out
 
     # ------------------------------------------------------------------ #
     # Lexical inference helpers                                          #

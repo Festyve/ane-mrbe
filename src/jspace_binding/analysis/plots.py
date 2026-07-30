@@ -19,6 +19,7 @@ import numpy as np  # noqa: E402
 
 from jspace_binding.analysis.binding_score import ScoreTable  # noqa: E402
 from jspace_binding.types import (  # noqa: E402
+    ConceptPair,
     EditType,
     InjectionSite,
     ProbeKind,
@@ -79,11 +80,12 @@ def per_condition_plot(
     all_trials: list[TrialResult],
     entity_token: str,
     out_path: str | Path,
+    site: InjectionSite = InjectionSite.FINAL_TOKEN,
 ) -> None:
     """Raw agent-vs-patient P(entity) under each (edit type x push sign)
     condition — the undifferenced view behind the binding score (ROLE probe,
-    FINAL_TOKEN site). This is the figure where the crossover is visible as a
-    pattern: the toward-agent push lifting the patient bars, the
+    at `site`, default FINAL_TOKEN). This is the figure where the crossover is
+    visible as a pattern: the toward-agent push lifting the patient bars, the
     toward-patient push dropping the agent bars.
 
     Trials are selected by pair_id — the families whose TARGET entity is
@@ -95,11 +97,13 @@ def per_condition_plot(
         t
         for t in all_trials
         if t.probe_kind is ProbeKind.ROLE
-        and t.injection_site is InjectionSite.FINAL_TOKEN
-        and t.pair_id.split("->", 1)[0] == entity_token
+        and t.injection_site is site
+        and ConceptPair.entity_of(t.pair_id) == entity_token
     ]
     if not rows:
-        raise ValueError(f"no ROLE-probe final-token trials carry answer token {entity_token!r}")
+        raise ValueError(
+            f"no ROLE-probe {site.value} trials carry answer token {entity_token!r}"
+        )
     conditions = []
     for edit_type in EditType:
         for sign in (None, *PushSign):
@@ -122,7 +126,7 @@ def per_condition_plot(
     ax.set_xticks(x)
     ax.set_xticklabels([_condition_label(e, s) for e, s in conditions], rotation=25, ha="right")
     ax.set_ylabel(f"P({entity_token}) at the ROLE probe")
-    ax.set_title("Per-condition entity probability (final-token site)")
+    ax.set_title(f"Per-condition entity probability ({site.value} site)")
     ax.set_ylim(bottom=0.0)
     ax.legend(fontsize=8)
     _save(fig, out_path)
