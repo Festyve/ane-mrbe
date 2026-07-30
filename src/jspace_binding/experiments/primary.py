@@ -36,6 +36,7 @@ from jspace_binding.interventions.edits import plan_edit
 from jspace_binding.model.base import WorkspaceModel
 from jspace_binding.types import (
     DIRECTION_PUSH_EDIT_TYPES,
+    ConceptPair,
     EditType,
     InjectionSite,
     ItemFamily,
@@ -77,14 +78,23 @@ def validate_config(config: Config) -> None:
 
 
 def run_primary(
-    config: Config, model: WorkspaceModel, families: list[ItemFamily]
+    config: Config,
+    model: WorkspaceModel,
+    families: list[ItemFamily],
+    site: InjectionSite | None = None,
 ) -> list[TrialResult]:
     """Sweep family x (role x position) cell x (edit type x sign) x injection site.
+
+    `site` restricts the sweep to one injection site; None sweeps every site in
+    experiment.injection_sites. Each site is a full sweep, so naming one halves
+    GPU cost — analyze() reads a single site anyway, so sweeping both only pays
+    off once something reads the second one back.
 
     Trials are written to config.paths.results / "trials.jsonl" and returned
     in sweep order.
     """
     validate_config(config)
+    sites = (site,) if site is not None else tuple(config.experiment.injection_sites)
     trials: list[TrialResult] = []
     for family_index, family in enumerate(families):
         if family.answer_set is None:
@@ -107,7 +117,7 @@ def run_primary(
                 for role in Role:
                     for position in Position:
                         stimulus = family.cell(role, position)
-                        for site in config.experiment.injection_sites:
+                        for trial_site in sites:
                             for probe_kind in probe_kinds:
                                 probe = _probe_text(family, probe_kind)
                                 if not probe:
@@ -118,7 +128,7 @@ def run_primary(
                                     stimulus.sentence,
                                     probe,
                                     edit,
-                                    site,
+                                    trial_site,
                                     family.answer_set.tokens,
                                 )
                                 trials.append(
@@ -130,7 +140,7 @@ def run_primary(
                                         position=position,
                                         edit_type=edit_type,
                                         probe_kind=probe_kind,
-                                        injection_site=site,
+                                        injection_site=trial_site,
                                         answer_probs={
                                             token: float(p)
                                             for token, p in answer_probs.items()
@@ -174,8 +184,14 @@ def _conditions(
     raise ValueError(f"Unhandled edit type in sweep: {edit_type!r}")
 
 
-def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
-    """Score, test, and plot the primary (final-token) analysis.
+def analyze(
+    config: Config, trials: list[TrialResult], site: InjectionSite | None = None
+) -> dict[str, object]:
+    """Score, test, and plot the primary analysis at one injection site.
+
+    Defaults to FINAL_TOKEN, the primary site; ENTITY_TOKEN is the secondary
+    analysis. Only one site is ever scored, so a sweep that covered both still
+    yields a single-site summary — pass `site` to pick which.
 
     Permutation p-values are Holm-corrected across the (construction x pair)
     groups; the pooled row is the omnibus and stays uncorrected. Everything is
@@ -183,10 +199,14 @@ def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
     """
     if not trials:
         raise ValueError("analyze: no trials to analyze")
-    site = InjectionSite.FINAL_TOKEN  # primary site; ENTITY_TOKEN is the secondary analysis
+    if site is None:
+        site = InjectionSite.FINAL_TOKEN
     table = collect_scores(trials, site)
     if not table.real:
-        raise ValueError("analyze: no ROLE_PUSH ROLE-probe trials at the final-token site")
+        raise ValueError(
+            f"analyze: no ROLE_PUSH ROLE-probe trials at the {site.value} site; "
+            "the sweep did not cover it (see run_primary --site)"
+        )
     band_lo, band_hi = stats.null_band(table.null_band, ci_level=config.analysis.ci_level)
 
     group_stats = {key: _stats_block(scores, config) for key, scores in table.real.items()}
@@ -227,8 +247,8 @@ def analyze(config: Config, trials: list[TrialResult]) -> dict[str, object]:
     forest_plot(table, group_stats, (band_lo, band_hi), forest_path)
     # The per-condition figure reads one pair's entity token; the sweep's first
     # trial makes the choice deterministic and guaranteed present in the data.
-    example_entity = trials[0].pair_id.split("->", 1)[0]
-    per_condition_plot(trials, example_entity, per_condition_path)
+    example_entity = ConceptPair.entity_of(trials[0].pair_id)
+    per_condition_plot(trials, example_entity, per_condition_path, site=site)
 
     return {
         "site": site.value,
@@ -279,7 +299,7 @@ def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> d
             continue
         if t.edit_type not in (EditType.IDENTITY_SWAP, EditType.NO_EDIT):
             continue
-        entity, counterpart = t.pair_id.split("->", 1)
+        entity, counterpart = ConceptPair.split_pair_id(t.pair_id)
         missing = [tok for tok in (entity, counterpart) if tok not in t.answer_probs]
         if missing:
             raise ValueError(

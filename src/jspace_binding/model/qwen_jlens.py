@@ -84,6 +84,14 @@ _JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
 # Artifact file extensions we know how to read, in preference order.
 _LENS_SUFFIXES: tuple[str, ...] = (".pt", ".npz", ".safetensors")
 
+# Seed for RQ1's capacity-control subspace (probe_activation's
+# "random_subspace"). Fixed rather than drawn from experiment.seed because the
+# backend holds only ModelConfig, and because the basis must be IDENTICAL for
+# every example in a run — it is a readout basis, like jspace, not per-trial
+# noise. Vary it only to check that a localisation result is not an artifact of
+# one unlucky draw.
+_RQ1_CAPACITY_SEED = 0
+
 
 class QwenJLensModel:
     """WorkspaceModel backend for the real model.
@@ -121,7 +129,10 @@ class QwenJLensModel:
         self._directions: dict[InjectionSite, FittedDirections] = {}
         self._jlens_vectors: dict[tuple[int, int], Any] = {}  # (layer, token_id) -> v_t
         self._swap_operators: dict[tuple[str, str, int], Any] = {}  # (src, tgt, layer) -> (V, V^+)
-        self._random_subspaces: dict[int, Any] = {}  # seed -> orthonormal (d_model, ablate_k)
+        # (seed, rank) -> orthonormal (d_model, rank). Keyed by rank too because
+        # RQ2's ablation control uses ablate_k and RQ1's capacity control uses
+        # jspace_k; a seed-only key would hand back the wrong-rank basis.
+        self._random_subspaces: dict[tuple[int, int], Any] = {}
         # ||delta|| / ||h|| for each applied edit, drained by the caller (RQ2).
         # An ablation removing ablate_k of d_model directions can move the
         # residual by a fraction of a percent, and a null deficit measured
@@ -197,18 +208,31 @@ class QwenJLensModel:
     def probe_activation(
         self, sentence: str, entity: str, site: InjectionSite
     ) -> dict[str, list[float]]:
-        """The three RQ1 sources at the read layer: "jspace" = the sparse
+        """The four RQ1 sources at the read layer: "jspace" = the sparse
         J-space component, "orthogonal" = h minus that component (what the
-        lens cannot see), "residual" = the full activation. No edit applied."""
+        lens cannot see), "residual" = the full activation, "random_subspace" =
+        h projected onto a random subspace of the SAME rank as jspace. No edit
+        applied.
+
+        random_subspace is the capacity control (analysis.probes.PROBE_SOURCES):
+        jspace has effective rank <= jspace_k while orthogonal has ~d_model, so
+        jspace-vs-orthogonal confounds localisation with capacity. The basis is
+        fixed per (seed, rank) rather than drawn per sentence — it is a readout
+        basis like jspace, not noise.
+        """
         self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
         h = self._hidden_at(sentence, anchor)
         component, _ = self._jspace_component(h, self._read_layer())
         remainder = h - component.to(h.dtype)
+        basis = self._random_subspace(_RQ1_CAPACITY_SEED, rank=self.config.jspace_k)
+        h_cast = h.to(basis.dtype)
+        projected = (basis @ (basis.T @ h_cast)).to(h.dtype)
         return {
             "jspace": [float(x) for x in component.float().cpu()],
             "orthogonal": [float(x) for x in remainder.float().cpu()],
             "residual": [float(x) for x in h.float().cpu()],
+            "random_subspace": [float(x) for x in projected.float().cpu()],
         }
 
     # ------------------------------------------------------------------ #
@@ -582,19 +606,26 @@ class QwenJLensModel:
             self._directions[site] = load_directions(self.directions_dir, site)
         return self._directions[site]
 
-    def _random_subspace(self, seed: int) -> Any:
-        """Seeded random orthonormal (d_model, ablate_k) basis, cached per seed."""
+    def _random_subspace(self, seed: int, rank: int | None = None) -> Any:
+        """Seeded random orthonormal (d_model, rank) basis, cached per (seed, rank).
+
+        `rank` defaults to ablate_k, the RQ2 ablation control's dimension. RQ1's
+        capacity control passes jspace_k instead: it must match the rank of the
+        subspace it is being compared against, and jspace_k != ablate_k.
+        """
         import torch
 
-        if seed not in self._random_subspaces:
+        k = self.config.ablate_k if rank is None else rank
+        key = (seed, k)
+        if key not in self._random_subspaces:
             d_model = int(self._w_u.shape[1])
             rng = np.random.default_rng(seed)
-            raw = rng.standard_normal((d_model, self.config.ablate_k))
+            raw = rng.standard_normal((d_model, k))
             q, _ = np.linalg.qr(raw)
-            self._random_subspaces[seed] = torch.as_tensor(
+            self._random_subspaces[key] = torch.as_tensor(
                 q, device=self._device(), dtype=torch.float32
             )
-        return self._random_subspaces[seed]
+        return self._random_subspaces[key]
 
     # ------------------------------------------------------------------ #
     # Forward-capture and indexing helpers                               #

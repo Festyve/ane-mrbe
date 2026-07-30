@@ -29,7 +29,19 @@ from dataclasses import dataclass
 
 import numpy as np
 
-PROBE_SOURCES: tuple[str, ...] = ("jspace", "orthogonal", "residual")
+# "random_subspace" is RQ1's CAPACITY CONTROL — the counterpart of RQ2's
+# ABLATE_RANDOM_SUBSPACE: the residual projected onto a random subspace of the
+# SAME rank as jspace.
+#
+# Without it, "jspace decodes role better than orthogonal" is uninterpretable.
+# jspace has effective rank <= jspace_k (16) while orthogonal has ~d_model
+# (5120), so the two differ in CAPACITY as well as in content, and a probe on
+# the larger space can win for reasons that have nothing to do with where
+# binding lives. The random subspace holds capacity fixed and varies only
+# WHICH directions are kept, so `jspace > random_subspace` isolates
+# localisation. `jspace ~= random_subspace` means any 16 directions would have
+# served equally well and no localisation claim survives.
+PROBE_SOURCES: tuple[str, ...] = ("jspace", "orthogonal", "residual", "random_subspace")
 
 
 @dataclass(frozen=True)

@@ -78,7 +78,7 @@ def run_rq1(
         if report.inverting_folds
     }
     summary: dict[str, object] = {
-        "provenance": run_provenance(config, n_families=len(families)),
+        "provenance": run_provenance(config, n_families=len(families), model=model),
         "sites": {
             site.value: {
                 source: {

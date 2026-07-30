@@ -167,9 +167,32 @@ class ConceptPair:
     entity: str
     counterpart: str
 
+    _SEPARATOR = "->"
+
     @property
     def pair_id(self) -> str:
-        return f"{self.entity}->{self.counterpart}"
+        return f"{self.entity}{self._SEPARATOR}{self.counterpart}"
+
+    @classmethod
+    def split_pair_id(cls, pair_id: str) -> tuple[str, str]:
+        """Inverse of `pair_id`: (entity, counterpart).
+
+        The format was previously re-derived by an inline `split("->", 1)` in
+        four separate modules, so changing it would have broken them silently
+        and one at a time. Parsing lives next to the formatting it inverts.
+        """
+        entity, separator, counterpart = pair_id.partition(cls._SEPARATOR)
+        if not separator or not entity or not counterpart:
+            raise ValueError(
+                f"malformed pair_id {pair_id!r}; expected "
+                f"'entity{cls._SEPARATOR}counterpart'"
+            )
+        return entity, counterpart
+
+    @classmethod
+    def entity_of(cls, pair_id: str) -> str:
+        """Just the entity half — the common case at call sites."""
+        return cls.split_pair_id(pair_id)[0]
 
 
 @dataclass(frozen=True)

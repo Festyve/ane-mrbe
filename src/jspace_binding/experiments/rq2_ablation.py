@@ -381,7 +381,7 @@ def run_rq2(
         figures[injection_site.value] = str(figure_path)
 
     summary: dict[str, object] = {
-        "provenance": run_provenance(config, n_families=len(families)),
+        "provenance": run_provenance(config, n_families=len(families), model=model),
         "sites": by_site,
         "figures": figures,
         "workspace_causally_involved": bool(
