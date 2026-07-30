@@ -22,4 +22,5 @@ figures*/
 .DS_Store
 
 PROJECT_MAP.md
-data/smoke/
+# Smoke-test run artifacts, one dir per model (data/smoke, data/smoke_2b, ...).
+data/smoke*/
