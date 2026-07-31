@@ -222,12 +222,34 @@ class QwenJLensModel:
         """
         self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
-        h = self._hidden_at(sentence, anchor)
+        return self._sources_at(self._hidden_at(sentence, anchor))
+
+    def recruitment_activation(
+        self, sentence: str, probe: str, entity: str
+    ) -> dict[str, list[float]]:
+        """E4: the same sources, read with `probe` in context (proposal §6 E4).
+
+        Read at the FINAL token of `sentence + probe`, not at an InjectionSite.
+        The question is appended after the sentence, so under a causal mask it
+        cannot affect any token inside the sentence — reading at FINAL_TOKEN
+        (last token of the SENTENCE) or ENTITY_TOKEN would return identical
+        activations for the role and bag questions, and E4's recruitment effect
+        would be exactly zero as an artifact of where we looked. The prompt's
+        last token is where the model composes its answer and the only position
+        the two questions can differ at. See base.RecruitmentActivationSource.
+        """
+        self._ensure_ready()
+        full = f"{sentence} {probe}"
+        anchor = len(self._tokenizer(full).input_ids) - 1
+        return self._sources_at(self._hidden_at(full, anchor))
+
+    def _sources_at(self, h: Any) -> dict[str, list[float]]:
+        """The four probe sources for one hidden state. Shared by RQ1 and E4 so
+        the two cannot drift apart in what they mean by "jspace"."""
         component, _ = self._jspace_component(h, self._read_layer())
         remainder = h - component.to(h.dtype)
         basis = self._random_subspace(_RQ1_CAPACITY_SEED, rank=self.config.jspace_k)
-        h_cast = h.to(basis.dtype)
-        projected = (basis @ (basis.T @ h_cast)).to(h.dtype)
+        projected = (basis @ (basis.T @ h.to(basis.dtype))).to(h.dtype)
         return {
             "jspace": [float(x) for x in component.float().cpu()],
             "orthogonal": [float(x) for x in remainder.float().cpu()],

@@ -58,7 +58,7 @@ class FittingActivationSource(Protocol):
 
 @runtime_checkable
 class ProbeActivationSource(Protocol):
-    """A model that exposes the three RQ1 activation sources (proposal, §4)."""
+    """A model that exposes the RQ1 activation sources (proposal, §4)."""
 
     def probe_activation(
         self,
@@ -68,6 +68,40 @@ class ProbeActivationSource(Protocol):
     ) -> dict[str, Sequence[float]]:
         """No-edit activations at `site` keyed by source: "jspace" (J-space
         coordinates), "orthogonal" (residual component the lens cannot see),
-        and "residual" (the full residual-stream activation). The RQ1 linear
+        "residual" (the full residual-stream activation), and
+        "random_subspace" (the capacity control — a random subspace of the same
+        rank as jspace; see analysis.probes.PROBE_SOURCES). The RQ1 linear
         probe trains on each source separately."""
+        ...
+
+
+@runtime_checkable
+class RecruitmentActivationSource(Protocol):
+    """A model that can be read WHILE a given question is in context (E4).
+
+    Separate from ProbeActivationSource because the read POSITION differs, and
+    the difference is forced by causal attention rather than chosen.
+
+    E4 presents identical stimulus tokens under a role question and a bag
+    question and asks whether binding information appears in the workspace only
+    when the task needs it (proposal §6 E4, testing H3). The question is
+    appended AFTER the sentence, so under a causal mask it cannot influence any
+    token inside the sentence — reading at InjectionSite.FINAL_TOKEN or
+    ENTITY_TOKEN would return byte-identical activations for both questions and
+    the measured recruitment effect would be exactly zero by construction.
+
+    The read is therefore at the final token of the full prompt (sentence +
+    probe), the position where the model is actually composing its answer and
+    the only one both questions can differ at. There is no `site` parameter
+    because no other position can carry the effect.
+    """
+
+    def recruitment_activation(
+        self,
+        sentence: str,
+        probe: str,
+        entity: str,
+    ) -> dict[str, Sequence[float]]:
+        """No-edit activations at the final token of `sentence + probe`, keyed
+        by the same sources as probe_activation."""
         ...

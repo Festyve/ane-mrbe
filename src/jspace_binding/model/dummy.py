@@ -2,19 +2,26 @@
 
 Exists so the full pipeline — direction fitting, runner, binding score, stats,
 plots — can be validated against known ground truth before the real Qwen
-backend is loaded. Two modes:
+backend is loaded. Three modes:
 
-- ``binding``: the workspace binds fillers to roles. A uniform ROLE_PUSH
-  interacts with the role the sentence already assigned — the agent-pole push
-  moves patient sentences most, the patient-pole push moves agent sentences
-  most (the crossover) — so the pipeline must recover a large positive
-  binding score that clears the control null band.
+- ``binding``: the workspace binds fillers to roles, continuously. A uniform
+  ROLE_PUSH interacts with the role the sentence already assigned — the
+  agent-pole push moves patient sentences most, the patient-pole push moves
+  agent sentences most (the crossover) — so the pipeline must recover a large
+  positive binding score that clears the control null band.
 - ``bag``: the workspace is an unordered bag of concepts. The same push shifts
   the entity's answer log-odds by a constant increment regardless of role, so
   the log-odds binding score must land at ~0 inside the band. (In raw
   probability the two conditions move by different amounts — floor/ceiling —
   which is exactly why the analysis reads log-odds; see the proposal's
   Motivation.)
+- ``recruitment``: the workspace binds ON DEMAND — H3, the proposal's favoured
+  hypothesis (§6 E4). Identical to ``binding`` everywhere except E4's
+  question-conditional read (recruitment_activation), where role information
+  appears in J-space under a role question and is absent under a bag question.
+  Deliberately indistinguishable from ``binding`` to every other experiment:
+  RQ1/RQ2/primary never vary the task, so an always-on and an on-demand
+  workspace look the same to them. Telling those apart is what E4 is for.
 
 All synthetic behavior is defined in LOGIT space and mapped through a sigmoid,
 so "uniform log-odds shift" is exact rather than approximate.
@@ -108,6 +115,11 @@ _L_CONCEPT_MISMATCH_MILD = _logit(0.35)  # -> gap ~1.11, ~20% of baseline lost
 
 _PUSH_EDITS = DIRECTION_PUSH_EDIT_TYPES
 
+# "recruitment" is H3: binding built on demand. It behaves exactly like
+# "binding" outside recruitment_activation, so every `self.mode == "bag"` test
+# below correctly routes it down the binding branch.
+MODES: tuple[str, ...] = ("binding", "bag", "recruitment")
+
 
 class DummyModel:
     """Synthetic WorkspaceModel + FittingActivationSource.
@@ -154,8 +166,8 @@ class DummyModel:
     """
 
     def __init__(self, mode: str = "binding", seed: int = 0) -> None:
-        if mode not in ("binding", "bag"):
-            raise ValueError(f"unknown dummy mode {mode!r}; expected 'binding' or 'bag'")
+        if mode not in MODES:
+            raise ValueError(f"unknown dummy mode {mode!r}; expected one of {MODES}")
         self.mode = mode
         self.seed = seed
 
@@ -375,32 +387,100 @@ class DummyModel:
         such information exists, in the mode-appropriate subspace.
         """
         role_sign = 1.0 if self._infer_role_is_agent(sentence, entity) else -1.0
-        rng = self._content_rng("probe", sentence, entity, site.value)
+        # "recruitment" mode plants role in jspace like "binding" does; the two
+        # only diverge once a QUESTION is in context, which is what E4 reads
+        # (recruitment_activation). RQ1 sees no question, so it must not be able
+        # to tell them apart — an always-on and an on-demand workspace look
+        # identical to a probe that never varies the task.
+        location = "orthogonal" if self.mode == "bag" else "jspace"
+        return self._probe_sources(
+            role_sign,
+            location,
+            self._content_rng("probe", sentence, entity, site.value),
+            key=site.value,
+        )
+
+    def _probe_sources(
+        self, role_sign: float, location: str | None, rng: random.Random, key: str
+    ) -> dict[str, list[float]]:
+        """The four probe sources with the role signal planted at `location`.
+
+        `location` is "jspace", "orthogonal", or None. None means the role
+        signal is ABSENT — everything is noise — which is distinct from
+        "somewhere else" and the distinction is load-bearing: under H3 the
+        model is not binding at all while answering a bag question, so role
+        must not be decodable from the remainder either. Planting it in
+        orthogonal instead would assert that binding moved rather than stopped,
+        and E4 would report the remainder as "inverted" rather than "absent".
+
+        Shared by RQ1 and E4 so the two cannot drift. The synthetic residual
+        basis is axis-aligned: residual = jspace coords ++ orthogonal coords.
+        """
+        if location not in ("jspace", "orthogonal", None):
+            raise ValueError(f"unknown signal location {location!r}")
         j_noise = [rng.gauss(0.0, _FIT_NOISE) for _ in range(_FIT_DIM)]
         o_noise = [rng.gauss(0.0, _FIT_NOISE) for _ in range(_ORTH_DIM)]
-        if self.mode == "binding":
-            planted = self._unit_vector("probe-role", site.value, dim=_FIT_DIM)
+        jspace, orthogonal = j_noise, o_noise
+        if location == "jspace":
+            planted = self._unit_vector("probe-role", key, dim=_FIT_DIM)
             jspace = [role_sign * p + n for p, n in zip(planted, j_noise, strict=True)]
-            orthogonal = o_noise
-        else:
-            planted = self._unit_vector("probe-role-orth", site.value, dim=_ORTH_DIM)
-            jspace = j_noise
+        elif location == "orthogonal":
+            planted = self._unit_vector("probe-role-orth", key, dim=_ORTH_DIM)
             orthogonal = [role_sign * p + n for p, n in zip(planted, o_noise, strict=True)]
         residual = jspace + orthogonal
         return {
             "jspace": jspace,
             "orthogonal": orthogonal,
             "residual": residual,
-            "random_subspace": self._random_subspace_projection(residual, site),
+            "random_subspace": self._random_subspace_projection(residual, key),
         }
 
-    def _random_subspace_projection(
-        self, residual: list[float], site: InjectionSite
-    ) -> list[float]:
+    def recruitment_activation(
+        self, sentence: str, probe: str, entity: str
+    ) -> dict[str, list[float]]:
+        """E4 ground truth: is binding information RECRUITED on demand?
+
+        Read with a question in context, so the three modes finally separate —
+        RQ1 cannot tell "binding" from "recruitment" because it never varies the
+        task, and that is the point of running E4 at all.
+
+        - binding      -> role decodable from jspace under BOTH questions.
+          The workspace holds binding continuously (H1/H2, always-on).
+        - recruitment  -> role decodable from jspace under the ROLE question
+          only; at chance under the bag question. The workspace builds binding
+          when the task demands it (H3, the proposal's favoured hypothesis).
+        - bag          -> never in jspace under either question; the signal sits
+          in the orthogonal remainder, as in probe_activation.
+
+        Only the role/bag distinction matters, so the probe is classified by
+        wording exactly as answer_distribution does.
+        """
+        role_sign = 1.0 if self._infer_role_is_agent(sentence, entity) else -1.0
+        asking_role = self._probe_is_role(probe)
+        if self.mode == "bag":
+            location = "orthogonal"  # binding happens, just never in the workspace
+        elif self.mode == "recruitment":
+            # H3: bound only when the task asks for it. Under the bag question
+            # the model is not binding AT ALL, so the signal is absent rather
+            # than relocated.
+            location = "jspace" if asking_role else None
+        else:  # binding: always on, question-independent
+            location = "jspace"
+        return self._probe_sources(
+            role_sign,
+            location,
+            self._content_rng("recruit", sentence, probe, entity),
+            # Same basis key as RQ1's final-token read, so a difference between
+            # the two conditions can only come from the planted signal moving,
+            # never from a different random draw.
+            key=InjectionSite.FINAL_TOKEN.value,
+        )
+
+    def _random_subspace_projection(self, residual: list[float], key: str) -> list[float]:
         """RQ1 capacity control: `residual` projected onto a random subspace of
         the same rank as jspace (analysis.probes.PROBE_SOURCES).
 
-        Fixed per (seed, site) rather than per sentence — it is a fixed random
+        Fixed per (seed, key) rather than per sentence — it is a fixed random
         READOUT BASIS, the same for every example, exactly as jspace is. Drawing
         it per sentence would make it noise rather than a subspace and would
         guarantee it probed at chance, which would look like a passing control
@@ -414,7 +494,7 @@ class DummyModel:
         """
         dim = len(residual)
         basis = [
-            self._unit_vector("probe-random-subspace", site.value, str(k), dim=dim)
+            self._unit_vector("probe-random-subspace", key, str(k), dim=dim)
             for k in range(_FIT_DIM)
         ]
         # Project onto the span, expressed back in the residual basis so the
