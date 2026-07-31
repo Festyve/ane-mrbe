@@ -118,6 +118,34 @@ def _held_out_corpus(
     return held_out
 
 
+_PROBE_FIELDS = (
+    "role_probe",
+    "recipient_probe",
+    "neutral_probe",
+    "concept_probe_entity",
+    "concept_probe_other",
+)
+
+
+def _probe_coverage(corpus) -> dict[str, dict[str, object]]:
+    """How many held-out examples carry each probe, and how many distinct
+    wordings each uses.
+
+    Reported rather than enforced: the separation check reads activations, not
+    answers, so a missing probe does not invalidate this run. It does mean the
+    corpus cannot be scored on that readout later, which is worth seeing in
+    the summary before anyone builds on it. `distinct` should stay small — one
+    wording per verb for the verb-anchored probes, exactly 1 for the
+    verb-free NEUTRAL and CONCEPT probes.
+    """
+    coverage: dict[str, dict[str, object]] = {}
+    for field in _PROBE_FIELDS:
+        values = [getattr(ex, field, "") for ex in corpus]
+        present = [v for v in values if v]
+        coverage[field] = {"n": len(present), "distinct": len(set(present))}
+    return coverage
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sanity-check fitted role-directions.")
     add_backend_args(parser)
@@ -160,11 +188,18 @@ def main() -> None:
         sys.exit(f"no fitted direction for: {', '.join(missing)}; fitted: {fitted_entities}")
 
     corpus = _held_out_corpus(config, args.eval_corpus, args.fit_corpus, entities)
+    probe_coverage = _probe_coverage(corpus)
     summary: dict[str, object] = {
         "directions_dir": str(directions_dir),
         "held_out_sentences": len(corpus),
+        "probe_coverage": probe_coverage,
         "sites": {},
     }
+    print(
+        "probe coverage: "
+        + ", ".join(f"{name} {block['n']}/{len(corpus)}" for name, block in probe_coverage.items()),
+        file=sys.stderr,
+    )
 
     for site, fitted in directions_by_site.items():
         site_summary: dict[str, object] = {"separation": {}, "comparison": None}
