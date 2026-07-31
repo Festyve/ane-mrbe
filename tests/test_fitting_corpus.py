@@ -100,3 +100,27 @@ def test_generation_deterministic_and_roundtrips(tmp_path: Path) -> None:
     path = tmp_path / "fitting.jsonl"
     save_fitting_corpus(corpus, path)
     assert load_fitting_corpus(path) == corpus
+
+
+def test_partial_fit_paths_do_not_re_nest() -> None:
+    """Pointing paths.directions at a previous partial run used to append a
+    SECOND partial/<tag>: the fit wrote deeper while preflight and
+    direction_sanity kept reading paths.directions, silently scoring a stale
+    .npz. Observed for real — a re-fit reported new stability while the cosine
+    check returned pre-fix numbers."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "fit_directions", Path(__file__).resolve().parent.parent / "scripts" / "fit_directions.py"
+    )
+    fd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fd)
+
+    tag = "doctor-nurse"
+    fresh = fd._tagged_directions_dir(Path("data/directions"), tag)
+    assert fresh == Path("data/directions/partial") / tag
+    assert fd._tagged_directions_dir(fresh, tag) == fresh  # idempotent
+
+    corpus = fd._tagged_corpus_path(Path("data/stimuli/fitting_corpus.jsonl"), tag)
+    assert corpus.name == f"fitting_corpus_{tag}.jsonl"
+    assert fd._tagged_corpus_path(corpus, tag) == corpus  # no double-tagging
