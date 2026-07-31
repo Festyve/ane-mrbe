@@ -17,7 +17,7 @@ from collections.abc import Sequence
 
 from jspace_binding.config import Config
 from jspace_binding.model.base import WorkspaceModel
-from jspace_binding.model.dummy import DummyModel
+from jspace_binding.model.dummy import MODES, DummyModel
 from jspace_binding.types import InjectionSite
 
 
@@ -31,7 +31,7 @@ def add_backend_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--dummy-mode",
-        choices=("binding", "bag"),
+        choices=MODES,
         default=None,
         help="DummyModel ground truth (default: config model.dummy_mode)",
     )

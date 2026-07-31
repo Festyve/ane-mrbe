@@ -176,6 +176,39 @@ def selectivity_plot(
     _save(fig, out_path)
 
 
+def recruitment_plot(
+    by_source: dict[str, dict[str, object]],
+    out_path: str | Path,
+) -> None:
+    """E4 figure: role decodability under the role question vs the bag
+    question, per activation source, with chance marked.
+
+    H3 (recruitment) reads as a tall role bar beside a bag bar sitting on the
+    chance line. Always-on binding reads as two tall bars. The random_subspace
+    pair is the capacity control: a delta there as large as jspace's means the
+    question shifted the residual generally rather than recruiting into the
+    workspace.
+    """
+    sources = list(by_source)
+    x = np.arange(len(sources), dtype=float)
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(max(6.0, 1.6 * len(sources)), 4.0))
+    for offset, condition, label in (
+        (-width / 2, "role_question", "role question"),
+        (width / 2, "bag_question", "bag question"),
+    ):
+        values = [float(by_source[s][condition]["accuracy"]) for s in sources]  # type: ignore[index]
+        ax.bar(x + offset, values, width, label=label)
+    ax.axhline(0.5, color="0.5", linewidth=0.8, linestyle="--", label="chance")
+    ax.set_xticks(x)
+    ax.set_xticklabels(sources, rotation=15, ha="right")
+    ax.set_ylabel("held-out role accuracy (leave-one-pair-out)")
+    ax.set_ylim(0.0, 1.05)
+    ax.set_title("E4: is role information recruited on demand?")
+    ax.legend(fontsize=8)
+    _save(fig, out_path)
+
+
 def ablation_deltas_plot(
     deltas: dict[str, dict[str, float]],
     out_path: str | Path,
