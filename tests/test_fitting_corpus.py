@@ -34,6 +34,41 @@ def test_templates_disjoint_from_primary() -> None:
     assert not set(frame_templates()) & primary
 
 
+def test_no_fitted_entity_is_another_entitys_distractor() -> None:
+    """If A is B's distractor and vice versa, every A-agent sentence IS a
+    B-patient sentence. The final-token activation depends only on the
+    sentence string, so r_B = -r_A exactly and the pairwise cosine is pinned
+    at -1 for any model — destroying the filler-general vs entity-specific
+    comparison. Observed for real on doctor/nurse before distractor_pool
+    excluded fitted entities.
+    """
+    corpus = generate_fitting_corpus(ENTITIES, exemplars_per_role=12)
+    distractors = {ex.other for ex in corpus}
+    assert not distractors & set(ENTITIES), (
+        f"fitted entities used as distractors: {sorted(distractors & set(ENTITIES))}"
+    )
+
+    sentences: dict[str, dict[Role, set[str]]] = {}
+    for ex in corpus:
+        sentences.setdefault(ex.entity, {Role.AGENT: set(), Role.PATIENT: set()})
+        sentences[ex.entity][ex.role].add(ex.sentence)
+    for a in ENTITIES:
+        for b in ENTITIES:
+            if a < b:
+                assert sentences[a][Role.AGENT] != sentences[b][Role.PATIENT], (
+                    f"{a}/{b} sentence sets mirror each other; their fitted "
+                    "directions would be exact negatives"
+                )
+
+
+def test_counterparts_never_appear_in_a_fitting_sentence() -> None:
+    """templates.py states "pair.counterpart never appears in any sentence"
+    for the primary set; the fitting corpus must honour the same invariant."""
+    corpus = generate_fitting_corpus(("doctor",), exemplars_per_role=6, counterparts=("nurse",))
+    for ex in corpus:
+        assert "nurse" not in ex.sentence, ex.sentence
+
+
 def test_corpus_is_role_and_position_balanced() -> None:
     corpus = generate_fitting_corpus(ENTITIES, exemplars_per_role=12)
     for entity in ENTITIES:

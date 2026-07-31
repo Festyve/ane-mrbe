@@ -125,6 +125,15 @@ class Config:
             )
         )
 
+    def counterpart_entities(self) -> tuple[str, ...]:
+        """The identity-swap counterparts. They are never pushed and never
+        appear in a primary sentence (stimuli.templates), so the fitting
+        corpus keeps them out of its sentences too — passing these to
+        stimuli.fitting_corpus.generate_fitting_corpus prevents a fitted
+        entity and its counterpart from being each other's distractor, which
+        would pin their direction cosine at -1 (see distractor_pool)."""
+        return tuple(dict.fromkeys(pair.counterpart for pair in self.stimuli.concept_pairs))
+
     @staticmethod
     def from_yaml(path: str | Path) -> Config:
         raw = yaml.safe_load(Path(path).read_text()) or {}

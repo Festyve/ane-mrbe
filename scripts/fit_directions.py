@@ -196,7 +196,11 @@ def main() -> None:
                     f"experiment also needs directions for {missing}",
                     file=sys.stderr,
                 )
-        corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
+        corpus = generate_fitting_corpus(
+            entities,
+            config.directions.exemplars_per_role,
+            counterparts=config.counterpart_entities(),
+        )
         save_fitting_corpus(corpus, fitting_corpus_path)
         print(
             f"fitting corpus: {len(corpus)} sentences ({len(entities)} entities x 2 roles "
