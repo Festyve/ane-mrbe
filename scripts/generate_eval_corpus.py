@@ -42,6 +42,12 @@ _CSV_COLUMNS = (
     "other",
     "sentence",
     "role_probe",
+    # recipient_probe is dative-only (empty elsewhere); the CONCEPT pair is
+    # RQ2's recall control and must be read together, not one side alone.
+    "recipient_probe",
+    "neutral_probe",
+    "concept_probe_entity",
+    "concept_probe_other",
 )
 
 
@@ -62,6 +68,10 @@ def _write_csv(examples, path: Path) -> None:
                     ex.other,
                     ex.sentence,
                     ex.role_probe,
+                    ex.recipient_probe,
+                    ex.neutral_probe,
+                    ex.concept_probe_entity,
+                    ex.concept_probe_other,
                 ]
             )
 

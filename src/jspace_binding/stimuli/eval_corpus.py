@@ -33,6 +33,17 @@ activations and has no such heuristic.
 from __future__ import annotations
 
 from jspace_binding.stimuli.fitting_corpus import FittingExample
+
+# Imported rather than restated: the held-out corpus must ask the SAME
+# questions as the primary set, or a sanity result would not transfer. Sharing
+# the strings makes drift impossible — reword a probe in templates.py and this
+# corpus follows on regeneration.
+from jspace_binding.stimuli.templates import (
+    _CONCEPT_PROBE_TEMPLATE,
+    _NEUTRAL_PROBE,
+    _RECIPIENT_PROBE_TEMPLATES,
+)
+from jspace_binding.stimuli.vocab import PROFESSION_CUE
 from jspace_binding.types import Construction, Position, Role
 
 # Disjoint from the primary pool (templates.VERBS_BY_CONSTRUCTION), the
@@ -172,6 +183,20 @@ def generate_eval_corpus(
                     )
                 verbs = verbs[:verbs_per_cell]
             probe = _ROLE_PROBE_TEMPLATES[construction]
+            # DATIVE only; every other construction has no recipient reading,
+            # so its recipient_probe stays "" and the sweep skips it.
+            recipient = _RECIPIENT_PROBE_TEMPLATES.get(construction, "")
+            # Fatal rather than silently skipped, matching templates._concept_probe:
+            # a participant with no cue cannot be scored on the recall control,
+            # and dropping it would quietly unbalance the counterbalancing.
+            for profession in (entity, other_entity):
+                if profession not in PROFESSION_CUE:
+                    raise KeyError(
+                        f"no PROFESSION_CUE for {profession!r}; every entity used as a "
+                        "participant needs one (stimuli.vocab.PROFESSION_CUE)"
+                    )
+            concept_entity = _CONCEPT_PROBE_TEMPLATE.format(cue=PROFESSION_CUE[entity])
+            concept_other = _CONCEPT_PROBE_TEMPLATE.format(cue=PROFESSION_CUE[other_entity])
             for frame_id, role, position, template in _FRAMES[construction]:
                 for verb in verbs:
                     examples.append(
@@ -186,6 +211,12 @@ def generate_eval_corpus(
                                 entity=entity, other=other_entity, verb=verb
                             ),
                             role_probe=probe.format(verb=verb),
+                            recipient_probe=(
+                                recipient.format(verb_past=verb) if recipient else ""
+                            ),
+                            neutral_probe=_NEUTRAL_PROBE,
+                            concept_probe_entity=concept_entity,
+                            concept_probe_other=concept_other,
                         )
                     )
     return examples
