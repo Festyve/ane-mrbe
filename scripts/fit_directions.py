@@ -97,6 +97,34 @@ def _export_metadata(config: Config, corpus_path: Path, directions_dir: Path) ->
     }
 
 
+def _tagged_directions_dir(base: Path, tag: str) -> Path:
+    """Route a partial fit to <base>/partial/<tag>, without re-nesting.
+
+    Silently dangerous otherwise: pointing paths.directions at a previous
+    partial run appends a SECOND partial/<tag>, so the fit writes to the
+    deeper path while preflight and scripts/direction_sanity.py keep reading
+    paths.directions — and quietly score a stale .npz from an earlier run.
+    Observed for real: a re-fit reported new stability values while the
+    cosine check still returned the pre-fix numbers.
+    """
+    if base.parts[-2:] == ("partial", tag):
+        return base  # already the tagged directory; reuse it
+    if "partial" in base.parts:
+        sys.exit(
+            f"paths.directions ({base}) is already inside a partial-fit directory, but "
+            f"this run is tagged {tag!r}. Point it at the canonical directions directory "
+            "or pass --directions-dir explicitly."
+        )
+    return base / "partial" / tag
+
+
+def _tagged_corpus_path(base: Path, tag: str) -> Path:
+    """<stem>_<tag><suffix>, without double-tagging an already-tagged file."""
+    if base.stem.endswith(f"_{tag}"):
+        return base
+    return base.with_name(f"{base.stem}_{tag}{base.suffix}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fit role directions from the fitting corpus.")
     add_backend_args(parser)
@@ -149,9 +177,11 @@ def main() -> None:
     fitting_corpus_path = args.fitting_corpus_out or args.corpus or config.paths.fitting_corpus
     if partial_entities:
         tag = "-".join(sorted(args.entities))
-        directions_dir = args.directions_dir or config.paths.directions / "partial" / tag
-        fitting_corpus_path = args.fitting_corpus_out or config.paths.fitting_corpus.with_name(
-            f"{config.paths.fitting_corpus.stem}_{tag}{config.paths.fitting_corpus.suffix}"
+        directions_dir = args.directions_dir or _tagged_directions_dir(
+            config.paths.directions, tag
+        )
+        fitting_corpus_path = args.fitting_corpus_out or _tagged_corpus_path(
+            config.paths.fitting_corpus, tag
         )
         print(
             f"partial fit: writing to {directions_dir} and {fitting_corpus_path}; "
