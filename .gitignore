@@ -24,3 +24,5 @@ figures*/
 PROJECT_MAP.md
 # Smoke-test run artifacts, one dir per model (data/smoke, data/smoke_2b, ...).
 data/smoke*/
+# Local real-backend runs on substitute models (directions, figures, results).
+data/local_*/

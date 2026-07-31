@@ -34,6 +34,41 @@ def test_templates_disjoint_from_primary() -> None:
     assert not set(frame_templates()) & primary
 
 
+def test_no_fitted_entity_is_another_entitys_distractor() -> None:
+    """If A is B's distractor and vice versa, every A-agent sentence IS a
+    B-patient sentence. The final-token activation depends only on the
+    sentence string, so r_B = -r_A exactly and the pairwise cosine is pinned
+    at -1 for any model — destroying the filler-general vs entity-specific
+    comparison. Observed for real on doctor/nurse before distractor_pool
+    excluded fitted entities.
+    """
+    corpus = generate_fitting_corpus(ENTITIES, exemplars_per_role=12)
+    distractors = {ex.other for ex in corpus}
+    assert not distractors & set(ENTITIES), (
+        f"fitted entities used as distractors: {sorted(distractors & set(ENTITIES))}"
+    )
+
+    sentences: dict[str, dict[Role, set[str]]] = {}
+    for ex in corpus:
+        sentences.setdefault(ex.entity, {Role.AGENT: set(), Role.PATIENT: set()})
+        sentences[ex.entity][ex.role].add(ex.sentence)
+    for a in ENTITIES:
+        for b in ENTITIES:
+            if a < b:
+                assert sentences[a][Role.AGENT] != sentences[b][Role.PATIENT], (
+                    f"{a}/{b} sentence sets mirror each other; their fitted "
+                    "directions would be exact negatives"
+                )
+
+
+def test_counterparts_never_appear_in_a_fitting_sentence() -> None:
+    """templates.py states "pair.counterpart never appears in any sentence"
+    for the primary set; the fitting corpus must honour the same invariant."""
+    corpus = generate_fitting_corpus(("doctor",), exemplars_per_role=6, counterparts=("nurse",))
+    for ex in corpus:
+        assert "nurse" not in ex.sentence, ex.sentence
+
+
 def test_corpus_is_role_and_position_balanced() -> None:
     corpus = generate_fitting_corpus(ENTITIES, exemplars_per_role=12)
     for entity in ENTITIES:
@@ -65,3 +100,27 @@ def test_generation_deterministic_and_roundtrips(tmp_path: Path) -> None:
     path = tmp_path / "fitting.jsonl"
     save_fitting_corpus(corpus, path)
     assert load_fitting_corpus(path) == corpus
+
+
+def test_partial_fit_paths_do_not_re_nest() -> None:
+    """Pointing paths.directions at a previous partial run used to append a
+    SECOND partial/<tag>: the fit wrote deeper while preflight and
+    direction_sanity kept reading paths.directions, silently scoring a stale
+    .npz. Observed for real — a re-fit reported new stability while the cosine
+    check returned pre-fix numbers."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "fit_directions", Path(__file__).resolve().parent.parent / "scripts" / "fit_directions.py"
+    )
+    fd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fd)
+
+    tag = "doctor-nurse"
+    fresh = fd._tagged_directions_dir(Path("data/directions"), tag)
+    assert fresh == Path("data/directions/partial") / tag
+    assert fd._tagged_directions_dir(fresh, tag) == fresh  # idempotent
+
+    corpus = fd._tagged_corpus_path(Path("data/stimuli/fitting_corpus.jsonl"), tag)
+    assert corpus.name == f"fitting_corpus_{tag}.jsonl"
+    assert fd._tagged_corpus_path(corpus, tag) == corpus  # no double-tagging

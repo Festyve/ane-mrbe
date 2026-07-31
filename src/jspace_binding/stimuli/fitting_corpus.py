@@ -76,6 +76,19 @@ class FittingExample:
     calibration (experiments.calibrate) can run on fitting sentences with the
     same readout as the primary experiment — the proposal requires calibrating
     on the fitting corpus, never on the primary stimuli.
+
+    The remaining probes mirror ItemFamily's, so a held-out corpus can be
+    scored on the same readouts as the primary set. All are optional: corpora
+    written before they existed (and the fitting corpus itself, which only
+    calibrates on the ROLE probe) load with "".
+
+    - recipient_probe: DATIVE only, asks for the recipient rather than the
+      giver; empty for every other construction, which has no recipient.
+    - neutral_probe: role-blind, satisfied by BOTH participants.
+    - concept_probe_entity / concept_probe_other: RQ2's role-blind recall
+      control, asked once per participant. Both are needed — scoring either
+      alone reintroduces the base-rate and primacy confounds the counter-
+      balanced pair exists to cancel (see ProbeKind.CONCEPT).
     """
 
     entity: str
@@ -86,11 +99,51 @@ class FittingExample:
     other: str
     sentence: str
     role_probe: str
+    recipient_probe: str = ""
+    neutral_probe: str = ""
+    concept_probe_entity: str = ""
+    concept_probe_other: str = ""
+
+
+def distractor_pool(
+    entity: str,
+    fitted_entities: tuple[str, ...] = (),
+    counterparts: tuple[str, ...] = (),
+) -> tuple[str, ...]:
+    """Professions usable as the distractor opposite `entity`.
+
+    A distractor must never be an entity whose own direction is being fitted.
+    If two fitted entities are each other's distractor, their sentence SETS
+    coincide — every A-agent sentence is literally a B-patient sentence — and
+    because the final-token activation depends only on the sentence string,
+    r_B = -r_A exactly. The pairwise cosine is then pinned at -1 by
+    construction for any model, destroying the filler-general vs
+    entity-specific comparison that is the point of comparing directions.
+
+    Counterparts are excluded too, restoring the invariant templates.py
+    already states for the primary set: "pair.counterpart never appears in any
+    sentence". Excluding only counterparts would not be enough — it would
+    leave doctor and teacher as each other's first distractor and merely move
+    the mirroring.
+
+    Defaults reproduce the historical pool (everything but the entity) so
+    callers that pass neither argument are unaffected.
+    """
+    banned = {entity, *fitted_entities, *counterparts}
+    pool = tuple(e for e in PROFESSION_ENTITIES if e not in banned)
+    if not pool:
+        raise ValueError(
+            f"no distractor left for {entity!r}: fitted={sorted(fitted_entities)} "
+            f"counterparts={sorted(counterparts)} exhaust the profession vocabulary; "
+            "add professions to stimuli.vocab.PROFESSION_ENTITIES or fit fewer entities"
+        )
+    return pool
 
 
 def generate_fitting_corpus(
     entities: tuple[str, ...],
     exemplars_per_role: int,
+    counterparts: tuple[str, ...] = (),
 ) -> list[FittingExample]:
     """Deterministic corpus: for each entity x role, exemplars_per_role
     sentences cycling through frames (fastest), verbs, then distractors —
@@ -99,6 +152,11 @@ def generate_fitting_corpus(
 
     No randomness and no dependence on any experiment seed: regeneration is
     byte-identical, matching stimuli.generate's determinism contract.
+
+    `entities` doubles as the fitted set, so no entity is ever another's
+    distractor; pass `counterparts` (the identity-swap partners) to keep them
+    out of sentences as well. See :func:`distractor_pool` for why — omitting
+    both pins some pairwise direction cosines at -1 regardless of the model.
     """
     if exemplars_per_role % 6 != 0:
         raise ValueError(
@@ -107,7 +165,7 @@ def generate_fitting_corpus(
         )
     examples: list[FittingExample] = []
     for entity in entities:
-        others = tuple(e for e in PROFESSION_ENTITIES if e != entity)
+        others = distractor_pool(entity, entities, counterparts)
         for role in Role:
             frames = [f for f in _FRAMES if f[1] is role]
             for index in range(exemplars_per_role):
@@ -157,6 +215,18 @@ def _to_record(ex: FittingExample) -> dict[str, Any]:
         "other": ex.other,
         "sentence": ex.sentence,
         "role_probe": ex.role_probe,
+        # Omitted when empty so the fitting corpus (ROLE probe only) keeps its
+        # existing on-disk shape and older files stay byte-identical.
+        **{
+            key: value
+            for key, value in (
+                ("recipient_probe", ex.recipient_probe),
+                ("neutral_probe", ex.neutral_probe),
+                ("concept_probe_entity", ex.concept_probe_entity),
+                ("concept_probe_other", ex.concept_probe_other),
+            )
+            if value
+        },
     }
 
 
@@ -170,4 +240,10 @@ def _from_record(record: dict[str, Any]) -> FittingExample:
         other=record["other"],
         sentence=record["sentence"],
         role_probe=record["role_probe"],
+        # Absent in corpora written before these fields existed, and in the
+        # fitting corpus, which carries the ROLE probe only.
+        recipient_probe=record.get("recipient_probe", ""),
+        neutral_probe=record.get("neutral_probe", ""),
+        concept_probe_entity=record.get("concept_probe_entity", ""),
+        concept_probe_other=record.get("concept_probe_other", ""),
     )

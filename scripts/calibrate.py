@@ -50,7 +50,9 @@ def main() -> None:
     preflight_or_exit(model, (InjectionSite.FINAL_TOKEN,))
 
     corpus = generate_fitting_corpus(
-        config.direction_entities(), config.directions.exemplars_per_role
+        config.direction_entities(),
+        config.directions.exemplars_per_role,
+        counterparts=config.counterpart_entities(),
     )
     families = generate_families(config)
 
