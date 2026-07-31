@@ -163,7 +163,11 @@ def main() -> None:
 
     _stage("direction fitting (sparse pursuit -> diff-of-means)")
     entities = config.direction_entities()
-    corpus = generate_fitting_corpus(entities, config.directions.exemplars_per_role)
+    corpus = generate_fitting_corpus(
+        entities,
+        config.directions.exemplars_per_role,
+        counterparts=config.counterpart_entities(),
+    )
     activations = {}
     for entity in entities:
         rows = {role: [] for role in Role}

@@ -109,6 +109,37 @@ def test_dative_probe_is_ditransitive() -> None:
         assert ex.role_probe == f"Question: Who {ex.verb} someone? Answer: The"
 
 
+def test_carries_all_four_probe_types() -> None:
+    """The held-out corpus must ask the SAME questions as the primary set, or
+    a sanity result would not transfer. Strings are imported from templates.py
+    rather than restated, so this also catches drift if a probe is reworded."""
+    from jspace_binding.stimuli.templates import _NEUTRAL_PROBE
+
+    for ex in generate_eval_corpus(("doctor", "nurse")):
+        assert ex.neutral_probe == _NEUTRAL_PROBE
+        # CONCEPT is counterbalanced: both sides are required, and each names
+        # its own participant's cue rather than the other's.
+        assert ex.concept_probe_entity and ex.concept_probe_other
+        assert ex.concept_probe_entity != ex.concept_probe_other
+        # RECIPIENT exists only where a recipient reading does.
+        is_dative = ex.frame_id == "eval4_dative_double_object"
+        assert bool(ex.recipient_probe) is is_dative, ex.sentence
+        for probe in (
+            ex.role_probe,
+            ex.neutral_probe,
+            ex.concept_probe_entity,
+            ex.concept_probe_other,
+        ):
+            assert probe.endswith("Answer: The")
+
+
+def test_concept_probe_requires_a_cue_for_every_participant() -> None:
+    """Fatal rather than silently skipped: a participant with no cue cannot be
+    scored on the recall control, and dropping it would unbalance the pair."""
+    with pytest.raises(KeyError, match="PROFESSION_CUE"):
+        generate_eval_corpus(("doctor",), other_entity="cyclist")
+
+
 def test_generation_is_deterministic() -> None:
     assert generate_eval_corpus(("doctor",)) == generate_eval_corpus(("doctor",))
 
