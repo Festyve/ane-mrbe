@@ -4,7 +4,11 @@
 # code that needs them fails loudly rather than guessing.
 
 model:
-  backend: dummy            # dummy | qwen_jlens
+  # dummy | qwen_jlens. Now the REAL backend: this config describes the run we
+  # intend, not a rehearsal of it. Every script still takes --dry-run, which
+  # forces DummyModel regardless of this field, so GPU-free work is unaffected
+  # — but it now has to be asked for explicitly.
+  backend: qwen_jlens
   model_id: Qwen/Qwen3.6-27B  # verified on HF: 64 layers, d_model 5120
   lens_repo: neuronpedia/jacobian-lens  # per-layer averaged Jacobians J_l
   # Scopes the download + file search to this model's lens. The repo carries a
