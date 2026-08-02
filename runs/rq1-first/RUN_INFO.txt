@@ -1,0 +1,5 @@
+label: rq1-first
+commit: 5b679a9274a66806ab02dde13aa9870ba3261673
+dirty: True
+note: first real-backend run, A100 x3, layer 48
+files: 2
