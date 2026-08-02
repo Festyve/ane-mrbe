@@ -84,6 +84,7 @@ from jspace_binding.analysis.binding_score import logit
 from jspace_binding.analysis.plots import ablation_deltas_plot
 from jspace_binding.analysis.stats import bootstrap_ci
 from jspace_binding.config import Config
+from jspace_binding.experiments.progress import track
 from jspace_binding.experiments.provenance import run_provenance
 from jspace_binding.model.base import WorkspaceModel
 from jspace_binding.types import (
@@ -185,7 +186,9 @@ def _run_site(
     }
     magnitudes: dict[EditType, list[float]] = {edit: [] for edit in ABLATIONS}
 
-    for family_index, family in enumerate(families):
+    for family_index, family in enumerate(
+        track(families, f"rq2 {site.value}", total=len(families))
+    ):
         answers = family.answer_set
         if answers is None:
             raise ValueError(f"family {family.family_id!r} has no answer_set")

@@ -26,6 +26,7 @@ from jspace_binding.analysis.probes import (
     leave_one_pair_out,
 )
 from jspace_binding.config import Config
+from jspace_binding.experiments.progress import track
 from jspace_binding.experiments.provenance import run_provenance
 from jspace_binding.model.base import ProbeActivationSource
 from jspace_binding.types import InjectionSite, ItemFamily, Position, Role
@@ -43,7 +44,7 @@ def run_rq1(
     reports: dict[InjectionSite, dict[str, ProbeReport]] = {}
     for site in config.experiment.injection_sites:
         examples: dict[str, list[ProbeExample]] = {source: [] for source in PROBE_SOURCES}
-        for family in families:
+        for family in track(families, f"rq1 {site.value}", total=len(families)):
             entity = family.concept_pair.entity
             for role in Role:
                 for position in Position:
