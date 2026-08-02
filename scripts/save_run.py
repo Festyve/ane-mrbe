@@ -31,13 +31,40 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 RUNS = REPO / "runs"
 
-# Everything worth more than the compute that produced it.
-SOURCES = (
+# Everything worth more than the compute that produced it. Defaults match
+# configs/default.yaml; pass --config to read them from a different one.
+DEFAULT_SOURCES = (
     Path("data/results"),
     Path("data/directions"),
     Path("figures"),
     Path("data/calibration.json"),
 )
+
+
+def _sources_for(config_path: Path | None) -> tuple[Path, ...]:
+    """Output locations to archive, read from the config that produced them.
+
+    These were hard-coded to the default config's paths. configs/
+    expanded_pairs.yaml writes to data/results_6pair, figures_6pair and
+    data/directions_6pair so a 6-pair run cannot clobber the 3-pair results --
+    and save_run then silently archived the OLD default-path files under the new
+    run's name. It reported "17 files committed" and was telling the truth about
+    files it had no business copying.
+
+    Reading the paths from the config makes the archive follow the run rather
+    than a guess about it.
+    """
+    if config_path is None:
+        return DEFAULT_SOURCES
+    from jspace_binding.config import Config
+
+    paths = Config.from_yaml(config_path).paths
+    return (
+        Path(paths.results),
+        Path(paths.directions),
+        Path(paths.figures),
+        Path(paths.calibration),
+    )
 
 # GitHub hard-rejects blobs over 100 MB; stay clear of the warning band too.
 _GZIP_OVER = 5 * 1024 * 1024
@@ -94,13 +121,25 @@ def main() -> None:
     parser.add_argument("label", help="run name, e.g. 'rq1-pilot' or 'rq2-full'")
     parser.add_argument("--no-push", action="store_true", help="commit but do not push")
     parser.add_argument("--note", default="", help="one line recorded alongside the outputs")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="config the run used; its paths decide what gets archived. REQUIRED "
+             "for any config with non-default output paths (e.g. "
+             "configs/expanded_pairs.yaml), otherwise the previous run's files "
+             "are archived under this run's name",
+    )
     args = parser.parse_args()
+    sources = _sources_for(args.config)
+    if args.config:
+        print(f"archiving paths from {args.config}")
 
     destination = RUNS / args.label
     destination.mkdir(parents=True, exist_ok=True)
 
     total, all_skipped, missing = 0, [], []
-    for source in SOURCES:
+    for source in sources:
         absolute = REPO / source
         if not absolute.exists():
             missing.append(str(source))
@@ -126,6 +165,8 @@ def main() -> None:
     dirty = bool(_git("status", "--porcelain", check=False).stdout.strip())
     (destination / "RUN_INFO.txt").write_text(
         f"label: {args.label}\ncommit: {commit}\ndirty: {dirty}\n"
+        f"config: {args.config or 'configs/default.yaml (assumed)'}\n"
+        f"sources: {[str(x) for x in sources]}\n"
         f"note: {args.note}\nfiles: {total}\n",
         encoding="utf-8",
     )
