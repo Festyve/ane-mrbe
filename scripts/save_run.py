@@ -45,9 +45,27 @@ _SKIP_OVER = 90 * 1024 * 1024
 
 
 def _git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args], cwd=REPO, capture_output=True, text=True, check=check
-    )
+    """Run git, surfacing its own error text on failure.
+
+    check=True previously raised CalledProcessError, whose message is the
+    command line and an exit code — git's actual explanation was captured and
+    thrown away. On a fresh box the usual cause is an unset user.name/email,
+    and the traceback said nothing about that. Failing to save results on a
+    machine that deletes itself is the worst place to hide an error message.
+    """
+    result = subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
+    if check and result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        hint = ""
+        if "tell me who you are" in detail or "user.email" in detail:
+            hint = (
+                "\n\nFIX: git identity is unset on this machine.\n"
+                '  git config --global user.email "you@example.com"\n'
+                '  git config --global user.name "Your Name"\n'
+                "then re-run this script."
+            )
+        raise SystemExit(f"git {' '.join(args)} failed:\n{detail}{hint}")
+    return result
 
 
 def _copy(src: Path, dest: Path) -> tuple[int, list[str]]:
