@@ -25,5 +25,8 @@
   },
   "jspace_lift": 0.00866877732549376,
   "capacity_control_lift": -0.09899366802351883,
-  "verdict": "multiplicative_code_in_jspace"
+  "verdict": "null_survives_nonlinearity",
+  "jspace_peak": 0.5224634403738881,
+  "decisively_above_chance": false,
+  "verdict_note": "relabelled with the absolute-floor rule (commit bb6172b); accuracies unchanged, only the verdict string was wrong"
 }
