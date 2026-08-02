@@ -1,0 +1,58 @@
+{
+  "layer": 48,
+  "checks": {
+    "non_degenerate": true,
+    "directed_modulation": true,
+    "jspace_fraction_of_residual": [
+      0.2101244330406189,
+      0.22215649485588074,
+      0.23596540093421936
+    ],
+    "diagonal_wins": 3,
+    "observed_atoms": {
+      "The doctor treated the lawyer.": [
+        "",
+        "\u8fd9\u53e5\u8bdd",
+        "\ufffd",
+        "vs",
+        "?\\",
+        "verbs",
+        "\u53cd\u5411",
+        "ambiguous",
+        "\u662f\u8c01",
+        "babys",
+        "\uff0f",
+        "X"
+      ],
+      "The chef prepared the meal in the kitchen.": [
+        "\u3002",
+        "\u8fd9\u53e5\u8bdd",
+        "\u2011",
+        "vs",
+        "\u52a8\u8bcd",
+        "\\n",
+        "babys",
+        "\u6539\u6210",
+        "causal",
+        "/Q",
+        "Mary",
+        "\u662f\u8c01"
+      ],
+      "The pilot landed the aircraft safely.": [
+        "____",
+        "\u8fd9\u53e5\u8bdd",
+        "\ufffd",
+        "verb",
+        "\uff08",
+        "\uff0f",
+        "vs",
+        "brave",
+        "\u89e3\u6790",
+        "Roy",
+        "",
+        "\u6539\u4e3a"
+      ]
+    }
+  },
+  "verdict": "PASS"
+}
