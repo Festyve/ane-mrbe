@@ -1,5 +1,5 @@
 label: nonlinear-probe
-commit: 6ca64b76a7288ff18f10105dc686ae986c2913b7
+commit: bb6172b0cec1dc87f0a1337cebb78644998b0fbe
 dirty: True
-note: quad+rff probes, entity_token
+note: quad+rff, entity_token — corrected verdict
 files: 17
