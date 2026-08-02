@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Replication gate: is the J-lens reading this model correctly? (proposal §10, wks 1-2)
+
+Run this BEFORE trusting any experiment result. It answers one question the
+experiments cannot answer about themselves:
+
+    when an experiment reports "role is not in J-space", is that a finding
+    about the model, or is the lens simply not reading?
+
+Those are indistinguishable from RQ1/RQ2/E4 output alone -- all three produce
+near-chance numbers -- and they call for opposite responses. This is the
+cheapest thing that separates them: a handful of prompts, no stimuli, no fitted
+directions, ~5 minutes.
+
+Neel Nanda's team replicated the core J-lens results on this exact model
+(Qwen3.6-27B), so the phenomenon is known to exist here -- but they fitted their
+OWN lens (Jacobian at the penultimate layer, 25 sequences from the Pile) while
+we load the released neuronpedia artifact fitted on Salesforce-wikitext. This
+gate covers that gap: not "does the workspace exist" but "is OUR lens, at OUR
+layer, producing sane reads".
+
+Three checks, cheapest first:
+
+  1. NON-DEGENERATE -- the sparse pursuit selects atoms at all, and the J-space
+     component is a non-trivial fraction of the residual. A lens that is
+     mis-scaled, transposed, or from the wrong model typically selects zero
+     atoms or produces a component that is ~0% or ~100% of h.
+  2. SEMANTIC -- the atoms are recognisable content, not punctuation and
+     fragments. If the lens reads the workspace, a sentence about a doctor and
+     a lawyer should surface tokens a human would call related.
+  3. DIRECTED MODULATION -- the paper's "Think about X. Do Y" protocol, and the
+     specific result Nanda's team reproduced. X's own token should score higher
+     in J-space when the prompt says to think about X than when it names an
+     unrelated concept. This is the strongest check: it is a CONTRAST, so it
+     cannot be passed by a lens that merely surfaces frequent tokens.
+
+Uses the backend's internals (_jspace_component etc.) deliberately: the point is
+to inspect the lens machinery the experiments depend on, not a public summary of
+it.
+
+    python scripts/replication_gate.py --config configs/default.yaml
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from jspace_binding.config import Config
+from jspace_binding.model.factory import build_model, preflight_or_exit
+
+# (prompt, tokens that SHOULD surface if the lens reads the workspace)
+_SEMANTIC_PROBES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("The doctor treated the lawyer.", ("doctor", "lawyer", "patient", "medical", "law")),
+    ("The chef prepared the meal in the kitchen.", ("chef", "food", "cook", "meal", "kitchen")),
+    ("The pilot landed the aircraft safely.", ("pilot", "plane", "flight", "aircraft", "landing")),
+)
+
+# Gurnee et al.'s paired-question protocol: same trailing task, different
+# concept held in mind. Each entry is (concept, prompt).
+_MODULATION_PROMPTS: tuple[tuple[str, str], ...] = (
+    ("spider", "Think about a spider. Now count slowly to three."),
+    ("piano", "Think about a piano. Now count slowly to three."),
+    ("volcano", "Think about a volcano. Now count slowly to three."),
+)
+
+
+def _fraction(component: object, h: object) -> float:
+    """||component|| / ||h||: how much of the residual the lens claims."""
+    import torch
+
+    return float(torch.linalg.norm(component.float()) / torch.linalg.norm(h.float()))  # type: ignore[attr-defined]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
+    parser.add_argument("--top-k", type=int, default=12, help="atoms to display per prompt")
+    args = parser.parse_args()
+
+    config = Config.from_yaml(args.config)
+    model = build_model(config)
+    preflight_or_exit(model)  # lens reads need no fitted directions
+    layer = model._read_layer()  # noqa: SLF001 - inspecting the machinery is the point
+    tokenizer = model._tokenizer  # noqa: SLF001
+
+    print(f"model={config.model.model_id}  lens={config.model.lens_repo}")
+    print(f"read layer={layer}  jspace_k={config.model.jspace_k}\n")
+
+    report: dict[str, object] = {"layer": layer, "checks": {}}
+
+    # --- 1 + 2: non-degenerate, and semantically recognisable ----------------
+    print("=" * 72)
+    print("1+2. NON-DEGENERATE + SEMANTIC")
+    print("=" * 72)
+    fractions, semantic_hits = [], []
+    for sentence, expected in _SEMANTIC_PROBES:
+        anchor = len(tokenizer(sentence).input_ids) - 1
+        h = model._hidden_at(sentence, anchor)  # noqa: SLF001
+        component, atoms = model._jspace_component(h, layer)  # noqa: SLF001
+        decoded = [tokenizer.decode([t]).strip() for t in atoms[: args.top_k]]
+        fraction = _fraction(component, h)
+        fractions.append(fraction)
+        hit = [w for w in decoded if any(e.lower() in w.lower() for e in expected if w)]
+        semantic_hits.append(bool(hit))
+        print(f"\n  {sentence!r}")
+        print(f"    atoms selected : {len(atoms)}/{config.model.jspace_k}")
+        print(f"    ||J|| / ||h||  : {fraction:.3f}")
+        print(f"    top atoms      : {decoded}")
+        print(f"    expected-ish   : {hit if hit else 'NONE MATCHED'}")
+
+    non_degenerate = all(0.01 < f < 0.99 for f in fractions)
+    semantic = sum(semantic_hits) >= 2  # majority of probes surface something related
+
+    # --- 3: directed modulation ---------------------------------------------
+    print("\n" + "=" * 72)
+    print("3. DIRECTED MODULATION  (the contrast check)")
+    print("=" * 72)
+    print("  J-lens score of each concept's own token, per prompt.")
+    print("  Want the DIAGONAL to dominate: each concept scores highest when named.\n")
+
+    concepts = [c for c, _ in _MODULATION_PROMPTS]
+    token_ids = {}
+    for concept in concepts:
+        encoded = tokenizer.encode(" " + concept, add_special_tokens=False)
+        token_ids[concept] = encoded[0]  # first token is enough for a score
+
+    matrix: dict[str, dict[str, float]] = {}
+    for concept, prompt in _MODULATION_PROMPTS:
+        anchor = len(tokenizer(prompt).input_ids) - 1
+        h = model._hidden_at(prompt, anchor)  # noqa: SLF001
+        scores = model._lens_scores(h.to(model._lens_device()), layer)  # noqa: SLF001
+        matrix[concept] = {c: float(scores[token_ids[c]]) for c in concepts}
+
+    header = "  prompt \\ token   " + "".join(f"{c:>12s}" for c in concepts)
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+    diagonal_wins = 0
+    for concept in concepts:
+        row = matrix[concept]
+        best = max(row, key=row.get)  # type: ignore[arg-type]
+        diagonal_wins += best == concept
+        cells = "".join(f"{row[c]:>12.2f}" for c in concepts)
+        print(f"  {concept:16s}{cells}   {'<- OK' if best == concept else '<- MISS'}")
+
+    modulation = diagonal_wins >= 2  # majority of prompts surface their own concept
+
+    # --- verdict -------------------------------------------------------------
+    report["checks"] = {
+        "non_degenerate": non_degenerate,
+        "semantic": semantic,
+        "directed_modulation": modulation,
+        "jspace_fraction_of_residual": fractions,
+        "diagonal_wins": diagonal_wins,
+    }
+    passed = non_degenerate and semantic and modulation
+    report["verdict"] = "PASS" if passed else "FAIL"
+
+    print("\n" + "=" * 72)
+    print(f"  non-degenerate      : {'PASS' if non_degenerate else 'FAIL'}")
+    print(f"  semantic            : {'PASS' if semantic else 'FAIL'}")
+    print(f"  directed modulation : {'PASS' if modulation else 'FAIL'}")
+    print("=" * 72)
+    if passed:
+        print("GATE PASS — the lens reads this model. A near-chance experiment")
+        print("result is therefore about the MODEL, not about the plumbing.")
+    else:
+        print("GATE FAIL — the lens is not reading correctly at this layer.")
+        print("Experiment nulls are UNINTERPRETABLE until this passes. Check the")
+        print("layer band first (config model.layer_band), then the lens artifact.")
+
+    out = Path(config.paths.results) / "replication_gate.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(f"\nwrote {out}")
+    raise SystemExit(0 if passed else 3)
+
+
+if __name__ == "__main__":
+    main()
