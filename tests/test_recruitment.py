@@ -135,3 +135,23 @@ def test_e4_requires_both_questions(tmp_path: Path) -> None:
     stripped = [dataclasses.replace(f, neutral_probe="") for f in families]
     with pytest.raises(ValueError, match="role or neutral probe"):
         run_e4(config, DummyModel(mode="recruitment", seed=0), stripped)
+
+
+def test_e4_below_chance_is_not_reported_as_presence() -> None:
+    """Two below-chance conditions must never read as `always_on`.
+
+    The real Qwen3.6-27B run came back role 0.281 / bag 0.263 -- both far below
+    chance, every fold inverting -- and the first version of _verdict reported
+    `always_on`, i.e. "binding is continuously present". A probe scoring 0.26
+    under leave-one-pair-out has learned a rule that anti-transfers across
+    concept pairs; that is the opposite of evidence for presence, and it would
+    have gone into a writeup as the headline verdict.
+    """
+    from jspace_binding.experiments.recruitment import _verdict
+
+    assert _verdict(0.281, 0.263, 0.018) == "anti_transfer_both"
+    assert _verdict(0.28, 0.55, -0.27) == "anti_transfer_one"
+    # Genuine presence still reads as presence.
+    assert _verdict(0.95, 0.93, 0.02) == "always_on"
+    assert _verdict(0.95, 0.50, 0.45) == "recruited"
+    assert _verdict(0.50, 0.50, 0.00) == "absent"

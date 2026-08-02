@@ -178,15 +178,39 @@ def _report_block(report: ProbeReport) -> dict[str, Any]:
 
 
 def _verdict(role_accuracy: float, bag_accuracy: float, delta: float) -> str:
-    """Which of the three hypotheses this source's numbers support.
+    """Which of the hypotheses this source's numbers support.
 
     "recruited" additionally requires the bag condition to sit near chance: a
     large delta between two ABOVE-chance conditions is a modulation of an
     always-present signal, which is a weaker claim than H3 and should not be
     reported under the same label.
+
+    BELOW-CHANCE conditions are named separately and never fall through to a
+    presence verdict. The first version of this function checked only "is the
+    delta large" and "is it near chance", so the real Qwen3.6-27B run --
+    role 0.281, bag 0.263, both far BELOW chance with every fold inverting --
+    was reported as `always_on`, i.e. "binding is continuously present". That is
+    the opposite of what those numbers say.
+
+    Chance is 0.5 and noise scatters around it. A probe landing consistently
+    below chance under leave-one-pair-out has learned a rule that ANTI-transfers
+    across concept pairs: the direction meaning "agent" for one pair means
+    "patient" for the held-out one. That is evidence about how role is encoded
+    (lexically entangled rather than filler-general), not evidence that role is
+    absent, and certainly not evidence that it is always present.
     """
     role_at_chance = abs(role_accuracy - 0.5) < _CHANCE_TOLERANCE
     bag_at_chance = abs(bag_accuracy - 0.5) < _CHANCE_TOLERANCE
+    role_inverted = role_accuracy < 0.5 - _CHANCE_TOLERANCE
+    bag_inverted = bag_accuracy < 0.5 - _CHANCE_TOLERANCE
+
+    # Checked before anything else: a below-chance condition makes the delta
+    # between the two conditions uninterpretable, whatever its size.
+    if role_inverted and bag_inverted:
+        return "anti_transfer_both"
+    if role_inverted or bag_inverted:
+        return "anti_transfer_one"
+
     if role_at_chance and bag_at_chance:
         return "absent"
     if delta >= _RECRUITMENT_THRESHOLD and bag_at_chance:
