@@ -1,0 +1,91 @@
+{
+  "provenance": {
+    "backend": "qwen_jlens",
+    "model_id": "Qwen/Qwen3.6-27B",
+    "lens_repo": "neuronpedia/jacobian-lens",
+    "lens_subpath": "qwen3.6-27b/jlens/Salesforce-wikitext",
+    "layer_band": [
+      48,
+      48
+    ],
+    "jspace_k": 16,
+    "ablate_k": 10,
+    "dtype": "bfloat16",
+    "dummy_mode": null,
+    "config_model_mismatch": null,
+    "n_concept_pairs": 3,
+    "n_families": 600,
+    "seed": 0,
+    "git_commit": "34baa7d99538c84b5b8cd1476a8ad2d5384c9308",
+    "git_branch": "main",
+    "git_dirty": true
+  },
+  "sites": {
+    "final_token": {
+      "site": "final_token",
+      "accuracy": {
+        "no_edit|role": 0.79,
+        "no_edit|concept": 0.5945833333333334,
+        "ablate_jspace|role": 0.7916666666666666,
+        "ablate_jspace|concept": 0.6020833333333333,
+        "ablate_random_subspace|role": 0.78875,
+        "ablate_random_subspace|concept": 0.595
+      },
+      "n_families": 600,
+      "baseline_task_accuracy_gap": 0.19541666666666668,
+      "difficulty_matched": false,
+      "recall_accuracy_at_ceiling": false,
+      "recall_control_informative": true,
+      "deltas": {
+        "ablate_jspace": {
+          "binding_deficit": 0.001584850558802439,
+          "recall_deficit": 0.0013485428561711551,
+          "binding_specific_deficit": 0.00023630770263128356,
+          "binding_specific_ci": [
+            -0.0061719252947495095,
+            0.006989371585351572
+          ],
+          "ci_excludes_zero": false,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.21487942746077748,
+            "median_relative_norm_change": 0.21569648951847853,
+            "max_relative_norm_change": 0.2657588399128984,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        },
+        "ablate_random_subspace": {
+          "binding_deficit": -0.007435368114238994,
+          "recall_deficit": -0.0003661853504431919,
+          "binding_specific_deficit": -0.007069182763795804,
+          "binding_specific_ci": [
+            -0.012522848484758136,
+            -0.001480602347928817
+          ],
+          "ci_excludes_zero": true,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.043223897332391154,
+            "median_relative_norm_change": 0.042676432084817334,
+            "max_relative_norm_change": 0.09104794224655166,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        }
+      },
+      "workspace_causally_involved": false,
+      "baseline_margin": {
+        "binding": 0.898015005719542,
+        "recall": 1.3618339106088455,
+        "recall_usable": true,
+        "binding_usable": true
+      },
+      "null_interpretable": true,
+      "figure": "figures/rq2_ablation_deltas_final_token.png"
+    }
+  },
+  "figures": {
+    "final_token": "figures/rq2_ablation_deltas_final_token.png"
+  },
+  "workspace_causally_involved": false,
+  "null_interpretable": true
+}
