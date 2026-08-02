@@ -167,6 +167,32 @@ def _magnitude_summary(values: Sequence[float]) -> dict[str, Any] | None:
     }
 
 
+def _involvement_verdict(
+    binding_deficit: float,
+    binding_specific: float,
+    random_specific: float,
+    ci_excludes_zero: bool,
+) -> bool:
+    """Does this ablation support causal involvement of the workspace?
+
+    `binding_deficit > 0` is load-bearing. The `binding - recall` subtraction is
+    a SELECTIVITY measure and presupposes that ablation damaged something. When
+    both deficits are negative -- ablation IMPROVED both tasks -- a positive
+    difference only says recall improved more than binding did, which is not
+    evidence the workspace drives binding.
+
+    Observed on Qwen3.6-27B at entity_token: binding -0.032, recall -0.046,
+    difference +0.014 with a CI clearing zero. Without the first clause this
+    reported causal involvement from two improvements.
+    """
+    return bool(
+        binding_deficit > 0.0
+        and binding_specific > 0.0
+        and binding_specific > random_specific
+        and ci_excludes_zero
+    )
+
+
 def _run_site(
     config: Config,
     model: WorkspaceModel,
@@ -328,10 +354,45 @@ def _run_site(
         # than recall AND more than the matched random subspace predicts. The
         # CI must also clear zero — a point estimate of a few trials in 2400 is
         # not a deficit.
-        "workspace_causally_involved": bool(
-            jspace["binding_specific_deficit"] > 0.0
-            and jspace["binding_specific_deficit"] > random_sub["binding_specific_deficit"]
-            and jspace["ci_excludes_zero"]
+        #
+        # `binding_deficit > 0` is the load-bearing addition. The subtraction
+        # `binding − recall` is only a SELECTIVITY measure; it presupposes that
+        # ablation damaged something. When BOTH deficits come out negative —
+        # i.e. ablation IMPROVED both tasks — a positive difference just means
+        # recall improved more than binding did, which is not evidence that the
+        # workspace is causally involved in binding.
+        #
+        # Observed on Qwen3.6-27B at entity_token: binding −0.032, recall
+        # −0.046, difference +0.014, CI clearing zero. The old rule reported
+        # causal involvement from two improvements. Same failure shape as the
+        # E4 `always_on` label: a threshold that never asked which side of zero
+        # the inputs were on.
+        "workspace_causally_involved": _involvement_verdict(
+            binding_deficit=jspace["binding_deficit"],
+            binding_specific=jspace["binding_specific_deficit"],
+            random_specific=random_sub["binding_specific_deficit"],
+            ci_excludes_zero=jspace["ci_excludes_zero"],
+        ),
+        # Non-null when ablation IMPROVED a task instead of damaging it. Both
+        # deficits negative makes the selectivity subtraction uninterpretable,
+        # so it is surfaced rather than silently folded into the verdict.
+        "ablation_improved_performance": {
+            "binding": bool(jspace["binding_deficit"] < 0.0),
+            "recall": bool(jspace["recall_deficit"] < 0.0),
+        },
+        # The random control is matched on RANK (ablate_k directions), not on
+        # perturbation magnitude, and on this model the two differ by ~5x
+        # (0.234 vs 0.043 mean relative norm change) because J-space ablation
+        # removes the most strongly active directions while the control removes
+        # arbitrary ones. A jspace effect exceeding the control is therefore not
+        # by itself evidence of localisation — it may only reflect the larger
+        # perturbation. Reported so the comparison is never read as
+        # magnitude-matched.
+        "edit_magnitude_ratio": (
+            None
+            if not (jspace["edit_magnitude"] and random_sub["edit_magnitude"])
+            else jspace["edit_magnitude"]["mean_relative_norm_change"]
+            / max(random_sub["edit_magnitude"]["mean_relative_norm_change"], 1e-12)
         ),
         # Baseline discriminability both deficits are expressed as a share of.
         "baseline_margin": {

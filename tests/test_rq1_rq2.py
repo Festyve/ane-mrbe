@@ -249,3 +249,34 @@ def test_rq2_rejects_stimuli_without_concept_probes(tmp_path: Path) -> None:
     ]
     with pytest.raises(ValueError, match="no CONCEPT probes"):
         run_rq2(config, DummyModel(mode="binding", seed=0), stripped)
+
+
+def test_rq2_improvement_is_not_causal_involvement() -> None:
+    """Two IMPROVEMENTS must never read as causal involvement.
+
+    The real Qwen3.6-27B run at entity_token returned binding_deficit −0.032
+    and recall_deficit −0.046: ablation IMPROVED both tasks. Their difference
+    is +0.014 with a CI clearing zero, and the old rule reported
+    `workspace_causally_involved: true` from it.
+
+    `binding − recall` is a SELECTIVITY measure; it presupposes damage. When
+    both are negative, a positive difference only says recall improved more
+    than binding did, which is not evidence the workspace drives binding.
+    """
+    from jspace_binding.experiments.rq2_ablation import _involvement_verdict
+
+    # The observed numbers: both improved.
+    assert _involvement_verdict(
+        binding_deficit=-0.032, binding_specific=0.0142,
+        random_specific=-0.0086, ci_excludes_zero=True,
+    ) is False
+    # Genuine damage, selective, beating the control, CI clear.
+    assert _involvement_verdict(
+        binding_deficit=0.40, binding_specific=0.25,
+        random_specific=0.02, ci_excludes_zero=True,
+    ) is True
+    # Damage, but no better than the capacity control.
+    assert _involvement_verdict(
+        binding_deficit=0.40, binding_specific=0.02,
+        random_specific=0.05, ci_excludes_zero=True,
+    ) is False
