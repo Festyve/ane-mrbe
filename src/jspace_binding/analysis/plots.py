@@ -214,8 +214,12 @@ def ablation_deltas_plot(
     out_path: str | Path,
 ) -> None:
     """RQ2 figure: per ablation, the binding-specific deficit
-    (binding degradation - recall degradation), with the matched-norm
+    (binding degradation - recall degradation), with the RANK-matched
     random-subspace ablation as the comparison bar beside the J-space bar.
+    Rank-matched, NOT norm-matched: both remove ablate_k directions, but
+    J-space removes the most strongly active ones, so its perturbation is
+    several times larger in norm (~5x on Qwen3.6-27B). Read the bars with
+    edit_magnitude_ratio in hand.
     Causal involvement = the J-space bar exceeding both zero and the random
     bar; matching bars = generic capacity loss.
     """
