@@ -59,6 +59,10 @@ from jspace_binding.stimuli.generate import generate_families
 from jspace_binding.types import InjectionSite, Position, Role
 
 _N_FEATURES = 2048  # random features per nonlinear map
+# A source must clear chance by this much before any relative comparison is
+# allowed to call it a signal. Guards against declaring a winner among
+# numbers that are all noise (see the verdict block).
+_MIN_ABOVE_CHANCE = 0.08
 PROBE_KINDS: tuple[str, ...] = ("linear", "quad", "rff")
 
 
@@ -213,8 +217,22 @@ def main() -> None:
     jspace_best = max(table["jspace"][k] for k in PROBE_KINDS)
     residual_best = max(table["residual"][k] for k in PROBE_KINDS)
 
+    # ABSOLUTE bar first. The original rule was purely RELATIVE -- "jspace within
+    # 0.1 of residual" and "jspace lift beats the control's lift" -- and both
+    # fired degenerately on the real run: residual itself was only 0.605, so
+    # "within 0.1" was satisfied at 0.522, and the control's lift was NEGATIVE
+    # (-0.099), so "beat the control + 0.05" was satisfied by +0.009. It printed
+    # "THIS OVERTURNS THE HEADLINE" for a J-space probe sitting 0.022 above
+    # chance. A relative rule with no floor will always find a winner among
+    # numbers that are all noise.
+    decisively_above_chance = jspace_best > 0.5 + _MIN_ABOVE_CHANCE
+
     print("\n" + "=" * 62)
-    if jspace_best > residual_best - 0.1 and jspace_lift > control_lift + 0.05:
+    if (
+        decisively_above_chance
+        and jspace_best > residual_best - 0.1
+        and jspace_lift > control_lift + 0.05
+    ):
         verdict = "multiplicative_code_in_jspace"
         print("ROLE IS IN J-SPACE, NONLINEARLY ENCODED.")
         print(f"  jspace reaches {jspace_best:.3f} under a nonlinear probe (linear:")
@@ -224,6 +242,9 @@ def main() -> None:
     else:
         verdict = "null_survives_nonlinearity"
         print("THE J-SPACE NULL SURVIVES NONLINEAR PROBING.")
+        if not decisively_above_chance:
+            print(f"  jspace peaks at {jspace_best:.3f}; chance is 0.500. Every probe")
+            print(f"  family leaves it within {_MIN_ABOVE_CHANCE:.2f} of chance.")
         print(f"  jspace tops out at {jspace_best:.3f} vs residual {residual_best:.3f};")
         print(f"  its nonlinear lift is {jspace_lift:+.3f} against {control_lift:+.3f} for a")
         print("  rank-matched random subspace. A quadratic probe -- which CAN read a")
