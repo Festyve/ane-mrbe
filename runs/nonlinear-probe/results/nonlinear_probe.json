@@ -1,0 +1,29 @@
+{
+  "site": "entity_token",
+  "n_families": 200,
+  "accuracy": {
+    "jspace": {
+      "linear": 0.5137946630483944,
+      "quad": 0.5224634403738881,
+      "rff": 0.5124755012814713
+    },
+    "orthogonal": {
+      "linear": 0.5610018091361376,
+      "quad": 0.6236054575606814,
+      "rff": 0.5923224785165084
+    },
+    "residual": {
+      "linear": 0.5447761194029851,
+      "quad": 0.6047037539574852,
+      "rff": 0.5960161314638927
+    },
+    "random_subspace": {
+      "linear": 0.7189054726368159,
+      "quad": 0.6199118046132971,
+      "rff": 0.5214458012965476
+    }
+  },
+  "jspace_lift": 0.00866877732549376,
+  "capacity_control_lift": -0.09899366802351883,
+  "verdict": "multiplicative_code_in_jspace"
+}
