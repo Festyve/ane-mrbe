@@ -1,5 +1,5 @@
 label: nonlinear-probe
-commit: bb6172b0cec1dc87f0a1337cebb78644998b0fbe
+commit: 7e03d1b0c7decd8c510a5c8ebb6cf390eb83e086
 dirty: True
-note: quad+rff, entity_token — corrected verdict
+note: quad+rff, entity_token — verdict corrected to null_survives_nonlinearity
 files: 17
