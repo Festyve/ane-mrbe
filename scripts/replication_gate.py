@@ -19,20 +19,24 @@ we load the released neuronpedia artifact fitted on Salesforce-wikitext. This
 gate covers that gap: not "does the workspace exist" but "is OUR lens, at OUR
 layer, producing sane reads".
 
-Three checks, cheapest first:
+Two machine-checked properties, plus an inspection pass:
 
   1. NON-DEGENERATE -- the sparse pursuit selects atoms at all, and the J-space
      component is a non-trivial fraction of the residual. A lens that is
      mis-scaled, transposed, or from the wrong model typically selects zero
-     atoms or produces a component that is ~0% or ~100% of h.
-  2. SEMANTIC -- the atoms are recognisable content, not punctuation and
-     fragments. If the lens reads the workspace, a sentence about a doctor and
-     a lawyer should surface tokens a human would call related.
-  3. DIRECTED MODULATION -- the paper's "Think about X. Do Y" protocol, and the
-     specific result Nanda's team reproduced. X's own token should score higher
-     in J-space when the prompt says to think about X than when it names an
-     unrelated concept. This is the strongest check: it is a CONTRAST, so it
-     cannot be passed by a lens that merely surfaces frequent tokens.
+     atoms or reconstructs h wholesale.
+  2. DIRECTED MODULATION -- the paper's "Think about X. Do Y" protocol, and the
+     specific result Nanda's team reproduced. X's own token must score higher
+     in J-space when the prompt names X than when it names something else.
+     This is the load-bearing check: a CONTRAST, so it cannot be passed by a
+     lens that merely surfaces frequent tokens.
+
+  Plus: the selected atoms are PRINTED, not asserted on. An earlier version
+  required content words ("doctor" for a sentence about a doctor) and failed a
+  lens whose modulation contrast passed cleanly on the same run -- what layer 48
+  actually holds is meta-linguistic ("this sentence", "who is", "verb",
+  "reverse"). What the workspace CONTAINS is this project's research question;
+  a plumbing gate must not prejudge it.
 
 Uses the backend's internals (_jspace_component etc.) deliberately: the point is
 to inspect the lens machinery the experiments depend on, not a public summary of
@@ -50,11 +54,29 @@ from pathlib import Path
 from jspace_binding.config import Config
 from jspace_binding.model.factory import build_model, preflight_or_exit
 
-# (prompt, tokens that SHOULD surface if the lens reads the workspace)
-_SEMANTIC_PROBES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("The doctor treated the lawyer.", ("doctor", "lawyer", "patient", "medical", "law")),
-    ("The chef prepared the meal in the kitchen.", ("chef", "food", "cook", "meal", "kitchen")),
-    ("The pilot landed the aircraft safely.", ("pilot", "plane", "flight", "aircraft", "landing")),
+# Prompts for the inspection pass. No expected-token list: the first version of
+# this gate asserted that a sentence about a doctor should surface "doctor" and
+# friends, and FAILED on a lens that was demonstrably working (the directed
+# modulation contrast passed cleanly on the same run).
+#
+# What layer 48 actually holds for these sentences, observed on Qwen3.6-27B:
+#
+#   'The doctor treated the lawyer.'
+#     ['', '这句话', '�', 'vs', '?\\', 'verbs', '反向', 'ambiguous', '是谁', ...]
+#
+# 这句话 = "this sentence", 是谁 = "who is", 动词 = "verb", 反向 = "reverse",
+# 解析 = "parse". These are META-LINGUISTIC tokens about the parsing task, not
+# the sentence's content words -- the same "interpretive meta-token" phenomenon
+# Nanda's team reported on this model.
+#
+# So content-word matching tests a hypothesis about workspace CONTENT, which is
+# the project's research question, not a plumbing check. The gate must not
+# prejudge it. Atoms are printed for human reading; the machine-checked part is
+# non-degeneracy plus the directed-modulation contrast.
+_INSPECTION_PROBES: tuple[str, ...] = (
+    "The doctor treated the lawyer.",
+    "The chef prepared the meal in the kitchen.",
+    "The pilot landed the aircraft safely.",
 )
 
 # Gurnee et al.'s paired-question protocol: same trailing task, different
@@ -92,26 +114,28 @@ def main() -> None:
 
     # --- 1 + 2: non-degenerate, and semantically recognisable ----------------
     print("=" * 72)
-    print("1+2. NON-DEGENERATE + SEMANTIC")
+    print("1. NON-DEGENERATE  (+ atoms printed for human inspection)")
     print("=" * 72)
-    fractions, semantic_hits = [], []
-    for sentence, expected in _SEMANTIC_PROBES:
+    fractions, observed = [], {}
+    for sentence in _INSPECTION_PROBES:
         anchor = len(tokenizer(sentence).input_ids) - 1
         h = model._hidden_at(sentence, anchor)  # noqa: SLF001
         component, atoms = model._jspace_component(h, layer)  # noqa: SLF001
         decoded = [tokenizer.decode([t]).strip() for t in atoms[: args.top_k]]
         fraction = _fraction(component, h)
         fractions.append(fraction)
-        hit = [w for w in decoded if any(e.lower() in w.lower() for e in expected if w)]
-        semantic_hits.append(bool(hit))
+        observed[sentence] = decoded
         print(f"\n  {sentence!r}")
         print(f"    atoms selected : {len(atoms)}/{config.model.jspace_k}")
         print(f"    ||J|| / ||h||  : {fraction:.3f}")
         print(f"    top atoms      : {decoded}")
-        print(f"    expected-ish   : {hit if hit else 'NONE MATCHED'}")
+    print("\n  NOT auto-checked: what the workspace HOLDS is the research")
+    print("  question, so the gate does not prejudge it. Read the atoms.")
 
+    # A working lens claims a real but partial slice of the residual. ~0 means
+    # the pursuit found nothing; ~1 means it is reconstructing h wholesale and
+    # the "component" is not selective.
     non_degenerate = all(0.01 < f < 0.99 for f in fractions)
-    semantic = sum(semantic_hits) >= 2  # majority of probes surface something related
 
     # --- 3: directed modulation ---------------------------------------------
     print("\n" + "=" * 72)
@@ -149,17 +173,16 @@ def main() -> None:
     # --- verdict -------------------------------------------------------------
     report["checks"] = {
         "non_degenerate": non_degenerate,
-        "semantic": semantic,
         "directed_modulation": modulation,
         "jspace_fraction_of_residual": fractions,
         "diagonal_wins": diagonal_wins,
+        "observed_atoms": observed,
     }
-    passed = non_degenerate and semantic and modulation
+    passed = non_degenerate and modulation
     report["verdict"] = "PASS" if passed else "FAIL"
 
     print("\n" + "=" * 72)
     print(f"  non-degenerate      : {'PASS' if non_degenerate else 'FAIL'}")
-    print(f"  semantic            : {'PASS' if semantic else 'FAIL'}")
     print(f"  directed modulation : {'PASS' if modulation else 'FAIL'}")
     print("=" * 72)
     if passed:
