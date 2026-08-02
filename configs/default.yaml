@@ -31,7 +31,7 @@ model:
   # Released lens covers raw layers 0-62, so all three are loadable.
   layer_band: [48, 48]
   alpha: null               # IDENTITY_SWAP scaling; from scripts/calibrate.py (null = pure swap)
-  push_coefficient: null    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
+  push_coefficient: 8.0    # ROLE_PUSH scaling; from scripts/calibrate.py (fitting corpus only)
   jspace_k: 16              # sparsity of the J-space pursuit (paper: k=16, occupancy ~25)
   ablate_k: 10              # atoms zeroed by ABLATE_JSPACE (paper 3.5.2: k=10)
   dtype: bfloat16
