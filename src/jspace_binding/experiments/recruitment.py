@@ -48,6 +48,7 @@ from jspace_binding.analysis.probes import (
     leave_one_pair_out,
 )
 from jspace_binding.config import Config
+from jspace_binding.experiments.progress import track
 from jspace_binding.experiments.provenance import run_provenance
 from jspace_binding.model.base import RecruitmentActivationSource
 from jspace_binding.types import ItemFamily, Position, Role
@@ -81,7 +82,7 @@ def run_e4(
         (condition, source): [] for condition in CONDITIONS for source in PROBE_SOURCES
     }
 
-    for family in families:
+    for family in track(families, "e4", total=len(families)):
         entity = family.concept_pair.entity
         if not family.role_probe or not family.neutral_probe:
             raise ValueError(

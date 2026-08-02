@@ -32,6 +32,7 @@ from jspace_binding.analysis.binding_score import (
 )
 from jspace_binding.analysis.plots import forest_plot, per_condition_plot
 from jspace_binding.config import Config
+from jspace_binding.experiments.progress import track
 from jspace_binding.interventions.edits import plan_edit
 from jspace_binding.model.base import WorkspaceModel
 from jspace_binding.types import (
@@ -96,7 +97,9 @@ def run_primary(
     validate_config(config)
     sites = (site,) if site is not None else tuple(config.experiment.injection_sites)
     trials: list[TrialResult] = []
-    for family_index, family in enumerate(families):
+    for family_index, family in enumerate(
+        track(families, "primary", total=len(families))
+    ):
         if family.answer_set is None:
             raise ValueError(f"family {family.family_id!r} has no answer_set")
         for edit_type in config.experiment.edit_types:
