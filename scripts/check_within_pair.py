@@ -50,27 +50,40 @@ from jspace_binding.stimuli.generate import generate_families
 from jspace_binding.types import InjectionSite, Position, Role
 
 
-def _within_pair_accuracy(rows: list[ProbeExample], seed: int, n_splits: int = 5) -> float:
-    """Mean held-out accuracy from random splits INSIDE one concept pair.
+def _within_pair_accuracy(
+    rows: list[ProbeExample], families: list[str], seed: int, n_splits: int = 5
+) -> float:
+    """Mean held-out accuracy from splits INSIDE one concept pair, held out BY
+    FAMILY.
 
-    Random splits rather than leave-one-out because the question here is
-    whether a role axis exists at all for this pair -- generalisation ACROSS
-    pairs is exactly what the main experiments already measure.
+    Splitting by family, not at random over rows. A family's four cells share
+    both entities and the verb and differ only in role and surface order, so a
+    random row split puts near-duplicates on both sides and the probe can score
+    high by recognising the family rather than reading the role. Holding whole
+    families out removes that: the probe must generalise to sentences it has
+    never seen, while still staying inside one concept pair -- which is the
+    contrast this script exists to draw against the main experiments'
+    leave-one-PAIR-out.
     """
     rng = np.random.default_rng(seed)
     features = np.asarray([r.features for r in rows], dtype=float)
     labels = np.asarray([1.0 if r.is_agent else -1.0 for r in rows], dtype=float)
+    family_ids = np.asarray(families)
+    unique = np.unique(family_ids)
+    if len(unique) < 4:
+        return float("nan")  # too few families to hold any out meaningfully
+
     accuracies = []
     for _split in range(n_splits):
-        order = rng.permutation(len(rows))
-        cut = int(0.7 * len(rows))
-        train, test = order[:cut], order[cut:]
-        if len(np.unique(labels[train])) < 2 or len(test) == 0:
+        held_out = rng.choice(unique, size=max(1, len(unique) // 4), replace=False)
+        test_mask = np.isin(family_ids, held_out)
+        train, test = ~test_mask, test_mask
+        if len(np.unique(labels[train])) < 2 or not test.any():
             continue
         # fit_ridge_probe returns one augmented vector of shape (d + 1,); the
         # bias is its last entry, so predictions need the ones column appended.
         weights = fit_ridge_probe(features[train], labels[train])
-        augmented = np.hstack([features[test], np.ones((len(test), 1))])
+        augmented = np.hstack([features[test], np.ones((test.sum(), 1))])
         predicted = np.sign(augmented @ weights)
         accuracies.append(float(np.mean(predicted == labels[test])))
     return float(np.mean(accuracies)) if accuracies else float("nan")
@@ -90,12 +103,27 @@ def main() -> None:
     model = build_model(config)
     preflight_or_exit(model)
     site = InjectionSite(args.site)
-    families = generate_families(config)[: args.limit]
+    # Round-robin by concept pair, NOT a prefix. generate_families emits all of
+    # one pair's families before the next, so `[:limit]` silently reduced the
+    # first real run to a SINGLE pair -- and this script exists precisely to
+    # compare pairs. Interleaving keeps every pair represented at any limit.
+    all_families = generate_families(config)
+    by_pair_all: dict[str, list] = defaultdict(list)
+    for family in all_families:
+        by_pair_all[family.concept_pair.pair_id].append(family)
+    families = [
+        family
+        for group in zip(*by_pair_all.values(), strict=False)
+        for family in group
+    ][: args.limit]
+    covered = {f.concept_pair.pair_id for f in families}
+    print(f"sampling {len(families)} families across {len(covered)} pairs: {sorted(covered)}")
 
     # pair_id -> source -> rows
     by_pair: dict[str, dict[str, list[ProbeExample]]] = defaultdict(
         lambda: {s: [] for s in PROBE_SOURCES}
     )
+    family_of: dict[str, list[str]] = defaultdict(list)  # pair_id -> per-row family id
     for family in track(families, f"within-pair {site.value}", total=len(families)):
         entity = family.concept_pair.entity
         pair_id = family.concept_pair.pair_id
@@ -103,6 +131,7 @@ def main() -> None:
             for position in Position:
                 sentence = family.cell(role, position).sentence
                 activations = model.probe_activation(sentence, entity, site)
+                family_of[pair_id].append(family.family_id)
                 for source in PROBE_SOURCES:
                     by_pair[pair_id][source].append(
                         ProbeExample(
@@ -122,7 +151,9 @@ def main() -> None:
         print(f"  {source}")
         scores = {}
         for pair_id, sources in sorted(by_pair.items()):
-            accuracy = _within_pair_accuracy(sources[source], config.experiment.seed)
+            accuracy = _within_pair_accuracy(
+                sources[source], family_of[pair_id], config.experiment.seed
+            )
             scores[pair_id] = accuracy
             print(f"    {pair_id:24s} within-pair {accuracy:.3f}")
         mean = float(np.mean(list(scores.values())))
@@ -136,13 +167,26 @@ def main() -> None:
     best = max(jspace_mean, residual_mean)
 
     print("=" * 68)
+    n_pairs = len(covered)
     if best > 0.65:
-        verdict = "lexically_entangled"
-        print("ROLE IS PRESENT BUT LEXICALLY ENTANGLED.")
+        verdict = "present_not_filler_general"
+        print("ROLE IS PRESENT, BUT NOT FILLER-GENERAL.")
         print(f"  Within-pair decoding works ({best:.3f}) while cross-pair inverts.")
-        print("  Each concept pair carries its own role axis and they do not share")
-        print("  a sign. Role is encoded, but NOT filler-general -- which is a")
-        print("  claim about the representation, not a null result.")
+        print("  Role is linearly encoded, but the axis does not transfer across")
+        print("  concept pairs -- so it is not separable from the filler, which is")
+        print("  what role-filler binding requires. A claim about the")
+        print("  representation, not a null result.")
+        if per_source["jspace"]["mean"] < per_source["random_subspace"]["mean"] + 0.05:
+            print()
+            print("  AND: jspace does no better than a random subspace of equal rank")
+            print(f"  ({per_source['jspace']['mean']:.3f} vs "
+                  f"{per_source['random_subspace']['mean']:.3f}), while the orthogonal")
+            print(f"  remainder reaches {per_source['orthogonal']['mean']:.3f}. The role")
+            print("  signal is in the residual stream but NOT in the workspace.")
+        if n_pairs < 2:
+            print()
+            print(f"  CAVEAT: only {n_pairs} concept pair covered. 'Does not transfer")
+            print("  ACROSS pairs' cannot be shown from one pair -- raise --limit.")
     elif best > 0.55:
         verdict = "weak_lexical"
         print("WEAK within-pair signal.")
