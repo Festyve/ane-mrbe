@@ -1,0 +1,7 @@
+label: rq1-6pair
+commit: b024b1950c740196e253b32a374c60a57b2556ba
+dirty: True
+config: configs/expanded_pairs.yaml
+sources: ['data/results_6pair', 'data/directions_6pair', 'figures_6pair', 'data/calibration_6pair.json']
+note: 6 concept pairs = 6 folds
+files: 2
