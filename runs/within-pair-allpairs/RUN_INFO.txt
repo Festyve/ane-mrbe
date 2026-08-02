@@ -1,0 +1,5 @@
+label: within-pair-allpairs
+commit: a4bb1f3b7cf474778152153453a79dc437f2b9e4
+dirty: True
+note: all 3 pairs, family-held-out splits
+files: 6
