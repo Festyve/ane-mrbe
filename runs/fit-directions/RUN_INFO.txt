@@ -1,0 +1,5 @@
+label: fit-directions
+commit: 9eb240af543cff3319f36e563c49525b6b16232a
+dirty: True
+note: stability: final_token FAILS, entity_token passes
+files: 12
