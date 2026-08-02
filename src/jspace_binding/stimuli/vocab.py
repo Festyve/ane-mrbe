@@ -74,10 +74,20 @@ PROFESSION_CUE: dict[str, str] = {
 
 # Default non-target participant per concept pair. doctor->nurse uses "lawyer"
 # to match the proposal's worked example.
+#
+# The last three pairs back configs/expanded_pairs.yaml (6 pairs -> 6
+# leave-one-pair-out folds, addressing the 3-fold generality critique).
+# Counterpart reuse across pairs (nurse, student twice) is deliberate and safe:
+# a counterpart never appears in any sentence — it exists only as the
+# IDENTITY_SWAP target — so two pairs sharing one cannot contaminate each
+# other's stimuli.
 OTHER_ENTITY_BY_PAIR: dict[str, str] = {
     "doctor->nurse": "lawyer",
     "teacher->student": "judge",
     "driver->passenger": "pilot",
+    "lawyer->judge": "chef",
+    "pilot->nurse": "farmer",
+    "coach->student": "judge",
 }
 
 # Candidates for the NULL_NON_PARTICIPANT control: the pushed direction must

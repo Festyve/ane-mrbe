@@ -1,0 +1,79 @@
+# SIX concept pairs, for the cross-pair generality claim.
+#
+# Everything else is identical to configs/default.yaml. The only changes are
+# `concept_pairs` (3 -> 6) and `items_per_cell` (50 -> 25), which keeps the
+# family count at 600 and therefore the GPU cost unchanged while doubling the
+# number of leave-one-pair-out folds.
+#
+# WHY. Every cross-pair claim in this project rests on leave-one-pair-out, and
+# with 3 pairs that is three folds. At n=3 a systematic sign inversion and an
+# unlucky draw are not statistically separable, which is fatal for a NEGATIVE
+# result: "role does not transfer across concept pairs" needs the fold count to
+# carry it, and a reviewer will say so. Six folds is still small, but it is the
+# difference between an anecdote and a measurement, and it costs nothing extra
+# because the family budget is the binding constraint, not the pair count.
+#
+# NOTE ON RESULTS RUN WITH THIS FILE: they are NOT comparable item-for-item with
+# the 3-pair runs — items_per_cell differs, so per-pair n is halved. Compare
+# fold-level conclusions (does the sign invert? does jspace beat the capacity
+# control?), not raw per-pair accuracies.
+
+model:
+  backend: qwen_jlens
+  model_id: Qwen/Qwen3.6-27B
+  lens_repo: neuronpedia/jacobian-lens
+  lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
+  layer_band: [48, 48]
+  alpha: null
+  push_coefficient: 8.0
+  jspace_k: 16
+  ablate_k: 10
+  dtype: bfloat16
+  load_in_4bit: false
+  dummy_mode: binding
+
+stimuli:
+  # 6 pairs x 25 = 600 families, matching the 3-pair config's 3 x 50.
+  items_per_cell: 25
+  # Counterpart reuse across pairs (nurse and student each appear twice) is
+  # deliberate and safe: a counterpart NEVER occurs in any stimulus sentence —
+  # it exists only as the IDENTITY_SWAP target — so two pairs sharing one
+  # cannot contaminate each other's stimuli. Entities are all distinct.
+  concept_pairs:            # [entity, identity-swap counterpart (control only)]
+    - [doctor, nurse]
+    - [teacher, student]
+    - [driver, passenger]
+    - [lawyer, judge]
+    - [pilot, nurse]
+    - [coach, student]
+  # chef and farmer are the only professions never used as an entity or
+  # counterpart above, so they are the absent-entity pool for the null push.
+  non_participant_entities: [chef, farmer]
+
+directions:
+  exemplars_per_role: 24
+  n_bootstrap: 200
+  stability_threshold: 0.8
+  variant: fitted
+  seed: 0
+
+experiment:
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
+  injection_sites: [final_token, entity_token]
+  seed: 0
+
+analysis:
+  n_bootstrap: 10000
+  n_permutation: 10000
+  alpha_level: 0.05
+  ci_level: 0.95
+
+# Separate output paths so a 6-pair run cannot overwrite a 3-pair one.
+paths:
+  stimuli: data/stimuli/stimuli_6pair.jsonl
+  fitting_corpus: data/stimuli/fitting_corpus_6pair.jsonl
+  directions: data/directions_6pair
+  calibration: data/calibration_6pair.json
+  results: data/results_6pair
+  figures: figures_6pair
