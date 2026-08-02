@@ -42,12 +42,25 @@ from jspace_binding.types import InjectionSite
 def main() -> None:
     parser = argparse.ArgumentParser(description="Calibrate push_coefficient and alpha.")
     add_backend_args(parser)
+    parser.add_argument(
+        "--site",
+        choices=[s.value for s in InjectionSite],
+        default=InjectionSite.FINAL_TOKEN.value,
+        help=(
+            "site whose fitted directions to calibrate. Was hard-coded to "
+            "final_token; must match the site run_primary will sweep, and "
+            "should be a site whose directions passed the stability check in "
+            "fit_directions -- calibrating an unstable direction tunes the "
+            "strength of a vector that is not reproducible"
+        ),
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
     model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
-    # Push calibration steers fitted directions at the final-token site.
-    preflight_or_exit(model, (InjectionSite.FINAL_TOKEN,))
+    site = InjectionSite(args.site)
+    print(f"calibrating at site={site.value}", file=sys.stderr)
+    preflight_or_exit(model, (site,))
 
     corpus = generate_fitting_corpus(
         config.direction_entities(),
@@ -57,8 +70,8 @@ def main() -> None:
     families = generate_families(config)
 
     try:
-        push = calibrate_push_coefficient(model, corpus)
-        alpha = calibrate_identity_alpha(model, families)
+        push = calibrate_push_coefficient(model, corpus, site=site)
+        alpha = calibrate_identity_alpha(model, families, site=site)
     except ValueError as exc:
         # The documented failure mode: the intervention is too weak at every
         # grid value, so any null binding result would be uninterpretable.
@@ -66,9 +79,17 @@ def main() -> None:
         sys.exit(3)
 
     record = {
+        # Which site these were calibrated at. A coefficient tuned at one site
+        # does not transfer to another -- the fitted directions differ in norm
+        # (measured ~2.2-2.8 at final_token vs ~5.7-7.3 at entity_token on
+        # Qwen3.6-27B), so the same coefficient is a different push.
+        "site": site.value,
         "push_coefficient": asdict(push),
         "alpha": asdict(alpha),
-        "note": "copy push_coefficient.value / alpha.value into configs/*.yaml (model section)",
+        "note": (
+            "copy push_coefficient.value / alpha.value into configs/*.yaml "
+            "(model section), then run run_primary.py --site " + site.value
+        ),
     }
     out = Path(config.paths.calibration)
     out.parent.mkdir(parents=True, exist_ok=True)
