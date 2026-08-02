@@ -249,7 +249,8 @@ class QwenJLensModel:
         component, _ = self._jspace_component(h, self._read_layer())
         remainder = h - component.to(h.dtype)
         basis = self._random_subspace(_RQ1_CAPACITY_SEED, rank=self.config.jspace_k)
-        projected = (basis @ (basis.T @ h.to(basis.dtype))).to(h.dtype)
+        h_lens = h.to(basis.device, basis.dtype)
+        projected = (basis @ (basis.T @ h_lens)).to(h.device, h.dtype)
         return {
             "jspace": [float(x) for x in component.float().cpu()],
             "orthogonal": [float(x) for x in remainder.float().cpu()],
@@ -395,7 +396,7 @@ class QwenJLensModel:
                     f"({d_model}, {d_model}) for this model"
                 )
             self._jacobians[layer] = torch.as_tensor(
-                matrix, device=self._device(), dtype=self._w_u.dtype
+                matrix, device=self._lens_device(), dtype=self._w_u.dtype
             )
 
     @staticmethod
@@ -448,9 +449,33 @@ class QwenJLensModel:
     # J-lens primitives                                                  #
     # ------------------------------------------------------------------ #
 
+    def _lens_device(self) -> Any:
+        """Device the lens algebra runs on.
+
+        Multi-GPU correctness. Under `device_map="auto"` accelerate spreads the
+        model across GPUs, so there is no single "model device": `_w_u` follows
+        the lm_head (typically the LAST GPU) while `_device()` reports the first
+        parameter's device (typically the FIRST). Hidden states arrive from
+        hooks on whichever GPU owns the hooked layer — a third device again.
+
+        Pinning the Jacobians to `_device()` therefore produced
+        "Expected all tensors to be on the same device" the moment the band
+        landed on a different shard than the embeddings. Invisible on one GPU;
+        immediate on several.
+
+        `_w_u` is the anchor because it is the largest lens tensor (~2.5 GB)
+        and already resident — everything else is moved to meet it, and hidden
+        states are a few KB, so the copies are free.
+        """
+        return self._w_u.device
+
     def _lens_scores(self, h: Any, layer: int) -> Any:
         """Vocab-length lens scores of h at `layer`: W_U (J_l h). First-order
-        (the paper's norm() is omitted for direction work, as is standard)."""
+        (the paper's norm() is omitted for direction work, as is standard).
+
+        Callers must pass an h already on `_lens_device()`; the wrappers around
+        `_jspace_component` / `_edit_delta` are what guarantee that.
+        """
         return self._w_u @ (self._jacobians[layer] @ h.to(self._w_u.dtype))
 
     def _jlens_vector(self, token_id: int, layer: int) -> Any:
@@ -462,12 +487,25 @@ class QwenJLensModel:
         return self._jlens_vectors[key]
 
     def _jspace_component(self, h: Any, layer: int, k: int | None = None) -> Any:
-        """Sparse J-space component of h: matching-pursuit approximation of
-        the paper's gradient pursuit (§2.3). Greedily selects the token whose
-        J-lens vector scores highest on the current residual, refits the
-        active set by least squares, clamps negative coefficients (the
-        nonnegativity constraint), and stops at k atoms or when no positive
-        score remains. Returns (component, active_token_ids)."""
+        """Sparse J-space component of h, returned on h's OWN device.
+
+        Thin device-shim over the algebra: the lens tensors live on
+        `_lens_device()` and `h` arrives from wherever its layer is sharded, so
+        the computation happens on the lens device and the result comes back to
+        the caller's. See `_lens_device` for why the three can differ.
+        """
+        component, chosen = self._jspace_component_on_lens(
+            h.to(self._lens_device()), layer, k
+        )
+        return component.to(h.device), chosen
+
+    def _jspace_component_on_lens(self, h: Any, layer: int, k: int | None = None) -> Any:
+        """Matching-pursuit approximation of the paper's gradient pursuit
+        (§2.3). Greedily selects the token whose J-lens vector scores highest
+        on the current residual, refits the active set by least squares, clamps
+        negative coefficients (the nonnegativity constraint), and stops at k
+        atoms or when no positive score remains. Returns (component,
+        active_token_ids). `h` must already be on `_lens_device()`."""
         import torch
 
         k = k if k is not None else self.config.jspace_k
@@ -539,8 +577,22 @@ class QwenJLensModel:
         return hooks()
 
     def _edit_delta(self, edit: EditSpec, site: InjectionSite, layer: int, h: Any) -> Any:
-        """Residual-stream delta for one edit at one layer (math per
-        interventions.edits, the canonical description)."""
+        """Residual-stream delta for one edit at one layer, on h's OWN device.
+
+        Device shim, as for `_jspace_component`: hooks hand us `h` on the
+        hooked layer's shard, the lens/direction tensors live on
+        `_lens_device()`, and the delta has to go back where it came from so
+        the hook can add it. See `_lens_device`.
+        """
+        return self._edit_delta_on_lens(
+            edit, site, layer, h.to(self._lens_device())
+        ).to(h.device)
+
+    def _edit_delta_on_lens(
+        self, edit: EditSpec, site: InjectionSite, layer: int, h: Any
+    ) -> Any:
+        """The edit math (interventions.edits is the canonical description).
+        `h` must already be on `_lens_device()`."""
         import torch
 
         if edit.edit_type is EditType.ABLATE_JSPACE:
@@ -645,7 +697,7 @@ class QwenJLensModel:
             raw = rng.standard_normal((d_model, k))
             q, _ = np.linalg.qr(raw)
             self._random_subspaces[key] = torch.as_tensor(
-                q, device=self._device(), dtype=torch.float32
+                q, device=self._lens_device(), dtype=torch.float32
             )
         return self._random_subspaces[key]
 
