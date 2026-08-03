@@ -1,0 +1,6 @@
+label: gemma3-12b-pilot
+commit: feaf5e0fa518237bd3e4d1afb20816a33ebef99d
+dirty: True
+config: configs/gemma3_12b.yaml
+model: google/gemma-3-12b-pt (48 layers, d_model 3840), lens gemma-3-12b/jlens/Salesforce-wikitext
+note: entity_token directions stable (0.89-0.99), final_token failed gate both corpus sizes; push calibration found no directed effect at any strength (swept 0.5-49222, stream norm ~76k); diagnose_push: direction-specific but sign-symmetric disruption, no role content; primary SKIPPED as uninterpretable_strength_failure; rq1+rq2 run; rq2 top-level 'true' is verdict artifact (binding untouched, control improved)
