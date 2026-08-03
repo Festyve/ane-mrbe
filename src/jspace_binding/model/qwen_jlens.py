@@ -762,7 +762,14 @@ class QwenJLensModel:
         return self.config.layer_band[1]  # type: ignore[index]
 
     def _decoder_layer(self, layer: int) -> Any:
-        return self._model.model.layers[layer]
+        # Multimodal checkpoints differ in where the text tower sits: Qwen3.5's
+        # AutoModelForCausalLM resolves straight to it (.model.layers), while
+        # Gemma3's resolves to the vision+text wrapper, one level up
+        # (.model.language_model.layers).
+        inner = self._model.model
+        if not hasattr(inner, "layers"):
+            inner = inner.language_model
+        return inner.layers[layer]
 
     def _device(self) -> Any:
         return next(self._model.parameters()).device

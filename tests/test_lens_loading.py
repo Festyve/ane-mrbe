@@ -152,3 +152,25 @@ def test_load_lens_reports_bad_subpath(tmp_path: Path) -> None:
 
     with pytest.raises(LensFormatError, match="not found under"):
         model._load_lens()
+
+
+def test_decoder_layer_resolves_both_model_shapes() -> None:
+    """Qwen3.5's AutoModelForCausalLM resolves to the text tower directly
+    (.model.layers); Gemma3's resolves to the vision+text wrapper, whose
+    decoder layers sit one level deeper (.model.language_model.layers).
+    Hit for real on the A100: 'Gemma3Model' object has no attribute 'layers'."""
+    from types import SimpleNamespace
+
+    from jspace_binding.model.qwen_jlens import QwenJLensModel
+
+    backend = object.__new__(QwenJLensModel)
+
+    qwen_shape = SimpleNamespace(model=SimpleNamespace(layers=["L0", "L1"]))
+    backend._model = qwen_shape
+    assert backend._decoder_layer(1) == "L1"
+
+    class _Wrapper:  # no .layers attribute, like Gemma3Model
+        language_model = SimpleNamespace(layers=["G0", "G1", "G2"])
+
+    backend._model = SimpleNamespace(model=_Wrapper())
+    assert backend._decoder_layer(2) == "G2"
