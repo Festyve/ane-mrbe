@@ -34,6 +34,7 @@ bf16 · `device_map="auto"`
 | calibrate | `runs/calibrate-exit3/…` | **exit 3** |
 | Primary (E3) | `runs/logs/primary.log` | `significant_but_tiny` |
 | Nonlinear probe | `runs/nonlinear-probe/results/nonlinear_probe.json` | `null_survives_nonlinearity` |
+| Ridge penalty sweep | `runs/ridge-penalty/results/ridge_penalty_sweep.json` | `jspace_null_survives_penalty_sweep` |
 
 ### Stale labels to ignore
 
@@ -235,25 +236,49 @@ tensor-product code. J-space peaks at **0.522** against chance 0.500.
 **The multiplicative-encoding escape hatch is closed empirically**, in the
 direction that supports the headline.
 
-### Open anomaly
+### The anomaly, resolved — §9
 
-`random_subspace` scores **0.719** linear — above `residual` (0.545), the space
-it is a 16-dimensional projection *of*. Reproduces RQ1's 0.713, and reproduces
-again at seed 42 (0.663), so it is not one unlucky basis draw. Most likely a
-fixed ridge penalty (`l2=1e-2`) across sources of wildly different
-dimensionality: the low-dimensional projection is effectively better
-regularised while the full 5120-dim residual overfits. **Cross-source
-comparisons are therefore partly confounded by effective regularisation.** It
-does not threaten the J-space null (J-space is at chance under every probe
-family, which no regularisation story explains), but it needs a limitations
-sentence.
+## 9. Ridge penalty sweep — the regularisation confound, settled
 
-**Not yet run:** `scripts/check_ridge_penalty.py` sweeps the penalty per source
-over four orders of magnitude from a single GPU pass, and decides both
-questions — whether J-space clears chance under *any* penalty (the
-load-bearing check) and whether `residual` overtakes `random_subspace` once
-each source is tuned (the anomaly). Until it runs, the regularisation account
-above is a hypothesis, not a finding.
+`entity_token`, 200 families, leave-one-pair-out at seven penalties
+(`runs/ridge-penalty/results/ridge_penalty_sweep.json`):
+
+| source | 1e-04 | 1e-03 | 1e-02 | 1e-01 | 1e+00 | 1e+01 | 1e+02 |
+|---|---|---|---|---|---|---|---|
+| jspace | 0.510 | 0.511 | **0.514** | 0.518 | 0.589 | 0.645 | 0.639 |
+| orthogonal | 0.561 | 0.561 | **0.561** | 0.561 | 0.564 | 0.586 | 0.722 |
+| residual | 0.545 | 0.545 | **0.545** | 0.545 | 0.546 | 0.565 | 0.677 |
+| random_subspace | 0.724 | 0.721 | **0.719** | 0.715 | 0.714 | 0.687 | 0.678 |
+
+(bold = the fixed `l2=1e-2` every other experiment used)
+
+**Never rank sources on a max-over-penalties column** — it selects the penalty
+on the same folds it reports. Two honest views:
+
+| source | nested CV | matched `l2=1e+02` |
+|---|---|---|
+| orthogonal | 0.722 | 0.722 |
+| random_subspace | 0.703 | 0.678 |
+| residual | 0.677 | 0.677 |
+| **jspace** | **0.640** | **0.639** |
+
+**Two conclusions.**
+
+1. **The J-space null survives.** J-space is *last* at all seven penalties, and
+   last under nested CV. It never clears the rank-matched control, which is the
+   comparison the localisation claim rests on.
+
+2. **The §8 anomaly was regularisation.** At `l2=1e+02`, `residual` 0.677 and
+   `random_subspace` 0.678 are level, and `orthogonal` 0.722 exceeds both. The
+   "projection beats its source" impossibility appears only at weak penalties,
+   where the 5120-dim sources overfit and the 16-dim one does not — and
+   `l2=1e-2` sat in that regime. A 0.026 gap survives under nested CV (0.703 vs
+   0.677), so "largely explained" rather than "fully explained".
+
+**Consequence for wording.** J-space runs 0.514 → 0.645 across the grid, so
+**"J-space is at chance" is too strong and should not appear in the paper.**
+The claim the controls support is that **J-space carries less role information
+than an arbitrary subspace of the same rank.**
 
 ---
 
@@ -263,9 +288,11 @@ Three independent lines agree, with the lens verified and capacity controls
 throughout:
 
 1. **Decoding** — role is strongly readable from the residual stream (0.989 at
-   `final_token`, 0.805 at `entity_token`) and not from J-space (0.587 / 0.661,
-   at or below a rank-matched random control at both sites, and at every layer
-   in the 24–59 band).
+   `final_token`, 0.805 at `entity_token`) and less so from J-space (0.587 /
+   0.661), which sits at or below a rank-matched random control at both sites,
+   at every layer in the 24–59 band, and at every ridge penalty across four
+   orders of magnitude (§9). **Not "at chance"** — under heavy regularisation
+   J-space reaches 0.645 — but always *below the capacity control*.
 2. **Transfer** — the role axis does not generalise across concept pairs;
    cross-pair transfer is systematically *inverted*, not merely at chance.
 3. **Causal** — ablating J-space produces no binding deficit at either site,
@@ -273,9 +300,10 @@ throughout:
    log-odds non-monotonically across a 16× coefficient range.
 
 **Role-filler information is present and linearly readable in the residual
-stream, but it is not carried by the J-space workspace and it is not
-filler-general. Concept identity in J-space *is* addressable (IDENTITY_SWAP
-propagates); role is not.**
+stream, but the J-space workspace is not a privileged locus for it — J-space
+carries less role information than an arbitrary subspace of the same rank —
+and it is not filler-general. Concept identity in J-space *is* addressable
+(IDENTITY_SWAP propagates); role is not.**
 
 ## Limitations
 
@@ -292,7 +320,12 @@ propagates); role is not.**
    primary table.
 4. **E3 ran under an intervention-strength failure** (§7).
 5. **Rank-matched, not norm-matched** ablation control (§6).
-6. **Cross-source regularisation confound** (§8).
+6. **Every experiment except §9 ran at the fixed `l2=1e-2`**, which §9 shows is
+   a weak-penalty regime where high-dimensional sources overfit. The J-space
+   null is unaffected (it holds at every penalty), but the *absolute* accuracies
+   quoted for `residual` and `orthogonal` elsewhere in this file understate them
+   — 0.545 vs 0.677 for `residual` at `entity_token`. Re-running RQ1 under
+   nested CV would make the whole table internally consistent.
 7. **Decodability ≠ use** everywhere except RQ2.
 8. `difficulty_matched: false` in RQ2 at both sites.
 
