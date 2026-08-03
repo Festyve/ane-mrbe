@@ -22,8 +22,12 @@ bf16 · `device_map="auto"`
 |---|---|---|
 | Replication gate | `runs/gate/results/replication_gate.json` | **PASS** |
 | RQ1 (decodability) | `runs/rq1-first/results/rq1_probe.json` | both sites, see below |
+| RQ1 layer sweep | `runs/rq1-L{24,36,59}/results_L*/rq1_probe.json` | null holds 24–59 |
+| RQ1 seed replication | `runs/rq1-seed42/results_S42/rq1_probe.json` | control reproduces |
+| RQ1 6 pairs | `runs/rq1-6pair/results_6pair/rq1_probe.json` | replicates `entity_token` |
 | E4 (recruitment) | `runs/e4-corrected/results/e4_recruitment.json` | `anti_transfer_both` |
-| Within-pair | `runs/within-pair-allpairs/results/within_pair.json` | `present_not_filler_general` |
+| Within-pair `final_token` | `runs/within-pair-allpairs/results/within_pair.json` | `present_not_filler_general` |
+| Within-pair `entity_token` | `runs/within-pair-entity/results/within_pair.json` | `present_not_filler_general` |
 | RQ2 `final_token` | `runs/rq2/results/rq2_ablation.json` | not causally involved |
 | RQ2 `entity_token` | `runs/rq2-entity-token/…` (+ patch below) | **not causally involved** |
 | fit_directions | `runs/fit-directions/results/…` | site dissociation |
@@ -90,6 +94,42 @@ random_subspace 0.427. Every source **below chance**, all folds inverting.
 
 A rank-matched random subspace beats J-space. See the anomaly in §8.
 
+### Layer sweep — the null is not layer 48 alone
+
+`entity_token`, same stimuli, read layer varied across the raw workspace band
+(24–59). `runs/rq1-L24/`, `runs/rq1-L36/`, `runs/rq1-L59/`:
+
+| layer | jspace | random_subspace | residual |
+|---|---|---|---|
+| 24 | 0.495 | 0.601 | 0.618 |
+| 36 | 0.567 | 0.638 | 0.609 |
+| **48** | **0.524** | **0.713** | **0.594** |
+| 59 | 0.527 | 0.645 | 0.635 |
+
+**J-space sits below the rank-matched random control at every layer in the
+band.** The claim is "across the workspace band", not "at the layer we picked".
+
+### Seed replication
+
+`runs/rq1-seed42/`, seed 42 vs seed 0, `entity_token`:
+
+| source | seed 0 | seed 42 |
+|---|---|---|
+| jspace | 0.524 | 0.524 |
+| orthogonal | 0.626 | 0.626 |
+| residual | 0.594 | 0.594 |
+| random_subspace | 0.713 | 0.663 |
+
+**Read this narrowly.** jspace, orthogonal and residual are *deterministic*
+given the model — no randomness enters them, so their identity across seeds is
+arithmetic, not evidence. The only quantity the seed moves is
+`random_subspace` (the basis draw) and the control-task labels.
+
+What it does buy: the capacity control still beats J-space (0.663 vs 0.524)
+under an independent draw, so "J-space loses to a random subspace" is not one
+lucky basis. It does **not** address run-to-run variance in the main sources,
+because there is none to address.
+
 ## 4. Within-pair — the interpretive key
 
 All 3 pairs, `final_token`, 300 families, splits held out **by family**:
@@ -104,7 +144,20 @@ All 3 pairs, `final_token`, 300 families, splits held out **by family**:
 **Role is strongly linearly decodable from the residual stream and not from
 J-space**, which sits at or below a same-rank random control.
 
-Not yet run at `entity_token` — a gap.
+Also run at `entity_token` (`runs/within-pair-entity/results/within_pair.json`,
+300 families, same family-held-out splits):
+
+| source | doctor→nurse | driver→passenger | teacher→student | **mean** |
+|---|---|---|---|---|
+| random_subspace | 0.836 | 0.860 | 0.856 | **0.851** |
+| orthogonal | 0.788 | 0.860 | 0.796 | **0.815** |
+| residual | 0.806 | 0.804 | 0.806 | **0.805** |
+| **jspace** | 0.650 | 0.660 | 0.672 | **0.661** |
+
+Same verdict at both sites — `present_not_filler_general`, with J-space below
+the rank-matched control. Absolute accuracies are lower here than at
+`final_token` (0.81 vs 0.99 for residual) but the ordering is unchanged, and
+J-space is the only source failing to clear 0.8.
 
 ## 5. E4 — recruitment
 
@@ -185,14 +238,22 @@ direction that supports the headline.
 ### Open anomaly
 
 `random_subspace` scores **0.719** linear — above `residual` (0.545), the space
-it is a 16-dimensional projection *of*. Reproduces RQ1's 0.713. Most likely a
+it is a 16-dimensional projection *of*. Reproduces RQ1's 0.713, and reproduces
+again at seed 42 (0.663), so it is not one unlucky basis draw. Most likely a
 fixed ridge penalty (`l2=1e-2`) across sources of wildly different
 dimensionality: the low-dimensional projection is effectively better
 regularised while the full 5120-dim residual overfits. **Cross-source
 comparisons are therefore partly confounded by effective regularisation.** It
 does not threaten the J-space null (J-space is at chance under every probe
 family, which no regularisation story explains), but it needs a limitations
-sentence and ideally a per-source penalty sweep.
+sentence.
+
+**Not yet run:** `scripts/check_ridge_penalty.py` sweeps the penalty per source
+over four orders of magnitude from a single GPU pass, and decides both
+questions — whether J-space clears chance under *any* penalty (the
+load-bearing check) and whether `residual` overtakes `random_subspace` once
+each source is tuned (the anomaly). Until it runs, the regularisation account
+above is a hypothesis, not a finding.
 
 ---
 
@@ -201,8 +262,10 @@ sentence and ideally a per-source penalty sweep.
 Three independent lines agree, with the lens verified and capacity controls
 throughout:
 
-1. **Decoding** — role is strongly readable from the residual stream (0.989)
-   and not from J-space (0.587, at or below a rank-matched random control).
+1. **Decoding** — role is strongly readable from the residual stream (0.989 at
+   `final_token`, 0.805 at `entity_token`) and not from J-space (0.587 / 0.661,
+   at or below a rank-matched random control at both sites, and at every layer
+   in the 24–59 band).
 2. **Transfer** — the role axis does not generalise across concept pairs;
    cross-pair transfer is systematically *inverted*, not merely at chance.
 3. **Causal** — ablating J-space produces no binding deficit at either site,
@@ -216,9 +279,13 @@ propagates); role is not.**
 
 ## Limitations
 
-1. **n = 3 concept pairs** → 3 folds. `configs/expanded_pairs.yaml` raises this
-   to 6 at identical GPU cost; not yet run on the real backend.
-2. **One layer (48)**, one model, one seed.
+1. **n = 3 concept pairs** → 3 folds for the primary table. `runs/rq1-6pair/`
+   raises this to 6 on the real backend and replicates `entity_token` closely
+   (jspace 0.534, random_subspace 0.723, residual 0.598); the other
+   experiments still rest on 3.
+2. **One model.** Layers are covered (24/36/48/59, §3) and the seed is
+   replicated for what it can cover (§3), but every number in this file comes
+   from Qwen3.6-27B. This is the largest remaining exposure.
 3. **Three of four constructions are unvalidated drafts** — only
    `active_passive` is verified; cleft, relative-clause and dative are marked
    "pending team validation" in `templates.py`, yet all four appear in the
