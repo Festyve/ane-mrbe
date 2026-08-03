@@ -254,7 +254,7 @@ def main() -> None:
         headline = "jspace_null_survives_penalty_sweep"
         rank = sorted(PROBE_SOURCES, key=lambda s: nested[s], reverse=True)
         print("THE J-SPACE NULL SURVIVES THE PENALTY SWEEP.")
-        print(f"  jspace never clears the rank-matched control at any penalty in the")
+        print("  jspace never clears the rank-matched control at any penalty in the")
         print(f"  grid, nor under nested CV ({nested['jspace']:.3f} vs "
               f"{nested['random_subspace']:.3f}).")
         print(f"  Nested-CV ranking: {' > '.join(rank)}.")
