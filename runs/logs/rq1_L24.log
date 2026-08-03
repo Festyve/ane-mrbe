@@ -1,0 +1,99 @@
+layer override: band=(24, 24) results=data/results_L24 figures=figures_L24
+generated 600 families
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 15 files:   0%|                                                                                                   | 0/15 [00:00<?, ?it/s]Fetching 15 files: 100%|████████████████████████████████████████████████████████████████████████████████████████| 15/15 [00:00<00:00, 2474.61it/s]
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|                                                                                                    | 0/851 [00:00<?, ?it/s]Loading weights:   0%|                                                                                            | 1/851 [00:00<06:18,  2.24it/s]Loading weights:   2%|█▍                                                                                         | 14/851 [00:00<00:26, 32.05it/s]Loading weights:   3%|██▉                                                                                        | 27/851 [00:00<00:15, 53.23it/s]Loading weights:   4%|████                                                                                       | 38/851 [00:00<00:12, 65.63it/s]Loading weights:   6%|█████                                                                                      | 47/851 [00:01<00:15, 51.55it/s]Loading weights:   8%|███████                                                                                    | 66/851 [00:01<00:10, 75.26it/s]Loading weights:   9%|████████▏                                                                                  | 76/851 [00:01<00:09, 77.94it/s]Loading weights:  10%|█████████▏                                                                                 | 86/851 [00:01<00:09, 77.05it/s]Loading weights:  11%|██████████▏                                                                                | 95/851 [00:01<00:10, 75.13it/s]Loading weights:  12%|██████████▉                                                                               | 104/851 [00:01<00:11, 66.79it/s]Loading weights:  14%|████████████▌                                                                             | 119/851 [00:01<00:08, 82.18it/s]Loading weights:  15%|█████████████▋                                                                            | 129/851 [00:01<00:08, 85.83it/s]Loading weights:  16%|██████████████▋                                                                           | 139/851 [00:02<00:09, 79.08it/s]Loading weights:  17%|███████████████▋                                                                          | 148/851 [00:02<00:09, 76.93it/s]Loading weights:  18%|████████████████▌                                                                         | 157/851 [00:02<00:09, 69.98it/s]Loading weights:  20%|██████████████████▏                                                                       | 172/851 [00:02<00:08, 82.63it/s]Loading weights:  21%|███████████████████▏                                                                      | 182/851 [00:02<00:07, 86.19it/s]Loading weights:  22%|████████████████████▏                                                                     | 191/851 [00:02<00:08, 78.09it/s]Loading weights:  24%|█████████████████████▎                                                                    | 201/851 [00:02<00:09, 71.36it/s]Loading weights:  25%|██████████████████████                                                                    | 209/851 [00:03<00:09, 70.26it/s]Loading weights:  26%|███████████████████████▊                                                                  | 225/851 [00:03<00:07, 84.91it/s]Loading weights:  28%|████████████████████████▊                                                                 | 235/851 [00:03<00:07, 87.96it/s]Loading weights:  29%|█████████████████████████▊                                                                | 244/851 [00:03<00:07, 79.12it/s]Loading weights:  30%|███████████████████████████▎                                                              | 258/851 [00:03<00:06, 89.81it/s]Loading weights:  31%|████████████████████████████▎                                                             | 268/851 [00:03<00:06, 91.76it/s]Loading weights:  33%|█████████████████████████████▍                                                            | 278/851 [00:03<00:06, 91.12it/s]Loading weights:  34%|██████████████████████████████▊                                                           | 291/851 [00:03<00:05, 98.12it/s]Loading weights:  36%|███████████████████████████████▋                                                         | 303/851 [00:03<00:05, 103.49it/s]Loading weights:  37%|█████████████████████████████████▏                                                        | 314/851 [00:04<00:06, 77.98it/s]Loading weights:  39%|███████████████████████████████████                                                       | 331/851 [00:04<00:05, 95.90it/s]Loading weights:  40%|████████████████████████████████████▏                                                     | 342/851 [00:04<00:05, 98.50it/s]Loading weights:  41%|█████████████████████████████████████▎                                                    | 353/851 [00:04<00:05, 97.47it/s]Loading weights:  43%|██████████████████████████████████████▍                                                   | 364/851 [00:04<00:05, 83.83it/s]Loading weights:  44%|███████████████████████████████████████▌                                                  | 374/851 [00:04<00:05, 84.71it/s]Loading weights:  45%|████████████████████████████████████████▋                                                 | 385/851 [00:04<00:05, 87.76it/s]Loading weights:  47%|██████████████████████████████████████████                                                | 398/851 [00:05<00:04, 93.14it/s]Loading weights:  48%|███████████████████████████████████████████▍                                              | 411/851 [00:05<00:04, 92.38it/s]Loading weights:  49%|████████████████████████████████████████████▌                                             | 421/851 [00:05<00:05, 79.90it/s]Loading weights:  51%|██████████████████████████████████████████████▏                                           | 437/851 [00:05<00:04, 93.00it/s]Loading weights:  53%|███████████████████████████████████████████████▌                                          | 450/851 [00:05<00:04, 91.75it/s]Loading weights:  54%|████████████████████████████████████████████████▊                                         | 461/851 [00:05<00:04, 91.43it/s]Loading weights:  55%|█████████████████████████████████████████████████▊                                        | 471/851 [00:05<00:04, 81.92it/s]Loading weights:  57%|███████████████████████████████████████████████████▌                                      | 487/851 [00:06<00:03, 97.78it/s]Loading weights:  59%|████████████████████████████████████████████████████▋                                     | 498/851 [00:06<00:03, 98.67it/s]Loading weights:  60%|█████████████████████████████████████████████████████▊                                    | 509/851 [00:06<00:03, 92.87it/s]Loading weights:  61%|██████████████████████████████████████████████████████▉                                   | 519/851 [00:06<00:03, 90.47it/s]Loading weights:  62%|███████████████████████████████████████████████████████▉                                  | 529/851 [00:06<00:03, 82.84it/s]Loading weights:  64%|█████████████████████████████████████████████████████████▌                                | 544/851 [00:06<00:03, 91.80it/s]Loading weights:  65%|██████████████████████████████████████████████████████████▉                               | 557/851 [00:06<00:02, 98.66it/s]Loading weights:  67%|███████████████████████████████████████████████████████████▉                             | 573/851 [00:06<00:02, 104.32it/s]Loading weights:  69%|█████████████████████████████████████████████████████████████▊                            | 584/851 [00:07<00:02, 96.47it/s]Loading weights:  70%|██████████████████████████████████████████████████████████████▍                          | 597/851 [00:07<00:02, 102.31it/s]Loading weights:  72%|███████████████████████████████████████████████████████████████▊                         | 610/851 [00:07<00:02, 102.58it/s]Loading weights:  73%|█████████████████████████████████████████████████████████████████▏                       | 623/851 [00:07<00:02, 108.72it/s]Loading weights:  75%|███████████████████████████████████████████████████████████████████▏                      | 635/851 [00:07<00:02, 84.70it/s]Loading weights:  76%|████████████████████████████████████████████████████████████████████▋                     | 649/851 [00:07<00:02, 96.67it/s]Loading weights:  78%|█████████████████████████████████████████████████████████████████████▊                    | 660/851 [00:07<00:01, 99.30it/s]Loading weights:  79%|██████████████████████████████████████████████████████████████████████▉                   | 671/851 [00:07<00:01, 98.18it/s]Loading weights:  80%|████████████████████████████████████████████████████████████████████████▏                 | 682/851 [00:08<00:02, 80.01it/s]Loading weights:  81%|█████████████████████████████████████████████████████████████████████████                 | 691/851 [00:08<00:01, 80.61it/s]Loading weights:  83%|██████████████████████████████████████████████████████████████████████████▎               | 703/851 [00:08<00:01, 86.77it/s]Loading weights:  84%|███████████████████████████████████████████████████████████████████████████▋              | 716/851 [00:08<00:01, 95.22it/s]Loading weights:  85%|████████████████████████████████████████████████████████████████████████████▉             | 727/851 [00:08<00:01, 97.60it/s]Loading weights:  87%|██████████████████████████████████████████████████████████████████████████████            | 738/851 [00:08<00:01, 76.84it/s]Loading weights:  89%|███████████████████████████████████████████████████████████████████████████████▊          | 755/851 [00:08<00:01, 93.66it/s]Loading weights:  90%|█████████████████████████████████████████████████████████████████████████████████         | 766/851 [00:09<00:00, 95.44it/s]Loading weights:  91%|██████████████████████████████████████████████████████████████████████████████████▏       | 777/851 [00:09<00:00, 95.37it/s]Loading weights:  93%|███████████████████████████████████████████████████████████████████████████████████▎      | 788/851 [00:09<00:00, 84.12it/s]Loading weights:  94%|████████████████████████████████████████████████████████████████████████████████████▎     | 797/851 [00:09<00:00, 83.13it/s]Loading weights:  95%|█████████████████████████████████████████████████████████████████████████████████████▌    | 809/851 [00:09<00:00, 81.42it/s]Loading weights:  97%|███████████████████████████████████████████████████████████████████████████████████████▏  | 824/851 [00:09<00:00, 89.89it/s]Loading weights:  98%|████████████████████████████████████████████████████████████████████████████████████████▌ | 837/851 [00:09<00:00, 99.20it/s]Loading weights: 100%|█████████████████████████████████████████████████████████████████████████████████████████▋| 848/851 [00:09<00:00, 90.79it/s]Loading weights: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 851/851 [00:10<00:00, 84.93it/s]
+Fetching 3 files:   0%|                                                                                                     | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|███████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:00<00:00, 1592.77it/s]
+[rq1 final_token] 30/600 (5%)  65s elapsed  0.5/s  ETA 19.9m
+[rq1 final_token] 60/600 (10%)  2.1m elapsed  0.5/s  ETA 18.8m
+[rq1 final_token] 90/600 (15%)  3.2m elapsed  0.5/s  ETA 17.8m
+[rq1 final_token] 120/600 (20%)  4.2m elapsed  0.5/s  ETA 16.7m
+[rq1 final_token] 150/600 (25%)  5.3m elapsed  0.5/s  ETA 15.7m
+[rq1 final_token] 180/600 (30%)  6.3m elapsed  0.5/s  ETA 14.7m
+[rq1 final_token] 210/600 (35%)  7.4m elapsed  0.5/s  ETA 13.6m
+[rq1 final_token] 240/600 (40%)  8.4m elapsed  0.5/s  ETA 12.6m
+[rq1 final_token] 270/600 (45%)  9.5m elapsed  0.5/s  ETA 11.5m
+[rq1 final_token] 300/600 (50%)  10.5m elapsed  0.5/s  ETA 10.5m
+[rq1 final_token] 330/600 (55%)  11.5m elapsed  0.5/s  ETA 9.4m
+[rq1 final_token] 360/600 (60%)  12.6m elapsed  0.5/s  ETA 8.4m
+[rq1 final_token] 390/600 (65%)  13.6m elapsed  0.5/s  ETA 7.3m
+Traceback (most recent call last):
+  File "/home/jupyter-mrbe-2b8c/ane-mrbe/scripts/run_rq1.py", line 71, in <module>
+    main()
+  File "/home/jupyter-mrbe-2b8c/ane-mrbe/scripts/run_rq1.py", line 67, in main
+    print(json.dumps(run_rq1(config, model, families), indent=2))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/ane-mrbe/src/jspace_binding/experiments/rq1_probe.py", line 52, in run_rq1
+    activations = model.probe_activation(sentence, entity, site)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 225, in probe_activation
+    return self._sources_at(self._hidden_at(sentence, anchor))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 723, in _hidden_at
+    self._model(ids)
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/accelerate/hooks.py", line 192, in new_forward
+    output = module._old_forward(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/utils/generic.py", line 911, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 1654, in forward
+    outputs: BaseModelOutputWithPast = self.model(
+                                       ^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/utils/generic.py", line 1040, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 262, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 1212, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/modeling_layers.py", line 110, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/accelerate/hooks.py", line 192, in new_forward
+    output = module._old_forward(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 788, in forward
+    hidden_states = self.linear_attn(
+                    ^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/accelerate/hooks.py", line 192, in new_forward
+    output = module._old_forward(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/integrations/accelerate.py", line 941, in wrapped
+    output = forward_func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 539, in forward
+    core_attn_out, last_recurrent_state = self.chunk_gated_delta_rule(
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-2b8c/.local/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 296, in torch_chunk_gated_delta_rule
+    attn[..., i, :i] = row + (row.unsqueeze(-1) * sub).sum(-2)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
