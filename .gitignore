@@ -26,3 +26,4 @@ PROJECT_MAP.md
 data/smoke*/
 # Local real-backend runs on substitute models (directions, figures, results).
 data/local_*/
+data/gemma3_12b/

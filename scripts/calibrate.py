@@ -54,6 +54,19 @@ def main() -> None:
             "strength of a vector that is not reproducible"
         ),
     )
+    parser.add_argument(
+        "--push-grid",
+        type=lambda s: tuple(float(v) for v in s.split(",")),
+        default=None,
+        help=(
+            "comma-separated push_coefficient grid, e.g. 8,16,32,64,128. The "
+            "coefficient is in ABSOLUTE residual-norm units (edits.py), so the "
+            "default grid does not transfer across models with different "
+            "activation scales -- Qwen3.6-27B already needed the default's "
+            "largest value. Legitimate to extend: calibration reads the "
+            "fitting corpus only, never the primary stimuli."
+        ),
+    )
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
@@ -70,7 +83,8 @@ def main() -> None:
     families = generate_families(config)
 
     try:
-        push = calibrate_push_coefficient(model, corpus, site=site)
+        push_kwargs = {"grid": args.push_grid} if args.push_grid else {}
+        push = calibrate_push_coefficient(model, corpus, site=site, **push_kwargs)
         alpha = calibrate_identity_alpha(model, families, site=site)
     except ValueError as exc:
         # The documented failure mode: the intervention is too weak at every
