@@ -28,6 +28,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the RQ1 linear-probe analysis.")
     add_backend_args(parser)
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help=(
+            "override experiment.seed AND the random-subspace capacity seed. "
+            "Outputs redirect to <results>_S<seed>/ so they don't overwrite "
+            "the seed-0 run. Use to check that the null is not an artifact of "
+            "one random draw."
+        ),
+    )
+    parser.add_argument(
         "--layer",
         type=int,
         default=None,
@@ -42,6 +53,24 @@ def main() -> None:
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
+    capacity_seed: int | None = None
+    if args.seed is not None:
+        suffix = f"_S{args.seed}"
+        config = dataclasses.replace(
+            config,
+            experiment=dataclasses.replace(config.experiment, seed=args.seed),
+            paths=dataclasses.replace(
+                config.paths,
+                results=f"{config.paths.results}{suffix}",
+                figures=f"{config.paths.figures}{suffix}",
+            ),
+        )
+        capacity_seed = args.seed
+        print(
+            f"seed override: experiment.seed={args.seed} capacity_seed={args.seed} "
+            f"results={config.paths.results} figures={config.paths.figures}",
+            file=sys.stderr,
+        )
     if args.layer is not None:
         # Outputs are redirected as well as the layer, so a sweep cannot
         # overwrite the layer-48 results already saved under runs/.
@@ -64,7 +93,7 @@ def main() -> None:
     families = generate_families(config)
     print(f"generated {len(families)} families", file=sys.stderr)
     preflight_or_exit(model)  # probe reads need no fitted directions
-    print(json.dumps(run_rq1(config, model, families), indent=2))
+    print(json.dumps(run_rq1(config, model, families, capacity_seed=capacity_seed), indent=2))
 
 
 if __name__ == "__main__":

@@ -33,7 +33,8 @@ from jspace_binding.types import InjectionSite, ItemFamily, Position, Role
 
 
 def run_rq1(
-    config: Config, model: ProbeActivationSource, families: list[ItemFamily]
+    config: Config, model: ProbeActivationSource, families: list[ItemFamily],
+    capacity_seed: int | None = None,
 ) -> dict[str, object]:
     """Collect activations, probe every (site, source), plot, summarize.
 
@@ -49,7 +50,9 @@ def run_rq1(
             for role in Role:
                 for position in Position:
                     sentence = family.cell(role, position).sentence
-                    activations = model.probe_activation(sentence, entity, site)
+                    activations = model.probe_activation(
+                        sentence, entity, site, capacity_seed=capacity_seed,
+                    )
                     missing = [s for s in PROBE_SOURCES if s not in activations]
                     if missing:
                         raise ValueError(
