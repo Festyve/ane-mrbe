@@ -65,6 +65,7 @@ class ProbeActivationSource(Protocol):
         sentence: str,
         entity: str,
         site: InjectionSite,
+        capacity_seed: int | None = None,
     ) -> dict[str, Sequence[float]]:
         """No-edit activations at `site` keyed by source: "jspace" (J-space
         coordinates), "orthogonal" (residual component the lens cannot see),

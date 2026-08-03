@@ -367,7 +367,8 @@ class DummyModel:
     # ------------------------------------------------------------------ #
 
     def probe_activation(
-        self, sentence: str, entity: str, site: InjectionSite
+        self, sentence: str, entity: str, site: InjectionSite,
+        capacity_seed: int | None = None,
     ) -> dict[str, list[float]]:
         """Synthetic RQ1 activation sources with mode-dependent ground truth.
 

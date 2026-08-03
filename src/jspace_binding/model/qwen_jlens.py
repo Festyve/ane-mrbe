@@ -206,7 +206,8 @@ class QwenJLensModel:
     # ------------------------------------------------------------------ #
 
     def probe_activation(
-        self, sentence: str, entity: str, site: InjectionSite
+        self, sentence: str, entity: str, site: InjectionSite,
+        capacity_seed: int | None = None,
     ) -> dict[str, list[float]]:
         """The four RQ1 sources at the read layer: "jspace" = the sparse
         J-space component, "orthogonal" = h minus that component (what the
@@ -222,7 +223,7 @@ class QwenJLensModel:
         """
         self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
-        return self._sources_at(self._hidden_at(sentence, anchor))
+        return self._sources_at(self._hidden_at(sentence, anchor), capacity_seed=capacity_seed)
 
     def recruitment_activation(
         self, sentence: str, probe: str, entity: str
@@ -243,12 +244,13 @@ class QwenJLensModel:
         anchor = len(self._tokenizer(full).input_ids) - 1
         return self._sources_at(self._hidden_at(full, anchor))
 
-    def _sources_at(self, h: Any) -> dict[str, list[float]]:
+    def _sources_at(self, h: Any, capacity_seed: int | None = None) -> dict[str, list[float]]:
         """The four probe sources for one hidden state. Shared by RQ1 and E4 so
         the two cannot drift apart in what they mean by "jspace"."""
         component, _ = self._jspace_component(h, self._read_layer())
         remainder = h - component.to(h.dtype)
-        basis = self._random_subspace(_RQ1_CAPACITY_SEED, rank=self.config.jspace_k)
+        seed = capacity_seed if capacity_seed is not None else _RQ1_CAPACITY_SEED
+        basis = self._random_subspace(seed, rank=self.config.jspace_k)
         h_lens = h.to(basis.device, basis.dtype)
         projected = (basis @ (basis.T @ h_lens)).to(h.device, h.dtype)
         return {
