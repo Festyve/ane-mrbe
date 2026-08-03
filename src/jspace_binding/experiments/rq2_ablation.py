@@ -167,6 +167,18 @@ def _magnitude_summary(values: Sequence[float]) -> dict[str, Any] | None:
     }
 
 
+# Ablation must damage binding by at least this SHARE OF ITS OWN BASELINE
+# MARGIN before a causal claim is on the table. Deficits are already
+# normalised per task, so this reads directly as "5% of the no-edit margin".
+#
+# Sign alone is not enough. On Gemma-3-12B at final_token the observed
+# binding_deficit was +0.00058 against a baseline margin of 2.56 -- 0.02% of
+# it, indistinguishable from noise, yet strictly positive, so a `> 0` test
+# passed and the run reported causal involvement. The number that cleared the
+# CI there was the CONTROL task drifting (-0.0074), not binding being damaged.
+_MIN_BINDING_DEFICIT = 0.05
+
+
 def _involvement_verdict(
     binding_deficit: float,
     binding_specific: float,
@@ -175,18 +187,29 @@ def _involvement_verdict(
 ) -> bool:
     """Does this ablation support causal involvement of the workspace?
 
-    `binding_deficit > 0` is load-bearing. The `binding - recall` subtraction is
-    a SELECTIVITY measure and presupposes that ablation damaged something. When
-    both deficits are negative -- ablation IMPROVED both tasks -- a positive
-    difference only says recall improved more than binding did, which is not
-    evidence the workspace drives binding.
+    The binding_deficit clause is load-bearing, and needs a MAGNITUDE, not just
+    a sign. `binding - recall` is a SELECTIVITY measure: it presupposes that
+    ablation damaged binding, and it stays large whenever the two tasks merely
+    move apart. So the verdict has to establish damage before reading the
+    subtraction at all.
 
-    Observed on Qwen3.6-27B at entity_token: binding -0.032, recall -0.046,
-    difference +0.014 with a CI clearing zero. Without the first clause this
-    reported causal involvement from two improvements.
+    Two observed failures, both of which this guards:
+
+    - Qwen3.6-27B, entity_token: binding -0.032, recall -0.046, difference
+      +0.014 with a CI clearing zero. Ablation IMPROVED both tasks; the
+      positive difference only said recall improved more. Caught by the sign.
+    - Gemma-3-12B, final_token: binding +0.00058 (0.02% of a 2.56 baseline
+      margin), recall -0.0074, difference +0.0079 with a CI clearing zero and
+      beating the random control. Binding was untouched and the CONTROL drifted;
+      the difference was made entirely of the control. A sign test passes this.
+      Caught by _MIN_BINDING_DEFICIT.
+
+    Both share the failure this project has now hit four times: comparing two
+    quantities without first asking whether either is distinguishable from
+    nothing.
     """
     return bool(
-        binding_deficit > 0.0
+        binding_deficit > _MIN_BINDING_DEFICIT
         and binding_specific > 0.0
         and binding_specific > random_specific
         and ci_excludes_zero

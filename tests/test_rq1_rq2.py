@@ -280,3 +280,37 @@ def test_rq2_improvement_is_not_causal_involvement() -> None:
         binding_deficit=0.40, binding_specific=0.02,
         random_specific=0.05, ci_excludes_zero=True,
     ) is False
+
+
+def test_rq2_untouched_binding_is_not_causal_involvement() -> None:
+    """A binding deficit that is positive but NEGLIGIBLE must not read as use.
+
+    The Gemma-3-12B pilot at final_token returned binding_deficit +0.00058
+    against a baseline margin of 2.56 — 0.02% of it — while the recall CONTROL
+    drifted −0.0074. Their difference is +0.0079, its CI clears zero, and it
+    beats the random-subspace control, so every clause of the sign-only rule
+    passed and the run reported `workspace_causally_involved: true`.
+
+    Binding was untouched. The entire "binding-specific deficit" was the
+    control task moving. Selectivity presupposes damage; with no damage there
+    is nothing for it to be selective ABOUT.
+    """
+    from jspace_binding.experiments.rq2_ablation import _involvement_verdict
+
+    # The observed Gemma numbers at final_token.
+    assert _involvement_verdict(
+        binding_deficit=0.00058, binding_specific=0.00794,
+        random_specific=0.00119, ci_excludes_zero=True,
+    ) is False
+    # Gemma at entity_token: binding IMPROVED — caught by the sign clause,
+    # despite a large binding_specific (+0.273) from recall collapsing.
+    assert _involvement_verdict(
+        binding_deficit=-0.04628, binding_specific=0.27273,
+        random_specific=0.1007, ci_excludes_zero=True,
+    ) is False
+    # A deficit just over the floor, otherwise healthy, must STILL read as
+    # use — the guard has to reject noise without swallowing real effects.
+    assert _involvement_verdict(
+        binding_deficit=0.06, binding_specific=0.05,
+        random_specific=0.01, ci_excludes_zero=True,
+    ) is True
