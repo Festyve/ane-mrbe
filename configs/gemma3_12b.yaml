@@ -48,7 +48,7 @@ stimuli:
   non_participant_entities: [chef, farmer, coach]
 
 directions:
-  exemplars_per_role: 24
+  exemplars_per_role: 48    # was 24; must stay a multiple of 6
   n_bootstrap: 200
   stability_threshold: 0.8
   variant: fitted
