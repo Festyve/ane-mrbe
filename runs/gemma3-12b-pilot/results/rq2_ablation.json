@@ -1,0 +1,163 @@
+{
+  "provenance": {
+    "backend": "qwen_jlens",
+    "model_id": "google/gemma-3-12b-pt",
+    "lens_repo": "neuronpedia/jacobian-lens",
+    "lens_subpath": "gemma-3-12b/jlens/Salesforce-wikitext",
+    "layer_band": [
+      36,
+      36
+    ],
+    "jspace_k": 16,
+    "ablate_k": 10,
+    "dtype": "bfloat16",
+    "dummy_mode": null,
+    "config_model_mismatch": null,
+    "n_concept_pairs": 3,
+    "n_families": 600,
+    "seed": 0,
+    "git_commit": "feaf5e0fa518237bd3e4d1afb20816a33ebef99d",
+    "git_branch": "main",
+    "git_dirty": true
+  },
+  "sites": {
+    "final_token": {
+      "site": "final_token",
+      "accuracy": {
+        "no_edit|role": 0.8825,
+        "no_edit|concept": 0.9108333333333334,
+        "ablate_jspace|role": 0.8833333333333333,
+        "ablate_jspace|concept": 0.9125,
+        "ablate_random_subspace|role": 0.8804166666666666,
+        "ablate_random_subspace|concept": 0.9070833333333334
+      },
+      "n_families": 600,
+      "baseline_task_accuracy_gap": 0.028333333333333433,
+      "difficulty_matched": false,
+      "recall_accuracy_at_ceiling": false,
+      "recall_control_informative": true,
+      "deltas": {
+        "ablate_jspace": {
+          "binding_deficit": 0.0005776220887827103,
+          "recall_deficit": -0.0073624224321429,
+          "binding_specific_deficit": 0.00794004452092561,
+          "binding_specific_ci": [
+            0.0053346864141582415,
+            0.010551721842053876
+          ],
+          "ci_excludes_zero": true,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.03963283123831581,
+            "median_relative_norm_change": 0.03969667907168978,
+            "max_relative_norm_change": 0.05074807314728973,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        },
+        "ablate_random_subspace": {
+          "binding_deficit": -0.0003351570233404568,
+          "recall_deficit": -0.0015237797455718207,
+          "binding_specific_deficit": 0.0011886227222313633,
+          "binding_specific_ci": [
+            -0.0011497786526023558,
+            0.0035278884544147748
+          ],
+          "ci_excludes_zero": false,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.049960410708944705,
+            "median_relative_norm_change": 0.04969259705286089,
+            "max_relative_norm_change": 0.0829497890989872,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        }
+      },
+      "workspace_causally_involved": true,
+      "ablation_improved_performance": {
+        "binding": false,
+        "recall": true
+      },
+      "edit_magnitude_ratio": 0.7932847363726758,
+      "baseline_margin": {
+        "binding": 2.5592551489183792,
+        "recall": 2.65504214443066,
+        "recall_usable": true,
+        "binding_usable": true
+      },
+      "null_interpretable": true,
+      "figure": "figures/gemma3_12b/rq2_ablation_deltas_final_token.png"
+    },
+    "entity_token": {
+      "site": "entity_token",
+      "accuracy": {
+        "no_edit|role": 0.8825,
+        "no_edit|concept": 0.9108333333333334,
+        "ablate_jspace|role": 0.7358333333333333,
+        "ablate_jspace|concept": 0.7791666666666667,
+        "ablate_random_subspace|role": 0.8333333333333334,
+        "ablate_random_subspace|concept": 0.8745833333333334
+      },
+      "n_families": 600,
+      "baseline_task_accuracy_gap": 0.028333333333333433,
+      "difficulty_matched": false,
+      "recall_accuracy_at_ceiling": false,
+      "recall_control_informative": true,
+      "deltas": {
+        "ablate_jspace": {
+          "binding_deficit": -0.046277512364328005,
+          "recall_deficit": -0.31900470567774575,
+          "binding_specific_deficit": 0.2727271933134178,
+          "binding_specific_ci": [
+            0.2608045760198469,
+            0.28473930194604824
+          ],
+          "ci_excludes_zero": true,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.04684723745710647,
+            "median_relative_norm_change": 0.0491198128850177,
+            "max_relative_norm_change": 0.05507655205035429,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        },
+        "ablate_random_subspace": {
+          "binding_deficit": 0.01689360709355696,
+          "recall_deficit": -0.08380152623346411,
+          "binding_specific_deficit": 0.10069513332702107,
+          "binding_specific_ci": [
+            0.09441677111908765,
+            0.10682358204757098
+          ],
+          "ci_excludes_zero": true,
+          "edit_magnitude": {
+            "mean_relative_norm_change": 0.04982968352297509,
+            "median_relative_norm_change": 0.04920509729048898,
+            "max_relative_norm_change": 0.08799471833806544,
+            "n_edits_applied": 7200,
+            "edit_landed": true
+          }
+        }
+      },
+      "workspace_causally_involved": false,
+      "ablation_improved_performance": {
+        "binding": true,
+        "recall": true
+      },
+      "edit_magnitude_ratio": 0.9401472003230062,
+      "baseline_margin": {
+        "binding": 2.5592551489183792,
+        "recall": 2.65504214443066,
+        "recall_usable": true,
+        "binding_usable": true
+      },
+      "null_interpretable": true,
+      "figure": "figures/gemma3_12b/rq2_ablation_deltas_entity_token.png"
+    }
+  },
+  "figures": {
+    "final_token": "figures/gemma3_12b/rq2_ablation_deltas_final_token.png",
+    "entity_token": "figures/gemma3_12b/rq2_ablation_deltas_entity_token.png"
+  },
+  "workspace_causally_involved": true,
+  "null_interpretable": true
+}
