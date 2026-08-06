@@ -56,6 +56,27 @@ class FittingActivationSource(Protocol):
         ...
 
 
+class FittingGradientSource(Protocol):
+    """A model that exposes readout gradients for the LRE-style estimator
+    (directions.estimator = "lre_gradient"; Chanin et al. 2023)."""
+
+    def fitting_gradient(
+        self,
+        sentence: str,
+        role_probe: str,
+        entity: str,
+        other: str,
+        site: InjectionSite,
+    ) -> Sequence[float]:
+        """d(z_entity - z_other)/dh at the read layer, `site` token, for the
+        sentence's role probe — the local steering direction of the role
+        readout, in RAW residual space (unlike fitting_activation's J-space
+        coordinates: the gradient is what the push should follow, and the push
+        is applied in residual space). No edit is applied; the caller
+        (directions.fit) pools rows across both roles' exemplars."""
+        ...
+
+
 @runtime_checkable
 class ProbeActivationSource(Protocol):
     """A model that exposes the RQ1 activation sources (proposal, §4)."""

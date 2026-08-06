@@ -248,13 +248,21 @@ def main() -> None:
         "sites": {},
     }
     fitted_by_site = {}
+    use_gradient = config.directions.estimator == "lre_gradient"
     for site in config.experiment.injection_sites:
         activations = {}
         for entity in entities:
             rows = {role: [] for role in Role}
             for ex in corpus:
                 if ex.entity == entity:
-                    rows[ex.role].append(model.fitting_activation(ex.sentence, entity, site))
+                    if use_gradient:
+                        rows[ex.role].append(
+                            model.fitting_gradient(
+                                ex.sentence, ex.role_probe, entity, ex.other, site
+                            )
+                        )
+                    else:
+                        rows[ex.role].append(model.fitting_activation(ex.sentence, entity, site))
             activations[entity] = (
                 np.asarray(rows[Role.AGENT], dtype=float),
                 np.asarray(rows[Role.PATIENT], dtype=float),
@@ -264,6 +272,7 @@ def main() -> None:
             site,
             n_bootstrap=config.directions.n_bootstrap,
             seed=config.directions.seed,
+            estimator=config.directions.estimator,
         )
         fitted_by_site[site] = directions
         path = save_directions(directions, directions_dir)

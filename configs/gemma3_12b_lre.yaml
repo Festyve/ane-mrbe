@@ -1,0 +1,86 @@
+# Gemma-3-12B, LRE-estimator variant of configs/gemma3_12b.yaml.
+#
+# Identical to the base Gemma config except the role-direction estimator:
+# lre_gradient (Chanin et al. 2023, arXiv:2311.08968) fits the unit mean of
+# per-exemplar readout gradients instead of diff-of-means. Exists to test
+# whether the null push result is a bad-estimator artifact: diff-of-means
+# finds the direction that separates roles, which need not be the direction
+# the readout responds to. Outputs are routed to *_lre paths so the two
+# estimators' artifacts sit side by side.
+#
+# Same pipeline, same stimuli, same lens corpus (Salesforce/wikitext) — only
+# the model and its lens change. Everything model-shaped below is DERIVED, not
+# copied from the Qwen config; the notebook asserts each one against the loaded
+# model and lens before any compute is spent.
+#
+# Null fields stay null: alpha and push_coefficient are calibration OUTPUTS and
+# must be re-derived for this model. Reusing Qwen's would silently apply an
+# edit strength tuned to a different model's activation scale.
+
+model:
+  backend: qwen_jlens       # backend is model-agnostic despite the name
+  model_id: google/gemma-3-12b-pt   # GATED on HF — accept the license first
+  lens_repo: neuronpedia/jacobian-lens
+  # Lens config.yaml confirms this was fitted on google/gemma-3-12b-pt with
+  # Salesforce/wikitext (wikitext-103-raw-v1, n_prompts 1000) — the same corpus
+  # as the Qwen lens, which is what makes the two runs comparable.
+  # Matching matters: the -it lens is a different artifact and pairing it with
+  # base weights would load cleanly and produce garbage.
+  lens_subpath: gemma-3-12b/jlens/Salesforce-wikitext
+  # Source paper's single-layer swap analyses sit mid-workspace (~L75 of their
+  # reindexed 100). Converted for this model's 48 layers:
+  #   round(75/100 * 48) = 36
+  # Their workspace band is reindexed L38-92 -> raw 18-44 here. As with Qwen,
+  # run the edges as separate single-layer runs, not one smeared band:
+  #     layer_band: [18, 18]   # band start
+  #     layer_band: [36, 36]   # primary (this one)
+  #     layer_band: [44, 44]   # band end
+  # Notebook asserts the lens's source_layers actually covers these.
+  layer_band: [36, 36]
+  alpha: null               # from scripts/calibrate.py on THIS model
+  push_coefficient: null    # from scripts/calibrate.py on THIS model
+  jspace_k: 16              # unchanged: property of the method, not the model
+  ablate_k: 10
+  dtype: bfloat16
+  load_in_4bit: false       # A100 80GB runs 12B bf16 with room to spare
+  dummy_mode: binding
+
+# Stimuli are held IDENTICAL to the Qwen run. Changing them would confound
+# "different model" with "different stimuli" and forfeit the replication.
+stimuli:
+  items_per_cell: 50
+  concept_pairs:
+    - [doctor, nurse]
+    - [teacher, student]
+    - [driver, passenger]
+  non_participant_entities: [chef, farmer, coach]
+
+directions:
+  exemplars_per_role: 48    # was 24; must stay a multiple of 6
+  n_bootstrap: 200
+  stability_threshold: 0.8
+  variant: fitted
+  seed: 0
+  estimator: lre_gradient
+
+experiment:
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
+  injection_sites: [final_token, entity_token]
+  seed: 0
+
+analysis:
+  n_bootstrap: 10000
+  n_permutation: 10000
+  alpha_level: 0.05
+  ci_level: 0.95
+
+# Routed under data/gemma3_12b/ so the team's Qwen artifacts are never
+# overwritten and the two runs can be diffed side by side.
+paths:
+  stimuli: data/stimuli/stimuli.jsonl              # shared, unchanged
+  fitting_corpus: data/stimuli/fitting_corpus.jsonl # shared, unchanged
+  directions: data/gemma3_12b/directions_lre
+  calibration: data/gemma3_12b/calibration_lre.json
+  results: data/gemma3_12b/results_lre
+  figures: figures/gemma3_12b_lre

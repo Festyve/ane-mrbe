@@ -67,6 +67,13 @@ class DirectionsConfig:
     stability_threshold: float = 0.8  # warn below this mean cosine
     variant: str = "fitted"  # "fitted" | "generic_loo" — which direction ROLE_PUSH uses
     seed: int = 0  # shuffled-label + bootstrap seeding
+    # "diff_means": unit(mean(agent) - mean(patient)) over J-space components —
+    # the proposal's estimator, a DECODE direction. "lre_gradient": unit mean of
+    # per-exemplar readout gradients d(z_entity - z_other)/dh at the site
+    # (LRE/LRC-style, Chanin et al. 2023) — a STEERING direction. The two need
+    # not coincide; a null push under diff_means may be a bad-estimator
+    # artifact, which lre_gradient exists to rule in or out.
+    estimator: str = "diff_means"  # "diff_means" | "lre_gradient"
 
 
 @dataclass(frozen=True)
