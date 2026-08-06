@@ -214,10 +214,42 @@ threshold of 0.5, `meaningful_constructions: []`, controls all ≈ −0.008.
 
 **E3 must not be presented as a standalone causal null** — it ran under a
 documented intervention-strength failure and its own proposal calls that case
-uninterpretable. Its usable content is the **addressability dissociation**:
-`strength_check_passes: true`, so IDENTITY_SWAP (a *concept-level* J-space edit)
-demonstrably moves behaviour while role-direction pushes move nothing. Same
-subspace, same layer, same machinery.
+uninterpretable.
+
+### ⚠️ The addressability dissociation is RETRACTED
+
+Earlier versions of this file claimed a dissociation here: `strength_check_passes:
+true`, so IDENTITY_SWAP (a concept-level J-space edit) "demonstrably moves
+behaviour" while role pushes move nothing. **The data does not support that.**
+
+The observed strength check on Qwen:
+
+```
+P(counterpart)  no_edit 0.00269 -> swap 0.00393   (+0.00124)
+P(entity)       no_edit 0.18507 -> swap 0.18091   (-0.00417)
+```
+
+The counterpart rises by **0.12 percentage points**, from 0.27% to 0.39%. The
+entity does not meaningfully fall. **Nothing happened.** The check returned
+`true` because it tested only the *signs* of the two shifts, with no magnitude
+floor — while `calibrate_identity_alpha`, asking the same question on the same
+model, reported an intervention-strength **failure** at its `min_prob_shift =
+0.05`. The two disagreed and the looser one was believed.
+
+Fixed: `_MIN_COUNTERPART_SHIFT = 0.05` in `experiments/primary.py`, matching
+calibration, with a regression test pinning the numbers above. Under the
+corrected check **Qwen's IDENTITY_SWAP does not pass**, so E3 has no
+interpretable content at all — neither a causal null nor a dissociation.
+
+Gemma-3-12B is the instructive contrast (`runs/gemma3-12b-lre/`): there the
+entity drops hard (0.2122 → 0.0961) while the counterpart still barely moves
+(0.00544 → 0.01021). The swap *damages* the entity readout without installing
+the counterpart — consistent with the identity-overlap account, and not a
+working swap either. Its calibration recorded the same `alpha_failure`.
+
+**Consequence: the project currently has no positive causal result.** Every
+J-space claim is a null. This is the single most important thing to know before
+choosing a framing.
 
 ## 8. Nonlinear probe — the multiplicative-code objection
 
@@ -302,8 +334,12 @@ throughout:
 **Role-filler information is present and linearly readable in the residual
 stream, but the J-space workspace is not a privileged locus for it — J-space
 carries less role information than an arbitrary subspace of the same rank —
-and it is not filler-general. Concept identity in J-space *is* addressable
-(IDENTITY_SWAP propagates); role is not.**
+and it is not filler-general.**
+
+~~Concept identity in J-space *is* addressable (IDENTITY_SWAP propagates); role
+is not.~~ **Retracted — see §7.** The strength check that licensed this passed
+on a 0.12-percentage-point counterpart shift and fails under the corrected
+magnitude threshold.
 
 ## Limitations
 

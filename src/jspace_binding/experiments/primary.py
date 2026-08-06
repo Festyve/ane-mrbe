@@ -287,14 +287,36 @@ def analyze(
     }
 
 
+# P(counterpart) must rise by at least this much for the swap to count as
+# having landed. Identical to experiments.calibrate.calibrate_identity_alpha's
+# `min_prob_shift`, deliberately: calibration and the in-run check are the same
+# question asked twice, and they MUST agree.
+#
+# They did not. This check tested only SIGNS, and on Qwen3.6-27B it passed on
+# counterpart 0.0027 -> 0.0039 (+0.0012) with the entity flat at 0.185 -> 0.181
+# -- nothing moved -- while calibration on the same model reported an
+# intervention-strength FAILURE at the same threshold it applies here. The
+# paper's one positive claim, the concept-vs-role addressability dissociation,
+# rested on that pass.
+_MIN_COUNTERPART_SHIFT = 0.05
+
+
 def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> dict[str, object]:
     """The load-bearing intervention-strength control (proposal, §3 Controls).
 
     Compares P(counterpart) and P(entity) at the NEUTRAL probe under
-    IDENTITY_SWAP against NO_EDIT. Passing (counterpart rises, entity falls)
-    licenses interpreting a null binding score as evidence about binding
-    rather than a dead intervention; a failure makes any null uninterpretable
-    and analyze() surfaces that verdict instead of hiding it.
+    IDENTITY_SWAP against NO_EDIT. Passing licenses interpreting a null binding
+    score as evidence about binding rather than a dead intervention; a failure
+    makes any null uninterpretable and analyze() surfaces that verdict instead
+    of hiding it.
+
+    Passing requires the counterpart to rise by a MAGNITUDE
+    (`_MIN_COUNTERPART_SHIFT`), not merely to rise. A swap that nudges the
+    counterpart from 0.3% to 0.4% has not installed anything, and licensing a
+    null on it asserts exactly what the check exists to rule out. This is the
+    same failure the project has hit repeatedly: a threshold comparing two
+    quantities without first asking whether either is distinguishable from
+    nothing.
     """
     sums: dict[tuple[EditType, str], list[float]] = {}
     for t in trials:
@@ -332,7 +354,10 @@ def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> d
         "p_entity_swap": mean[(EditType.IDENTITY_SWAP, "entity")],
         "counterpart_shift": counterpart_shift,
         "entity_shift": entity_shift,
-        "passes": bool(counterpart_shift > 0.0 and entity_shift < 0.0),
+        "min_counterpart_shift": _MIN_COUNTERPART_SHIFT,
+        "passes": bool(
+            counterpart_shift >= _MIN_COUNTERPART_SHIFT and entity_shift < 0.0
+        ),
     }
 
 
