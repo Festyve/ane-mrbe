@@ -85,12 +85,31 @@ def main() -> None:
     try:
         push_kwargs = {"grid": args.push_grid} if args.push_grid else {}
         push = calibrate_push_coefficient(model, corpus, site=site, **push_kwargs)
-        alpha = calibrate_identity_alpha(model, families, site=site)
     except ValueError as exc:
         # The documented failure mode: the intervention is too weak at every
         # grid value, so any null binding result would be uninterpretable.
         print(f"intervention-strength failure: {exc}", file=sys.stderr)
         sys.exit(3)
+    # Surface the push result IMMEDIATELY: an alpha failure below must not
+    # discard a successful (possibly hours-long) push sweep. Observed on the
+    # Gemma-3-12B LRE run: push calibrated, alpha raised, and the chosen
+    # coefficient was lost because nothing had been printed or written yet.
+    print(f"push_coefficient calibrated: {json.dumps(asdict(push))}", file=sys.stderr)
+
+    alpha = None
+    alpha_failure: str | None = None
+    try:
+        alpha = calibrate_identity_alpha(model, families, site=site)
+    except ValueError as exc:
+        alpha_failure = str(exc)
+        print(
+            f"identity-swap (alpha) strength failure: {exc}\n"
+            "push_coefficient above is still valid; writing a partial record. "
+            "IDENTITY_SWAP conditions remain uncalibrated (alpha: null = pure "
+            "swap) and a null primary verdict would be uninterpretable — but a "
+            "positive push effect stands on its own.",
+            file=sys.stderr,
+        )
 
     record = {
         # Which site these were calibrated at. A coefficient tuned at one site
@@ -99,10 +118,16 @@ def main() -> None:
         # Qwen3.6-27B), so the same coefficient is a different push.
         "site": site.value,
         "push_coefficient": asdict(push),
-        "alpha": asdict(alpha),
+        "alpha": None if alpha is None else asdict(alpha),
+        "alpha_failure": alpha_failure,
         "note": (
             "copy push_coefficient.value / alpha.value into configs/*.yaml "
             "(model section), then run run_primary.py --site " + site.value
+        )
+        if alpha is not None
+        else (
+            "copy push_coefficient.value into configs/*.yaml; leave alpha null "
+            "(pure swap). alpha_failure records why the swap did not calibrate."
         ),
     }
     out = Path(config.paths.calibration)
@@ -110,6 +135,8 @@ def main() -> None:
     out.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {out}", file=sys.stderr)
     print(json.dumps(record, indent=2))
+    if alpha_failure is not None:
+        sys.exit(3)  # partial success still exits nonzero so pipelines notice
 
 
 if __name__ == "__main__":
