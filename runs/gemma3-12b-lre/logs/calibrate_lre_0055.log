@@ -1,0 +1,38 @@
+calibrating at site=entity_token
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<04:54,  3.62it/s]Loading weights:   2%|▏         | 16/1065 [00:00<00:21, 49.68it/s]Loading weights:   3%|▎         | 30/1065 [00:00<00:14, 72.78it/s]Loading weights:   4%|▍         | 44/1065 [00:00<00:11, 86.61it/s]Loading weights:   6%|▌         | 62/1065 [00:00<00:08, 112.35it/s]Loading weights:   7%|▋         | 75/1065 [00:00<00:08, 116.04it/s]Loading weights:   9%|▊         | 91/1065 [00:00<00:07, 127.20it/s]Loading weights:  10%|▉         | 105/1065 [00:01<00:07, 130.35it/s]Loading weights:  11%|█▏        | 120/1065 [00:01<00:07, 127.72it/s]Loading weights:  13%|█▎        | 134/1065 [00:01<00:07, 123.34it/s]Loading weights:  14%|█▍        | 148/1065 [00:01<00:07, 119.70it/s]Loading weights:  15%|█▌        | 161/1065 [00:01<00:07, 122.03it/s]Loading weights:  16%|█▋        | 174/1065 [00:01<00:07, 123.76it/s]Loading weights:  18%|█▊        | 187/1065 [00:01<00:07, 123.92it/s]Loading weights:  19%|█▉        | 200/1065 [00:01<00:06, 124.36it/s]Loading weights:  20%|██        | 213/1065 [00:01<00:06, 124.34it/s]Loading weights:  21%|██        | 226/1065 [00:02<00:06, 124.72it/s]Loading weights:  22%|██▏       | 239/1065 [00:02<00:06, 124.75it/s]Loading weights:  24%|██▎       | 252/1065 [00:02<00:06, 124.43it/s]Loading weights:  25%|██▍       | 265/1065 [00:02<00:06, 123.22it/s]Loading weights:  26%|██▌       | 278/1065 [00:02<00:06, 121.31it/s]Loading weights:  27%|██▋       | 291/1065 [00:02<00:06, 119.40it/s]Loading weights:  29%|██▊       | 304/1065 [00:02<00:06, 120.31it/s]Loading weights:  30%|██▉       | 317/1065 [00:02<00:06, 121.02it/s]Loading weights:  31%|███       | 330/1065 [00:02<00:06, 121.85it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:05, 122.54it/s]Loading weights:  33%|███▎      | 356/1065 [00:03<00:05, 122.87it/s]Loading weights:  35%|███▍      | 369/1065 [00:03<00:05, 122.99it/s]Loading weights:  36%|███▌      | 382/1065 [00:03<00:05, 123.18it/s]Loading weights:  37%|███▋      | 395/1065 [00:03<00:05, 123.03it/s]Loading weights:  38%|███▊      | 408/1065 [00:03<00:05, 121.78it/s]Loading weights:  40%|███▉      | 421/1065 [00:03<00:05, 117.98it/s]Loading weights:  41%|████      | 434/1065 [00:03<00:05, 119.51it/s]Loading weights:  42%|████▏     | 447/1065 [00:03<00:05, 121.78it/s]Loading weights:  44%|████▎     | 465/1065 [00:03<00:04, 134.56it/s]Loading weights:  45%|████▌     | 481/1065 [00:04<00:04, 140.10it/s]Loading weights:  47%|████▋     | 496/1065 [00:04<00:04, 133.06it/s]Loading weights:  48%|████▊     | 511/1065 [00:04<00:04, 129.88it/s]Loading weights:  49%|████▉     | 525/1065 [00:04<00:04, 125.10it/s]Loading weights:  51%|█████     | 538/1065 [00:04<00:04, 126.13it/s]Loading weights:  52%|█████▏    | 556/1065 [00:04<00:03, 137.89it/s]Loading weights:  54%|█████▎    | 572/1065 [00:04<00:03, 142.31it/s]Loading weights:  55%|█████▌    | 587/1065 [00:04<00:03, 143.35it/s]Loading weights:  57%|█████▋    | 602/1065 [00:05<00:03, 128.21it/s]Loading weights:  58%|█████▊    | 616/1065 [00:05<00:03, 123.65it/s]Loading weights:  72%|███████▏  | 772/1065 [00:05<00:00, 500.60it/s]Loading weights:  90%|█████████ | 963/1065 [00:05<00:00, 884.65it/s]Loading weights: 100%|██████████| 1065/1065 [00:05<00:00, 197.68it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1365.19it/s]
+push_coefficient calibrated: {"value": 256.0, "grid": [16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 4096.0], "shifts": {"16.0": 0.06846958993184632, "32.0": 0.11461547819003204, "64.0": 0.25397233026575594, "128.0": 0.4915626638044013, "256.0": 0.9078712806001018, "512.0": 1.5276819869976626, "1024.0": 2.060742110940319, "4096.0": 1.4346778436742138}, "criterion": "mean entity logit shift >= 0.5 on patient-role fitting sentences under the toward-agent push"}
+identity-swap (alpha) strength failure: no grid value moved the neutral readout by >= 0.05 (with P(entity) falling); observed counterpart shifts {0.5: 0.007345880798529833, 1.0: 0.012017830803524704, 2.0: 0.014633208957966416}. This is the intervention-strength failure mode the proposal flags: a null binding result would be uninterpretable at these strengths.
+push_coefficient above is still valid; writing a partial record. IDENTITY_SWAP conditions remain uncalibrated (alpha: null = pure swap) and a null primary verdict would be uninterpretable — but a positive push effect stands on its own.
+wrote data/gemma3_12b/calibration_lre.json
+{
+  "site": "entity_token",
+  "push_coefficient": {
+    "value": 256.0,
+    "grid": [
+      16.0,
+      32.0,
+      64.0,
+      128.0,
+      256.0,
+      512.0,
+      1024.0,
+      4096.0
+    ],
+    "shifts": {
+      "16.0": 0.06846958993184632,
+      "32.0": 0.11461547819003204,
+      "64.0": 0.25397233026575594,
+      "128.0": 0.4915626638044013,
+      "256.0": 0.9078712806001018,
+      "512.0": 1.5276819869976626,
+      "1024.0": 2.060742110940319,
+      "4096.0": 1.4346778436742138
+    },
+    "criterion": "mean entity logit shift >= 0.5 on patient-role fitting sentences under the toward-agent push"
+  },
+  "alpha": null,
+  "alpha_failure": "no grid value moved the neutral readout by >= 0.05 (with P(entity) falling); observed counterpart shifts {0.5: 0.007345880798529833, 1.0: 0.012017830803524704, 2.0: 0.014633208957966416}. This is the intervention-strength failure mode the proposal flags: a null binding result would be uninterpretable at these strengths.",
+  "note": "copy push_coefficient.value into configs/*.yaml; leave alpha null (pure swap). alpha_failure records why the swap did not calibrate."
+}

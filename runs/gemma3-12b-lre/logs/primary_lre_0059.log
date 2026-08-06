@@ -1,0 +1,76 @@
+generated 600 families
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<05:39,  3.13it/s]Loading weights:   1%|          | 13/1065 [00:00<00:26, 39.15it/s]Loading weights:   2%|▏         | 26/1065 [00:00<00:15, 65.97it/s]Loading weights:   4%|▎         | 39/1065 [00:00<00:12, 83.79it/s]Loading weights:   5%|▍         | 52/1065 [00:00<00:10, 95.56it/s]Loading weights:   6%|▌         | 65/1065 [00:00<00:09, 103.66it/s]Loading weights:   7%|▋         | 78/1065 [00:00<00:08, 109.78it/s]Loading weights:   8%|▊         | 90/1065 [00:01<00:08, 111.10it/s]Loading weights:  10%|▉         | 104/1065 [00:01<00:08, 117.87it/s]Loading weights:  11%|█         | 117/1065 [00:01<00:07, 119.73it/s]Loading weights:  12%|█▏        | 130/1065 [00:01<00:07, 121.00it/s]Loading weights:  13%|█▎        | 143/1065 [00:01<00:07, 120.74it/s]Loading weights:  15%|█▍        | 156/1065 [00:01<00:07, 121.73it/s]Loading weights:  16%|█▌        | 169/1065 [00:01<00:07, 120.87it/s]Loading weights:  17%|█▋        | 182/1065 [00:01<00:07, 119.88it/s]Loading weights:  18%|█▊        | 195/1065 [00:01<00:07, 118.50it/s]Loading weights:  19%|█▉        | 207/1065 [00:02<00:07, 117.69it/s]Loading weights:  21%|██        | 219/1065 [00:02<00:07, 114.40it/s]Loading weights:  22%|██▏       | 231/1065 [00:02<00:07, 114.71it/s]Loading weights:  23%|██▎       | 243/1065 [00:02<00:07, 113.59it/s]Loading weights:  24%|██▍       | 255/1065 [00:02<00:07, 111.35it/s]Loading weights:  25%|██▌       | 267/1065 [00:02<00:07, 108.17it/s]Loading weights:  26%|██▌       | 278/1065 [00:02<00:07, 104.46it/s]Loading weights:  27%|██▋       | 291/1065 [00:02<00:07, 107.46it/s]Loading weights:  29%|██▊       | 304/1065 [00:02<00:06, 109.65it/s]Loading weights:  30%|██▉       | 317/1065 [00:03<00:06, 111.02it/s]Loading weights:  31%|███       | 330/1065 [00:03<00:06, 111.98it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:06, 113.07it/s]Loading weights:  33%|███▎      | 355/1065 [00:03<00:06, 110.93it/s]Loading weights:  35%|███▍      | 369/1065 [00:03<00:06, 114.71it/s]Loading weights:  36%|███▌      | 382/1065 [00:03<00:05, 114.68it/s]Loading weights:  37%|███▋      | 395/1065 [00:03<00:05, 114.84it/s]Loading weights:  38%|███▊      | 408/1065 [00:03<00:05, 114.46it/s]Loading weights:  40%|███▉      | 421/1065 [00:03<00:05, 114.46it/s]Loading weights:  41%|████      | 434/1065 [00:04<00:05, 114.64it/s]Loading weights:  42%|████▏     | 447/1065 [00:04<00:05, 115.85it/s]Loading weights:  43%|████▎     | 460/1065 [00:04<00:05, 117.59it/s]Loading weights:  44%|████▍     | 473/1065 [00:04<00:04, 119.28it/s]Loading weights:  46%|████▌     | 486/1065 [00:04<00:04, 120.55it/s]Loading weights:  47%|████▋     | 499/1065 [00:04<00:04, 121.67it/s]Loading weights:  48%|████▊     | 512/1065 [00:04<00:04, 122.20it/s]Loading weights:  49%|████▉     | 525/1065 [00:04<00:04, 122.73it/s]Loading weights:  51%|█████     | 538/1065 [00:04<00:04, 122.84it/s]Loading weights:  52%|█████▏    | 551/1065 [00:05<00:04, 122.94it/s]Loading weights:  53%|█████▎    | 564/1065 [00:05<00:04, 122.78it/s]Loading weights:  54%|█████▍    | 577/1065 [00:05<00:03, 122.28it/s]Loading weights:  55%|█████▌    | 590/1065 [00:05<00:03, 122.59it/s]Loading weights:  57%|█████▋    | 603/1065 [00:05<00:03, 122.87it/s]Loading weights:  58%|█████▊    | 616/1065 [00:05<00:03, 122.58it/s]Loading weights:  71%|███████   | 753/1065 [00:05<00:00, 481.03it/s]Loading weights:  87%|████████▋ | 925/1065 [00:05<00:00, 829.64it/s]Loading weights:  96%|█████████▌| 1023/1065 [00:05<00:00, 797.58it/s]Loading weights: 100%|██████████| 1065/1065 [00:05<00:00, 180.71it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1344.90it/s]
+Traceback (most recent call last):
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/scripts/run_primary.py", line 60, in <module>
+    main()
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/scripts/run_primary.py", line 55, in main
+    trials = run_primary(config, model, families, site=site)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/src/jspace_binding/experiments/primary.py", line 130, in run_primary
+    answer_probs = model.answer_distribution(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 182, in answer_distribution
+    logits = self._model(ids).logits[0, -1, :]
+             ^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 911, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/models/gemma3/modeling_gemma3.py", line 1013, in forward
+    outputs = self.model(
+              ^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 911, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/models/gemma3/modeling_gemma3.py", line 912, in forward
+    outputs = self.language_model(
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 1040, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 262, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/models/gemma3/modeling_gemma3.py", line 576, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/transformers/modeling_layers.py", line 110, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1884, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/opt/dlami/nvme/jupyter-mrbe-8c5f/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1845, in inner
+    hook_result = hook(self, args, result)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 601, in hook
+    delta = model._edit_delta(edit, site, layer, h)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 633, in _edit_delta
+    return self._edit_delta_on_lens(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-8c5f/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 677, in _edit_delta_on_lens
+    raise RuntimeError(
+RuntimeError: no push coefficient: set model.push_coefficient in config (scripts/calibrate.py produces it) or pass EditSpec.coefficient

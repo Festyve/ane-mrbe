@@ -1,0 +1,68 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<05:07,  3.46it/s]Loading weights:   2%|▏         | 16/1065 [00:00<00:21, 48.26it/s]Loading weights:   3%|▎         | 30/1065 [00:00<00:14, 71.43it/s]Loading weights:   4%|▍         | 44/1065 [00:00<00:11, 85.59it/s]Loading weights:   6%|▌         | 61/1065 [00:00<00:09, 108.75it/s]Loading weights:   7%|▋         | 75/1065 [00:00<00:08, 116.21it/s]Loading weights:   9%|▊         | 91/1065 [00:00<00:07, 127.21it/s]Loading weights:  10%|▉         | 105/1065 [00:01<00:07, 130.49it/s]Loading weights:  11%|█▏        | 120/1065 [00:01<00:07, 127.71it/s]Loading weights:  13%|█▎        | 134/1065 [00:01<00:07, 123.55it/s]Loading weights:  14%|█▍        | 148/1065 [00:01<00:07, 119.68it/s]Loading weights:  15%|█▌        | 161/1065 [00:01<00:07, 121.95it/s]Loading weights:  16%|█▋        | 174/1065 [00:01<00:07, 123.68it/s]Loading weights:  18%|█▊        | 187/1065 [00:01<00:07, 123.52it/s]Loading weights:  19%|█▉        | 200/1065 [00:01<00:06, 123.88it/s]Loading weights:  20%|██        | 213/1065 [00:01<00:06, 124.01it/s]Loading weights:  21%|██        | 226/1065 [00:02<00:07, 119.57it/s]Loading weights:  22%|██▏       | 239/1065 [00:02<00:07, 114.94it/s]Loading weights:  24%|██▎       | 252/1065 [00:02<00:06, 117.17it/s]Loading weights:  25%|██▍       | 265/1065 [00:02<00:06, 118.15it/s]Loading weights:  26%|██▌       | 278/1065 [00:02<00:06, 118.95it/s]Loading weights:  27%|██▋       | 291/1065 [00:02<00:06, 120.01it/s]Loading weights:  29%|██▊       | 304/1065 [00:02<00:06, 120.95it/s]Loading weights:  30%|██▉       | 317/1065 [00:02<00:06, 121.51it/s]Loading weights:  31%|███       | 330/1065 [00:02<00:06, 120.54it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:05, 121.67it/s]Loading weights:  33%|███▎      | 356/1065 [00:03<00:05, 122.37it/s]Loading weights:  35%|███▍      | 369/1065 [00:03<00:05, 122.76it/s]Loading weights:  36%|███▌      | 382/1065 [00:03<00:05, 123.40it/s]Loading weights:  37%|███▋      | 395/1065 [00:03<00:05, 123.62it/s]Loading weights:  38%|███▊      | 408/1065 [00:03<00:05, 123.38it/s]Loading weights:  40%|███▉      | 421/1065 [00:03<00:05, 123.56it/s]Loading weights:  41%|████      | 434/1065 [00:03<00:05, 123.90it/s]Loading weights:  42%|████▏     | 447/1065 [00:03<00:04, 124.97it/s]Loading weights:  44%|████▎     | 464/1065 [00:03<00:04, 135.99it/s]Loading weights:  45%|████▍     | 479/1065 [00:04<00:04, 139.47it/s]Loading weights:  46%|████▋     | 494/1065 [00:04<00:04, 141.03it/s]Loading weights:  48%|████▊     | 509/1065 [00:04<00:03, 143.54it/s]Loading weights:  49%|████▉     | 524/1065 [00:04<00:04, 126.22it/s]Loading weights:  51%|█████     | 538/1065 [00:04<00:04, 110.79it/s]Loading weights:  52%|█████▏    | 555/1065 [00:04<00:04, 122.86it/s]Loading weights:  54%|█████▎    | 572/1065 [00:04<00:03, 133.26it/s]Loading weights:  55%|█████▌    | 586/1065 [00:04<00:03, 133.81it/s]Loading weights:  56%|█████▋    | 601/1065 [00:05<00:03, 122.29it/s]Loading weights:  58%|█████▊    | 616/1065 [00:05<00:03, 121.99it/s]Loading weights:  72%|███████▏  | 772/1065 [00:05<00:00, 491.15it/s]Loading weights:  91%|█████████ | 965/1065 [00:05<00:00, 876.89it/s]Loading weights: 100%|██████████| 1065/1065 [00:05<00:00, 195.38it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1472.37it/s]
+[within-pair entity_token] 10/200 (5%)  7s elapsed  2.0/s  ETA 1.6m
+[within-pair entity_token] 20/200 (10%)  12s elapsed  2.0/s  ETA 1.5m
+[within-pair entity_token] 30/200 (15%)  17s elapsed  1.9/s  ETA 88s
+[within-pair entity_token] 40/200 (20%)  22s elapsed  1.9/s  ETA 82s
+[within-pair entity_token] 50/200 (25%)  27s elapsed  1.9/s  ETA 78s
+[within-pair entity_token] 60/200 (30%)  33s elapsed  1.9/s  ETA 72s
+[within-pair entity_token] 70/200 (35%)  38s elapsed  1.9/s  ETA 67s
+[within-pair entity_token] 80/200 (40%)  43s elapsed  1.9/s  ETA 62s
+[within-pair entity_token] 90/200 (45%)  48s elapsed  1.9/s  ETA 57s
+[within-pair entity_token] 100/200 (50%)  53s elapsed  1.9/s  ETA 52s
+[within-pair entity_token] 110/200 (55%)  59s elapsed  1.9/s  ETA 47s
+[within-pair entity_token] 120/200 (60%)  64s elapsed  1.9/s  ETA 42s
+[within-pair entity_token] 130/200 (65%)  69s elapsed  1.9/s  ETA 36s
+[within-pair entity_token] 140/200 (70%)  74s elapsed  1.9/s  ETA 31s
+[within-pair entity_token] 150/200 (75%)  79s elapsed  1.9/s  ETA 26s
+[within-pair entity_token] 160/200 (80%)  85s elapsed  1.9/s  ETA 21s
+[within-pair entity_token] 170/200 (85%)  90s elapsed  1.9/s  ETA 16s
+[within-pair entity_token] 180/200 (90%)  1.6m elapsed  1.9/s  ETA 10s
+[within-pair entity_token] 190/200 (95%)  1.7m elapsed  1.9/s  ETA 5s
+[within-pair entity_token] 200/200 (100%)  1.8m elapsed  1.9/s
+sampling 200 families across 3 pairs: ['doctor->nurse', 'driver->passenger', 'teacher->student']
+
+model=google/gemma-3-12b-pt  site=entity_token  families=200
+chance = 0.50. WITHIN-pair splits are random; the main experiments
+use leave-one-pair-out, which is what inverts.
+
+  jspace
+    doctor->nurse            within-pair 0.641
+    driver->passenger        within-pair 0.675
+    teacher->student         within-pair 0.684
+    MEAN                                 0.667
+
+  orthogonal
+    doctor->nurse            within-pair 0.941
+    driver->passenger        within-pair 0.903
+    teacher->student         within-pair 0.875
+    MEAN                                 0.906
+
+  residual
+    doctor->nurse            within-pair 0.906
+    driver->passenger        within-pair 0.906
+    teacher->student         within-pair 0.875
+    MEAN                                 0.896
+
+  random_subspace
+    doctor->nurse            within-pair 0.875
+    driver->passenger        within-pair 0.838
+    teacher->student         within-pair 0.863
+    MEAN                                 0.858
+
+====================================================================
+ROLE IS PRESENT, BUT NOT FILLER-GENERAL.
+  Within-pair decoding works (0.896) while cross-pair inverts.
+  Role is linearly encoded, but the axis does not transfer across
+  concept pairs -- so it is not separable from the filler, which is
+  what role-filler binding requires. A claim about the
+  representation, not a null result.
+
+  AND: jspace does no better than a random subspace of equal rank
+  (0.667 vs 0.858), while the orthogonal
+  remainder reaches 0.906. The role
+  signal is in the residual stream but NOT in the workspace.
+====================================================================
+
+wrote data/gemma3_12b/results/within_pair.json

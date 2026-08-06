@@ -1,0 +1,3 @@
+label: gemma3-12b-lre
+commit: f6a983a79f47bcef6c3ba9884ebee524ebc9b7e5
+note: LRE gradient directions (stability 0.995+); push calibrated c=256 (linearity prediction c~125 vs observed 0.49 shift at 128); diagnose +0.94/-0.99/-0.01; primary verdict significant_but_tiny — steering mirror +/-0.22-0.25 real, binding score -0.014 d=-0.20 below pre-registered 0.5, wrong-signed for binding damage; alpha uncalibrated but in-run strength check passed
