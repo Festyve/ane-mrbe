@@ -128,3 +128,40 @@ def test_bag_mode_lands_inside_null_band(tmp_path: Path) -> None:
     # And the verdict says so: not significant, tight CI on d -> clean negative,
     # reported as a positive finding for the falsifiable claim.
     assert summary["verdict"]["outcome"] == "clean_negative"
+
+
+def test_strength_check_requires_a_magnitude_not_just_a_sign() -> None:
+    """A swap that moves the counterpart 0.3% -> 0.4% has not landed.
+
+    Observed on Qwen3.6-27B: counterpart 0.00269 -> 0.00393 (+0.0012) with the
+    entity essentially flat at 0.1851 -> 0.1809 (-0.0042). Both signs point the
+    right way, so a sign-only rule returned `passes: true` -- and that pass is
+    what licensed reading the primary's null as the concept-vs-role
+    ADDRESSABILITY DISSOCIATION, the project's one positive claim.
+
+    Meanwhile `calibrate_identity_alpha` reported an intervention-strength
+    failure on the same model at min_prob_shift=0.05. The two are the same
+    question asked twice and disagreed; this pins them together.
+
+    Gemma-3-12B is the instructive contrast: the entity DROPS hard
+    (0.2122 -> 0.0961) while the counterpart barely moves
+    (0.00544 -> 0.01021). That is the swap damaging the entity readout without
+    installing the counterpart -- consistent with the identity-overlap account
+    from the Gemma pilot, and not a working swap either.
+    """
+    from jspace_binding.experiments.primary import _MIN_COUNTERPART_SHIFT
+
+    def passes(counterpart_shift: float, entity_shift: float) -> bool:
+        return bool(
+            counterpart_shift >= _MIN_COUNTERPART_SHIFT and entity_shift < 0.0
+        )
+
+    # Qwen: nothing moved.
+    assert passes(0.003931 - 0.002690, 0.180907 - 0.185074) is False
+    # Gemma: entity damaged, counterpart never installed.
+    assert passes(0.010207 - 0.005436, 0.096120 - 0.212159) is False
+    # The dummy's planted swap, which genuinely propagates, must still pass.
+    assert passes(0.55 - 0.01, 0.05 - 0.45) is True
+    # A rise that clears the floor but with the entity going UP is still a
+    # failure: the counterpart must displace the entity, not join it.
+    assert passes(0.20, +0.05) is False
