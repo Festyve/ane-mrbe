@@ -1,0 +1,59 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<05:37,  3.15it/s]Loading weights:   1%|          | 10/1065 [00:00<00:35, 29.98it/s]Loading weights:   2%|▏         | 26/1065 [00:00<00:15, 68.08it/s]Loading weights:   4%|▎         | 39/1065 [00:00<00:11, 86.54it/s]Loading weights:   5%|▍         | 52/1065 [00:00<00:10, 98.15it/s]Loading weights:   6%|▌         | 65/1065 [00:00<00:09, 106.11it/s]Loading weights:   7%|▋         | 78/1065 [00:00<00:08, 111.59it/s]Loading weights:   9%|▊         | 91/1065 [00:01<00:08, 115.28it/s]Loading weights:  10%|▉         | 104/1065 [00:01<00:08, 117.90it/s]Loading weights:  11%|█         | 117/1065 [00:01<00:07, 119.76it/s]Loading weights:  12%|█▏        | 130/1065 [00:01<00:07, 120.96it/s]Loading weights:  13%|█▎        | 143/1065 [00:01<00:07, 121.97it/s]Loading weights:  15%|█▍        | 156/1065 [00:01<00:07, 121.15it/s]Loading weights:  16%|█▌        | 169/1065 [00:01<00:07, 120.52it/s]Loading weights:  17%|█▋        | 182/1065 [00:01<00:07, 119.45it/s]Loading weights:  18%|█▊        | 194/1065 [00:01<00:07, 115.33it/s]Loading weights:  19%|█▉        | 206/1065 [00:02<00:07, 115.51it/s]Loading weights:  20%|██        | 218/1065 [00:02<00:07, 115.31it/s]Loading weights:  22%|██▏       | 230/1065 [00:02<00:07, 110.43it/s]Loading weights:  23%|██▎       | 244/1065 [00:02<00:06, 117.33it/s]Loading weights:  24%|██▍       | 256/1065 [00:02<00:07, 115.17it/s]Loading weights:  25%|██▌       | 268/1065 [00:02<00:07, 108.82it/s]Loading weights:  26%|██▌       | 279/1065 [00:02<00:07, 104.53it/s]Loading weights:  27%|██▋       | 291/1065 [00:02<00:07, 104.62it/s]Loading weights:  29%|██▊       | 304/1065 [00:02<00:07, 107.54it/s]Loading weights:  30%|██▉       | 317/1065 [00:03<00:06, 109.32it/s]Loading weights:  31%|███       | 330/1065 [00:03<00:06, 110.59it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:06, 111.89it/s]Loading weights:  33%|███▎      | 356/1065 [00:03<00:06, 112.76it/s]Loading weights:  35%|███▍      | 369/1065 [00:03<00:06, 113.28it/s]Loading weights:  36%|███▌      | 382/1065 [00:03<00:06, 111.23it/s]Loading weights:  37%|███▋      | 395/1065 [00:03<00:05, 112.00it/s]Loading weights:  38%|███▊      | 408/1065 [00:03<00:05, 112.42it/s]Loading weights:  39%|███▉      | 420/1065 [00:03<00:05, 110.30it/s]Loading weights:  41%|████      | 434/1065 [00:04<00:05, 114.24it/s]Loading weights:  42%|████▏     | 447/1065 [00:04<00:05, 115.32it/s]Loading weights:  43%|████▎     | 460/1065 [00:04<00:05, 117.27it/s]Loading weights:  44%|████▍     | 473/1065 [00:04<00:04, 119.00it/s]Loading weights:  46%|████▌     | 486/1065 [00:04<00:04, 120.46it/s]Loading weights:  47%|████▋     | 499/1065 [00:04<00:04, 121.55it/s]Loading weights:  48%|████▊     | 512/1065 [00:04<00:04, 120.77it/s]Loading weights:  49%|████▉     | 525/1065 [00:04<00:04, 119.25it/s]Loading weights:  51%|█████     | 538/1065 [00:04<00:04, 120.38it/s]Loading weights:  52%|█████▏    | 551/1065 [00:05<00:04, 120.61it/s]Loading weights:  53%|█████▎    | 564/1065 [00:05<00:04, 121.29it/s]Loading weights:  54%|█████▍    | 577/1065 [00:05<00:04, 121.46it/s]Loading weights:  55%|█████▌    | 590/1065 [00:05<00:03, 122.06it/s]Loading weights:  57%|█████▋    | 603/1065 [00:05<00:03, 122.80it/s]Loading weights:  58%|█████▊    | 616/1065 [00:05<00:03, 122.89it/s]Loading weights:  71%|███████▏  | 759/1065 [00:05<00:00, 499.06it/s]Loading weights:  88%|████████▊ | 941/1065 [00:05<00:00, 872.52it/s]Loading weights: 100%|██████████| 1065/1065 [00:05<00:00, 182.68it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1488.93it/s]
+fitting corpus: 576 sentences (6 entities x 2 roles x 48) -> data/stimuli/fitting_corpus.jsonl
+[final_token] fitted 6 directions -> data/gemma3_12b/directions_lre/directions_final_token.npz
+[entity_token] fitted 6 directions -> data/gemma3_12b/directions_lre/directions_entity_token.npz
+{
+  "entities": [
+    "doctor",
+    "teacher",
+    "driver",
+    "chef",
+    "farmer",
+    "coach"
+  ],
+  "contaminated": false,
+  "directions_dir": "data/gemma3_12b/directions_lre",
+  "fitting_corpus": "data/stimuli/fitting_corpus.jsonl",
+  "sites": {
+    "final_token": {
+      "path": "data/gemma3_12b/directions_lre/directions_final_token.npz",
+      "stability": {
+        "chef": 0.9958558376537527,
+        "coach": 0.9961027763662268,
+        "doctor": 0.9951177258278824,
+        "driver": 0.997158433657737,
+        "farmer": 0.9976326003842366,
+        "teacher": 0.996787547879407
+      },
+      "raw_norms": {
+        "chef": 0.00015265887229959786,
+        "coach": 0.00014978616709237645,
+        "doctor": 0.00013186960991693237,
+        "driver": 0.00013540706555838236,
+        "farmer": 0.00014966627479286981,
+        "teacher": 0.0001369162814091263
+      }
+    },
+    "entity_token": {
+      "path": "data/gemma3_12b/directions_lre/directions_entity_token.npz",
+      "stability": {
+        "chef": 0.9992662485537265,
+        "coach": 0.9990158749725652,
+        "doctor": 0.9993412568259938,
+        "driver": 0.9991675628373933,
+        "farmer": 0.9993147283472407,
+        "teacher": 0.9992188011663086
+      },
+      "raw_norms": {
+        "chef": 0.004655288796973491,
+        "coach": 0.002819737929105141,
+        "doctor": 0.00416026143016262,
+        "driver": 0.0037109341049881167,
+        "farmer": 0.003989375534881275,
+        "teacher": 0.004032467143042593
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "layer": 36,
+  "checks": {
+    "non_degenerate": true,
+    "directed_modulation": true,
+    "jspace_fraction_of_residual": [
+      0.04997839406132698,
+      0.049207791686058044,
+      0.048346277326345444
+    ],
+    "diagonal_wins": 3,
+    "observed_atoms": {
+      "The doctor treated the lawyer.": [
+        "dokter",
+        "posTocco",
+        "Then",
+        "_______",
+        "\uadf8\ub294",
+        "</u>",
+        "Doctors",
+        "</h2>",
+        "\\$",
+        "\u2075",
+        "\u3057\u307e\u3057\u305f\u304c",
+        "tedav"
+      ],
+      "The chef prepared the meal in the kitchen.": [
+        "<start_of_image>",
+        "\u5979",
+        "Then",
+        "__________",
+        "\uadf8\ub294",
+        "posTocco",
+        "</em>",
+        "</h3>",
+        "chefs",
+        "Noun",
+        "=>{",
+        "\u043f\u0440\u0438\u0433\u043e\u0442\u043e\u0432"
+      ],
+      "The pilot landed the aircraft safely.": [
+        "dSampleWidth",
+        "firefighters",
+        "There",
+        "</strong>",
+        "\u300d\u3002",
+        "vliegtuig",
+        "nobody",
+        "\ufeff",
+        "damage",
+        "\"]')",
+        "\u21c0",
+        "\ufffd"
+      ]
+    }
+  },
+  "verdict": "PASS"
+}

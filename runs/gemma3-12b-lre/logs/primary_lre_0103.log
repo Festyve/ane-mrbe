@@ -1,0 +1,295 @@
+generated 600 families
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<05:42,  3.11it/s]Loading weights:   1%|          | 13/1065 [00:00<00:27, 38.88it/s]Loading weights:   2%|▏         | 26/1065 [00:00<00:15, 65.64it/s]Loading weights:   4%|▎         | 39/1065 [00:00<00:12, 83.75it/s]Loading weights:   5%|▍         | 52/1065 [00:00<00:10, 96.03it/s]Loading weights:   6%|▌         | 65/1065 [00:00<00:09, 104.43it/s]Loading weights:   7%|▋         | 78/1065 [00:00<00:08, 110.31it/s]Loading weights:   9%|▊         | 91/1065 [00:01<00:08, 114.31it/s]Loading weights:  10%|▉         | 104/1065 [00:01<00:08, 117.25it/s]Loading weights:  11%|█         | 117/1065 [00:01<00:07, 119.10it/s]Loading weights:  12%|█▏        | 130/1065 [00:01<00:07, 120.43it/s]Loading weights:  13%|█▎        | 143/1065 [00:01<00:07, 121.50it/s]Loading weights:  15%|█▍        | 156/1065 [00:01<00:07, 120.69it/s]Loading weights:  16%|█▌        | 169/1065 [00:01<00:07, 120.22it/s]Loading weights:  17%|█▋        | 182/1065 [00:01<00:07, 119.14it/s]Loading weights:  18%|█▊        | 194/1065 [00:01<00:07, 117.55it/s]Loading weights:  19%|█▉        | 206/1065 [00:02<00:07, 114.50it/s]Loading weights:  20%|██        | 218/1065 [00:02<00:07, 114.61it/s]Loading weights:  22%|██▏       | 230/1065 [00:02<00:07, 113.70it/s]Loading weights:  23%|██▎       | 242/1065 [00:02<00:07, 111.48it/s]Loading weights:  24%|██▍       | 254/1065 [00:02<00:07, 109.92it/s]Loading weights:  25%|██▍       | 266/1065 [00:02<00:07, 108.21it/s]Loading weights:  26%|██▌       | 278/1065 [00:02<00:07, 105.41it/s]Loading weights:  27%|██▋       | 291/1065 [00:02<00:07, 108.03it/s]Loading weights:  29%|██▊       | 304/1065 [00:02<00:06, 110.07it/s]Loading weights:  30%|██▉       | 317/1065 [00:03<00:06, 111.43it/s]Loading weights:  31%|███       | 330/1065 [00:03<00:06, 112.39it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:06, 113.46it/s]Loading weights:  33%|███▎      | 356/1065 [00:03<00:06, 114.02it/s]Loading weights:  35%|███▍      | 369/1065 [00:03<00:06, 114.18it/s]Loading weights:  36%|███▌      | 381/1065 [00:03<00:06, 111.82it/s]Loading weights:  37%|███▋      | 395/1065 [00:03<00:05, 115.50it/s]Loading weights:  38%|███▊      | 408/1065 [00:03<00:05, 115.03it/s]Loading weights:  40%|███▉      | 421/1065 [00:03<00:05, 114.76it/s]Loading weights:  41%|████      | 434/1065 [00:04<00:05, 114.90it/s]Loading weights:  42%|████▏     | 447/1065 [00:04<00:05, 116.08it/s]Loading weights:  43%|████▎     | 460/1065 [00:04<00:05, 118.02it/s]Loading weights:  44%|████▍     | 473/1065 [00:04<00:04, 119.62it/s]Loading weights:  46%|████▌     | 486/1065 [00:04<00:04, 121.12it/s]Loading weights:  47%|████▋     | 499/1065 [00:04<00:04, 122.43it/s]Loading weights:  48%|████▊     | 512/1065 [00:04<00:04, 123.06it/s]Loading weights:  49%|████▉     | 525/1065 [00:04<00:04, 123.44it/s]Loading weights:  51%|█████     | 538/1065 [00:04<00:04, 123.76it/s]Loading weights:  52%|█████▏    | 551/1065 [00:04<00:04, 123.95it/s]Loading weights:  53%|█████▎    | 564/1065 [00:05<00:04, 123.77it/s]Loading weights:  54%|█████▍    | 577/1065 [00:05<00:03, 123.41it/s]Loading weights:  55%|█████▌    | 590/1065 [00:05<00:03, 123.52it/s]Loading weights:  57%|█████▋    | 603/1065 [00:05<00:03, 123.77it/s]Loading weights:  58%|█████▊    | 616/1065 [00:05<00:03, 123.62it/s]Loading weights:  72%|███████▏  | 765/1065 [00:05<00:00, 516.26it/s]Loading weights:  89%|████████▊ | 943/1065 [00:05<00:00, 884.28it/s]Loading weights:  97%|█████████▋| 1034/1065 [00:05<00:00, 820.00it/s]Loading weights: 100%|██████████| 1065/1065 [00:05<00:00, 181.29it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1489.63it/s]
+[primary] 30/600 (5%)  1.7m elapsed  0.3/s  ETA 32.5m
+[primary] 60/600 (10%)  3.9m elapsed  0.3/s  ETA 35.1m
+[primary] 90/600 (15%)  7.1m elapsed  0.2/s  ETA 39.9m
+[primary] 120/600 (20%)  9.2m elapsed  0.2/s  ETA 36.9m
+[primary] 150/600 (25%)  10.9m elapsed  0.2/s  ETA 32.8m
+[primary] 180/600 (30%)  12.6m elapsed  0.2/s  ETA 29.5m
+[primary] 210/600 (35%)  14.4m elapsed  0.2/s  ETA 26.6m
+[primary] 240/600 (40%)  16.1m elapsed  0.2/s  ETA 24.1m
+[primary] 270/600 (45%)  18.7m elapsed  0.2/s  ETA 22.8m
+[primary] 300/600 (50%)  21.8m elapsed  0.2/s  ETA 21.8m
+[primary] 330/600 (55%)  23.5m elapsed  0.2/s  ETA 19.2m
+[primary] 360/600 (60%)  25.2m elapsed  0.2/s  ETA 16.8m
+[primary] 390/600 (65%)  27.0m elapsed  0.2/s  ETA 14.5m
+[primary] 420/600 (70%)  28.7m elapsed  0.2/s  ETA 12.3m
+[primary] 450/600 (75%)  30.4m elapsed  0.2/s  ETA 10.1m
+[primary] 480/600 (80%)  33.5m elapsed  0.2/s  ETA 8.4m
+[primary] 510/600 (85%)  36.1m elapsed  0.2/s  ETA 6.4m
+[primary] 540/600 (90%)  37.8m elapsed  0.2/s  ETA 4.2m
+[primary] 570/600 (95%)  39.6m elapsed  0.2/s  ETA 2.1m
+[primary] 600/600 (100%)  41.3m elapsed  0.2/s
+{
+  "site": "entity_token",
+  "ci_level": 0.95,
+  "n_trials": 31800,
+  "null_band": [
+    -0.14406870092701932,
+    0.11442946063009028
+  ],
+  "n_null_scores": 1800,
+  "pooled": {
+    "n": 600,
+    "mean": -0.014038070102109673,
+    "ci_lo": -0.019811312246749726,
+    "ci_hi": -0.008339339334395035,
+    "p_perm": 9.999000099990002e-05,
+    "cohens_d": -0.1954804702346339,
+    "cohens_d_ci_lo": -0.2768890592872167,
+    "cohens_d_ci_hi": -0.11580398235667236
+  },
+  "gap_change_by_sign": {
+    "toward_agent": {
+      "n": 600,
+      "mean": -0.22137502182943355
+    },
+    "toward_patient": {
+      "n": 600,
+      "mean": 0.24945116203365292
+    }
+  },
+  "neutral_strength_check": {
+    "available": true,
+    "p_counterpart_no_edit": 0.005436480066609874,
+    "p_counterpart_swap": 0.010207120446502814,
+    "p_entity_no_edit": 0.21215850215017173,
+    "p_entity_swap": 0.09611958912360327,
+    "counterpart_shift": 0.00477064037989294,
+    "entity_shift": -0.11603891302656846,
+    "passes": true
+  },
+  "constructions": {
+    "active_passive": {
+      "n": 150,
+      "mean": -0.023054519867211715,
+      "ci_lo": -0.03402751183732356,
+      "ci_hi": -0.01206344307214466,
+      "p_perm": 9.999000099990002e-05,
+      "cohens_d": -0.3332073998655082,
+      "cohens_d_ci_lo": -0.5069534125001346,
+      "cohens_d_ci_hi": -0.1724279702619326,
+      "significant_holm": true,
+      "agent_patient_family": true
+    },
+    "dative": {
+      "n": 150,
+      "mean": -0.021334774833972562,
+      "ci_lo": -0.03314313812988323,
+      "ci_hi": -0.009822936905836062,
+      "p_perm": 0.00019998000199980003,
+      "cohens_d": -0.2924309365780533,
+      "cohens_d_ci_lo": -0.4760665412992079,
+      "cohens_d_ci_hi": -0.13150605481806288,
+      "significant_holm": true,
+      "agent_patient_family": false
+    },
+    "cleft": {
+      "n": 150,
+      "mean": -0.01187051833997116,
+      "ci_lo": -0.023719710645326866,
+      "ci_hi": 0.00023513883335460112,
+      "p_perm": 0.05469453054694531,
+      "cohens_d": -0.16000280195565325,
+      "cohens_d_ci_lo": -0.32879807333559974,
+      "cohens_d_ci_hi": 0.0031007919147824042,
+      "significant_holm": false,
+      "agent_patient_family": true
+    },
+    "relative_clause": {
+      "n": 150,
+      "mean": 0.00010753263271673438,
+      "ci_lo": -0.011032180008685399,
+      "ci_hi": 0.011069556972954713,
+      "p_perm": 0.9854014598540146,
+      "cohens_d": 0.0015558668631272012,
+      "cohens_d_ci_lo": -0.1542954332407093,
+      "cohens_d_ci_hi": 0.17242011199035057,
+      "significant_holm": false,
+      "agent_patient_family": true
+    }
+  },
+  "groups": {
+    "active_passive|doctor->nurse": {
+      "construction": "active_passive",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.029602501067095246,
+      "ci_lo": -0.04411265213956354,
+      "ci_hi": -0.014789640510815268,
+      "p_perm": 0.00019998000199980003,
+      "cohens_d": -0.5505738679429089,
+      "cohens_d_ci_lo": -0.8731603370572169,
+      "cohens_d_ci_hi": -0.2740190674350982,
+      "significant_holm": true
+    },
+    "dative|doctor->nurse": {
+      "construction": "dative",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.025333316085502374,
+      "ci_lo": -0.044480747672861504,
+      "ci_hi": -0.005682180731342415,
+      "p_perm": 0.0160983901609839,
+      "cohens_d": -0.3565367601216846,
+      "cohens_d_ci_lo": -0.6919880662760401,
+      "cohens_d_ci_hi": -0.08029936024557272,
+      "significant_holm": false
+    },
+    "cleft|doctor->nurse": {
+      "construction": "cleft",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.00010518467148554311,
+      "ci_lo": -0.021848754955858283,
+      "ci_hi": 0.021946441341593886,
+      "p_perm": 0.9936006399360064,
+      "cohens_d": -0.0013187283941879363,
+      "cohens_d_ci_lo": -0.29347921042582503,
+      "cohens_d_ci_hi": 0.2739593994664597,
+      "significant_holm": false
+    },
+    "relative_clause|doctor->nurse": {
+      "construction": "relative_clause",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.008970171288699822,
+      "ci_lo": -0.027810127435743976,
+      "ci_hi": 0.009801949234053458,
+      "p_perm": 0.3618638136186381,
+      "cohens_d": -0.130986755228605,
+      "cohens_d_ci_lo": -0.4089491070836762,
+      "cohens_d_ci_hi": 0.1550986058217219,
+      "significant_holm": false
+    },
+    "active_passive|teacher->student": {
+      "construction": "active_passive",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.04016741103298458,
+      "ci_lo": -0.05947134411311954,
+      "ci_hi": -0.02086927264376603,
+      "p_perm": 0.00029997000299970003,
+      "cohens_d": -0.5650022038775735,
+      "cohens_d_ci_lo": -0.8929462254098727,
+      "cohens_d_ci_hi": -0.2977941288014417,
+      "significant_holm": true
+    },
+    "dative|teacher->student": {
+      "construction": "dative",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.01589175636141146,
+      "ci_lo": -0.03695856497029594,
+      "ci_hi": 0.005457372348138546,
+      "p_perm": 0.1511848815118488,
+      "cohens_d": -0.20287672073465865,
+      "cohens_d_ci_lo": -0.5176157946886593,
+      "cohens_d_ci_hi": 0.06833109068168126,
+      "significant_holm": false
+    },
+    "cleft|teacher->student": {
+      "construction": "cleft",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.025749004424057108,
+      "ci_lo": -0.04442321047451825,
+      "ci_hi": -0.0068511139691909105,
+      "p_perm": 0.010198980101989802,
+      "cohens_d": -0.37949552576869633,
+      "cohens_d_ci_lo": -0.7211612517867333,
+      "cohens_d_ci_hi": -0.09986187904529352,
+      "significant_holm": false
+    },
+    "relative_clause|teacher->student": {
+      "construction": "relative_clause",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.01207669033406546,
+      "ci_lo": -0.03278094707045837,
+      "ci_hi": 0.0075465521244054805,
+      "p_perm": 0.24897510248975102,
+      "cohens_d": -0.16580436096362206,
+      "cohens_d_ci_lo": -0.43745518478751877,
+      "cohens_d_ci_hi": 0.11336473204376468,
+      "significant_holm": false
+    },
+    "active_passive|driver->passenger": {
+      "construction": "active_passive",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": 0.0006063524984446844,
+      "ci_lo": -0.020233102690076176,
+      "ci_hi": 0.021231750931785136,
+      "p_perm": 0.952904709529047,
+      "cohens_d": 0.00803259828073824,
+      "cohens_d_ci_lo": -0.27993785934479093,
+      "cohens_d_ci_hi": 0.2913368157858114,
+      "significant_holm": false
+    },
+    "dative|driver->passenger": {
+      "construction": "dative",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": -0.022779252055003845,
+      "ci_lo": -0.04203415168240373,
+      "ci_hi": -0.0032300255987243614,
+      "p_perm": 0.0268973102689731,
+      "cohens_d": -0.32370422181493297,
+      "cohens_d_ci_lo": -0.6681812453209931,
+      "cohens_d_ci_hi": -0.04257450532155252,
+      "significant_holm": false
+    },
+    "cleft|driver->passenger": {
+      "construction": "cleft",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": -0.009757365924370834,
+      "ci_lo": -0.030273199397847613,
+      "ci_hi": 0.010008688718424632,
+      "p_perm": 0.34526547345265474,
+      "cohens_d": -0.1324280907514336,
+      "cohens_d_ci_lo": -0.40958808955666964,
+      "cohens_d_ci_hi": 0.14630766096626785,
+      "significant_holm": false
+    },
+    "relative_clause|driver->passenger": {
+      "construction": "relative_clause",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": 0.021369459520915485,
+      "ci_lo": 0.004081947444352825,
+      "ci_hi": 0.038243341953395196,
+      "p_perm": 0.0187981201879812,
+      "cohens_d": 0.3451397597082107,
+      "cohens_d_ci_lo": 0.061660462036561,
+      "cohens_d_ci_hi": 0.7018001028858436,
+      "significant_holm": false
+    }
+  },
+  "verdict": {
+    "outcome": "significant_but_tiny",
+    "strength_check_passes": true,
+    "pooled_significant": true,
+    "pooled_d": -0.1954804702346339,
+    "pooled_d_ci": [
+      -0.2768890592872167,
+      -0.11580398235667236
+    ],
+    "d_threshold": 0.5,
+    "meaningful_constructions": [],
+    "random_direction_mean": 0.004059856804262574,
+    "random_direction_in_band": true,
+    "control_means": {
+      "null_non_participant": -0.009512460812852003,
+      "random_direction": 0.004059856804262574,
+      "shuffled_label_direction": -0.030783004265959743
+    }
+  },
+  "figures": {
+    "forest": "figures/gemma3_12b_lre/forest.png",
+    "per_condition": "figures/gemma3_12b_lre/per_condition.png"
+  }
+}

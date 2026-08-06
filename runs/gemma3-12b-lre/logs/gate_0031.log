@@ -1,0 +1,48 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<11:56,  1.48it/s]Loading weights:   0%|          | 4/1065 [00:00<02:56,  6.00it/s]Loading weights:   2%|▏         | 17/1065 [00:00<00:38, 27.31it/s]Loading weights:   3%|▎         | 29/1065 [00:01<00:24, 42.38it/s]Loading weights:   3%|▎         | 36/1065 [00:01<00:22, 46.12it/s]Loading weights:   4%|▍         | 43/1065 [00:01<00:20, 49.61it/s]Loading weights:   5%|▌         | 55/1065 [00:01<00:16, 60.06it/s]Loading weights:   6%|▌         | 62/1065 [00:01<00:16, 61.28it/s]Loading weights:   6%|▋         | 69/1065 [00:01<00:18, 53.17it/s]Loading weights:   8%|▊         | 82/1065 [00:01<00:15, 64.18it/s]Loading weights:   9%|▉         | 94/1065 [00:02<00:13, 70.24it/s]Loading weights:  10%|▉         | 102/1065 [00:02<00:13, 69.32it/s]Loading weights:  10%|█         | 110/1065 [00:02<00:15, 62.00it/s]Loading weights:  11%|█▏        | 120/1065 [00:02<00:14, 65.14it/s]Loading weights:  12%|█▏        | 133/1065 [00:02<00:12, 73.37it/s]Loading weights:  13%|█▎        | 141/1065 [00:02<00:12, 71.42it/s]Loading weights:  14%|█▍        | 149/1065 [00:02<00:15, 60.05it/s]Loading weights:  15%|█▍        | 159/1065 [00:03<00:13, 68.56it/s]Loading weights:  16%|█▌        | 167/1065 [00:03<00:13, 64.94it/s]Loading weights:  16%|█▋        | 174/1065 [00:03<00:16, 53.43it/s]Loading weights:  17%|█▋        | 184/1065 [00:03<00:14, 61.65it/s]Loading weights:  18%|█▊        | 191/1065 [00:03<00:15, 56.45it/s]Loading weights:  19%|█▊        | 199/1065 [00:03<00:15, 55.60it/s]Loading weights:  20%|█▉        | 208/1065 [00:03<00:14, 61.06it/s]Loading weights:  20%|██        | 215/1065 [00:04<00:16, 50.30it/s]Loading weights:  21%|██        | 224/1065 [00:04<00:14, 57.20it/s]Loading weights:  22%|██▏       | 231/1065 [00:04<00:15, 55.35it/s]Loading weights:  22%|██▏       | 237/1065 [00:04<00:14, 55.66it/s]Loading weights:  23%|██▎       | 243/1065 [00:04<00:16, 50.05it/s]Loading weights:  24%|██▎       | 251/1065 [00:04<00:16, 50.82it/s]Loading weights:  24%|██▍       | 260/1065 [00:04<00:13, 57.94it/s]Loading weights:  25%|██▌       | 267/1065 [00:05<00:16, 48.31it/s]Loading weights:  26%|██▌       | 276/1065 [00:05<00:14, 54.47it/s]Loading weights:  26%|██▋       | 282/1065 [00:05<00:15, 51.33it/s]Loading weights:  27%|██▋       | 289/1065 [00:05<00:14, 52.48it/s]Loading weights:  28%|██▊       | 295/1065 [00:05<00:16, 47.04it/s]Loading weights:  28%|██▊       | 303/1065 [00:05<00:15, 48.78it/s]Loading weights:  29%|██▉       | 312/1065 [00:05<00:13, 56.26it/s]Loading weights:  30%|██▉       | 318/1065 [00:06<00:16, 45.81it/s]Loading weights:  31%|███       | 327/1065 [00:06<00:13, 53.20it/s]Loading weights:  31%|███▏      | 333/1065 [00:06<00:14, 51.26it/s]Loading weights:  32%|███▏      | 341/1065 [00:06<00:13, 55.66it/s]Loading weights:  33%|███▎      | 347/1065 [00:06<00:14, 49.93it/s]Loading weights:  33%|███▎      | 355/1065 [00:06<00:14, 50.55it/s]Loading weights:  34%|███▍      | 363/1065 [00:06<00:12, 55.82it/s]Loading weights:  35%|███▍      | 369/1065 [00:07<00:15, 45.40it/s]Loading weights:  36%|███▌      | 379/1065 [00:07<00:12, 55.24it/s]Loading weights:  36%|███▌      | 386/1065 [00:07<00:13, 51.99it/s]Loading weights:  37%|███▋      | 394/1065 [00:07<00:12, 51.95it/s]Loading weights:  38%|███▊      | 403/1065 [00:07<00:11, 58.91it/s]Loading weights:  38%|███▊      | 410/1065 [00:07<00:13, 49.52it/s]Loading weights:  39%|███▉      | 419/1065 [00:07<00:11, 56.17it/s]Loading weights:  40%|████      | 426/1065 [00:08<00:12, 52.73it/s]Loading weights:  41%|████      | 433/1065 [00:08<00:12, 49.63it/s]Loading weights:  42%|████▏     | 442/1065 [00:08<00:11, 56.43it/s]Loading weights:  42%|████▏     | 448/1065 [00:08<00:12, 49.52it/s]Loading weights:  43%|████▎     | 459/1065 [00:08<00:10, 57.46it/s]Loading weights:  44%|████▍     | 470/1065 [00:08<00:09, 63.31it/s]Loading weights:  45%|████▍     | 478/1065 [00:08<00:08, 66.27it/s]Loading weights:  46%|████▌     | 485/1065 [00:09<00:09, 62.70it/s]Loading weights:  47%|████▋     | 497/1065 [00:09<00:08, 69.95it/s]Loading weights:  47%|████▋     | 505/1065 [00:09<00:08, 66.81it/s]Loading weights:  48%|████▊     | 512/1065 [00:09<00:09, 59.22it/s]Loading weights:  49%|████▉     | 524/1065 [00:09<00:08, 66.75it/s]Loading weights:  50%|█████     | 536/1065 [00:09<00:07, 71.41it/s]Loading weights:  51%|█████     | 544/1065 [00:09<00:07, 68.08it/s]Loading weights:  52%|█████▏    | 551/1065 [00:10<00:08, 61.00it/s]Loading weights:  53%|█████▎    | 563/1065 [00:10<00:07, 68.46it/s]Loading weights:  54%|█████▍    | 575/1065 [00:10<00:06, 71.49it/s]Loading weights:  55%|█████▍    | 583/1065 [00:10<00:06, 70.16it/s]Loading weights:  55%|█████▌    | 591/1065 [00:10<00:07, 63.18it/s]Loading weights:  57%|█████▋    | 602/1065 [00:10<00:06, 67.60it/s]Loading weights:  58%|█████▊    | 614/1065 [00:10<00:06, 72.24it/s]Loading weights:  58%|█████▊    | 622/1065 [00:11<00:06, 70.79it/s]Loading weights:  66%|██████▌   | 700/1065 [00:11<00:01, 239.62it/s]Loading weights:  74%|███████▍  | 791/1065 [00:11<00:00, 409.61it/s]Loading weights:  83%|████████▎ | 886/1065 [00:11<00:00, 553.31it/s]Loading weights:  93%|█████████▎| 988/1065 [00:11<00:00, 670.16it/s]Loading weights: 100%|██████████| 1065/1065 [00:11<00:00, 92.11it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1471.86it/s]
+model=google/gemma-3-12b-pt  lens=neuronpedia/jacobian-lens
+read layer=36  jspace_k=16
+
+========================================================================
+1. NON-DEGENERATE  (+ atoms printed for human inspection)
+========================================================================
+
+  'The doctor treated the lawyer.'
+    atoms selected : 16/16
+    ||J|| / ||h||  : 0.050
+    top atoms      : ['dokter', 'posTocco', 'Then', '_______', '그는', '</u>', 'Doctors', '</h2>', '\\$', '⁵', 'しましたが', 'tedav']
+
+  'The chef prepared the meal in the kitchen.'
+    atoms selected : 16/16
+    ||J|| / ||h||  : 0.049
+    top atoms      : ['<start_of_image>', '她', 'Then', '__________', '그는', 'posTocco', '</em>', '</h3>', 'chefs', 'Noun', '=>{', 'приготов']
+
+  'The pilot landed the aircraft safely.'
+    atoms selected : 16/16
+    ||J|| / ||h||  : 0.048
+    top atoms      : ['dSampleWidth', 'firefighters', 'There', '</strong>', '」。', 'vliegtuig', 'nobody', '\ufeff', 'damage', '"]\')', '⇀', '�']
+
+  NOT auto-checked: what the workspace HOLDS is the research
+  question, so the gate does not prejudge it. Read the atoms.
+
+========================================================================
+3. DIRECTED MODULATION  (the contrast check)
+========================================================================
+  J-lens score of each concept's own token, per prompt.
+  Want the DIAGONAL to dominate: each concept scores highest when named.
+
+  prompt \ token         spider       piano     volcano
+  -----------------------------------------------------
+  spider               1536.00     -748.00     -298.00   <- OK
+  piano                   7.94     1776.00     -430.00   <- OK
+  volcano               296.00     -888.00     2048.00   <- OK
+
+========================================================================
+  non-degenerate      : PASS
+  directed modulation : PASS
+========================================================================
+GATE PASS — the lens reads this model. A near-chance experiment
+result is therefore about the MODEL, not about the plumbing.
+
+wrote data/gemma3_12b/results/replication_gate.json
