@@ -352,6 +352,23 @@ class DummyModel:
             return noise
         return [role_sign * p + n for p, n in zip(planted, noise, strict=True)]
 
+    def fitting_gradient(
+        self, sentence: str, role_probe: str, entity: str, other: str, site: InjectionSite
+    ) -> list[float]:
+        """Synthetic readout gradient for the LRE-style estimator.
+
+        binding mode: the entity's planted direction plus noise, with NO role
+        sign — a gradient of the agent readout points toward agent on every
+        exemplar, so the pooled mean must recover the planted direction with
+        high stability. bag mode: pure noise, so stability must come out low.
+        """
+        planted = self._planted_direction(entity, site)
+        rng = self._content_rng("fitgrad", sentence, entity, other, site.value)
+        noise = [rng.gauss(0.0, _FIT_NOISE) for _ in range(_FIT_DIM)]
+        if self.mode == "bag":
+            return noise
+        return [p + n for p, n in zip(planted, noise, strict=True)]
+
     def _planted_direction(self, entity: str, site: InjectionSite) -> list[float]:
         """Deterministic pseudo-random unit vector per (entity, site)."""
         return self._unit_vector("planted", entity, site.value, dim=_FIT_DIM)

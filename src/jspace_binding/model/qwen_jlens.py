@@ -202,6 +202,50 @@ class QwenJLensModel:
         return [float(x) for x in component.float().cpu()]
 
     # ------------------------------------------------------------------ #
+    # FittingGradientSource (LRE-style estimator)                        #
+    # ------------------------------------------------------------------ #
+
+    def fitting_gradient(
+        self, sentence: str, role_probe: str, entity: str, other: str, site: InjectionSite
+    ) -> list[float]:
+        """d(z_entity - z_other)/dh at the read layer, `site` token.
+
+        Same prompt construction and site anchoring as answer_distribution, so
+        the gradient is taken exactly where the push would inject. The raw
+        logit difference equals the answer log-odds (softmax cancels), so this
+        is the local steering direction of the role readout. Residual space,
+        not J-space: the push adds in residual space. No edit applied.
+        """
+        self._ensure_ready()
+        import torch
+
+        if self.config.load_in_4bit:
+            raise RuntimeError(
+                "fitting_gradient needs backward through the model; 4-bit "
+                "quantized weights do not support that. Use bf16 for the "
+                "lre_gradient estimator."
+            )
+        text = f"{sentence} {role_probe}"
+        ids = self._tokenizer(text, return_tensors="pt").input_ids.to(self._device())
+        anchor = self._site_index(sentence, text, site, target_entity=entity)
+        entity_id = self._single_token_id(entity)
+        other_id = self._single_token_id(other)
+        captured: dict[str, Any] = {}
+
+        def capture(module: Any, inputs: Any, output: Any) -> None:
+            captured["h"] = output[0] if isinstance(output, tuple) else output
+
+        handle = self._decoder_layer(self._read_layer()).register_forward_hook(capture)
+        try:
+            with torch.enable_grad():
+                logits = self._model(ids).logits[0, -1, :]
+                target = logits[entity_id].float() - logits[other_id].float()
+                (grad,) = torch.autograd.grad(target, captured["h"])
+        finally:
+            handle.remove()
+        return [float(x) for x in grad[0, anchor, :].float().cpu()]
+
+    # ------------------------------------------------------------------ #
     # ProbeActivationSource (RQ1)                                        #
     # ------------------------------------------------------------------ #
 
