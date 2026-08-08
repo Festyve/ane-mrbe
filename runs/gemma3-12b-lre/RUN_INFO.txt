@@ -1,3 +1,21 @@
 label: gemma3-12b-lre
 commit: f6a983a79f47bcef6c3ba9884ebee524ebc9b7e5
 note: LRE gradient directions (stability 0.995+); push calibrated c=256 (linearity prediction c~125 vs observed 0.49 shift at 128); diagnose +0.94/-0.99/-0.01; primary verdict significant_but_tiny — steering mirror +/-0.22-0.25 real, binding score -0.014 d=-0.20 below pre-registered 0.5, wrong-signed for binding damage; alpha uncalibrated but in-run strength check passed
+
+STALE VERDICT — this run predates a5b843c. Re-scored under current code with
+scripts/reanalyze_primary.py (no GPU; the archived trials.jsonl is the input):
+
+    outcome          significant_but_tiny -> uninterpretable_strength_failure
+    strength check   True -> False
+    counterpart      +0.00477 against the 0.05 floor a5b843c added
+    entity           -0.11604
+
+No measurement moved — pooled_d is -0.1954804702346339 in both. Only the label
+changed. Cite uninterpretable_strength_failure, not significant_but_tiny.
+
+Note what the failing gate is and is not. The binding score is a ROLE_PUSH
+quantity and that arm IS strength-validated: calibrate got 0.49 log-odds at
+c=128, diagnose got +0.94/-0.99/-0.01. What failed is IDENTITY_SWAP's alpha,
+a control for the separate (and already retracted) addressability claim.
+_verdict gates the whole outcome on it. Whether that is the right gate for a
+push-arm result is an open methods question, not a settled one.
