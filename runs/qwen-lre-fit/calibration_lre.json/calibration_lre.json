@@ -1,0 +1,28 @@
+{
+  "site": "entity_token",
+  "push_coefficient": {
+    "value": 4.0,
+    "grid": [
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0,
+      16.0,
+      32.0
+    ],
+    "shifts": {
+      "0.5": 0.09804405161194393,
+      "1.0": 0.16118757563596334,
+      "2.0": 0.3062568894691636,
+      "4.0": 0.5874087235805361,
+      "8.0": 1.0921230281056902,
+      "16.0": 1.9660931906773988,
+      "32.0": 3.172814533253671
+    },
+    "criterion": "mean entity logit shift >= 0.5 on patient-role fitting sentences under the toward-agent push"
+  },
+  "alpha": null,
+  "alpha_failure": "no grid value moved the neutral readout by >= 0.05 (with P(entity) falling); observed counterpart shifts {0.5: 0.0010878572380170226, 1.0: 0.002697801855392754, 2.0: 0.005741566675715149}. This is the intervention-strength failure mode the proposal flags: a null binding result would be uninterpretable at these strengths.",
+  "note": "copy push_coefficient.value into configs/*.yaml; leave alpha null (pure swap). alpha_failure records why the swap did not calibrate."
+}

@@ -1,0 +1,7 @@
+label: qwen-lre-fit
+commit: b73c2ecbf7bb8c43627c0f00cbad0d5232ba5716
+dirty: True
+config: configs/default_lre.yaml
+sources: ['data/results_lre', 'data/directions_lre', 'figures/qwen_lre', 'data/calibration_lre.json']
+note: LRE directions (entity 0.997-0.998, final 0.967-0.981) + calibration c=4.0, monotone 0.098->3.173 over 0.5-32, 64x diff-means at c=8; alpha failed again
+files: 11
