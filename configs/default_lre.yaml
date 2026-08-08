@@ -18,14 +18,32 @@ model:
   lens_repo: neuronpedia/jacobian-lens
   lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
   layer_band: [48, 48]      # unchanged: the estimator moves, the read layer does not
-  # BOTH null on purpose. default.yaml carries push_coefficient: 8.0, which
-  # was the largest value of a grid the DIFF-MEANS directions failed to move
-  # anything on (calibrate exit 3) -- it is not a calibrated value and it is
-  # meaningless for a different estimator's directions. The coefficient is in
-  # ABSOLUTE residual-norm units, so it does not transfer across estimators
-  # any more than it transfers across models. Re-derive it here.
+  # CALIBRATED on this model, this estimator, this site (entity_token), by
+  # scripts/calibrate.py -- the smallest grid value whose toward-agent push
+  # moves patient-role fitting sentences by >= 0.5 log-odds:
+  #
+  #   c        0.5     1.0     2.0     4.0     8.0     16.0    32.0
+  #   LRE      0.098   0.161   0.306   0.587   1.092   1.966   3.173
+  #   diff-means -0.005 +0.008 +0.011  +0.005  +0.017    -       -
+  #
+  # Monotone and near-linear over a 64x range -- each doubling of c roughly
+  # doubles the shift -- against diff-means wandering around 0.01 with no
+  # trend at identical coefficients. At c=8 the two differ 64-fold. This is
+  # what establishes that Qwen's push null (RESULTS.md §7) was an artifact of
+  # the difference-of-means estimator, not a property of the model.
+  #
+  # A separate high sweep (runs/qwen-lre/logs/calibrate.log) shows the response
+  # peaking at c=32 (3.173) and then DECAYING to a ~0.6 plateau for c >= 512:
+  # saturation, not steering. The linear regime is c <~ 32, so 4.0 sits well
+  # inside it. Do not raise this coefficient without re-reading that curve.
+  #
+  # alpha stays null: calibrate_identity_alpha failed again here (counterpart
+  # shifts 0.0011 / 0.0027 / 0.0057 against a 0.05 floor), consistent with
+  # RESULTS.md §7's retraction. IDENTITY_SWAP conditions therefore run as a
+  # pure swap, and after ded29ea that failure no longer gates the verdict --
+  # the primary is gated on the ROLE_PUSH arm, which calibrated cleanly.
   alpha: null
-  push_coefficient: null
+  push_coefficient: 4.0
   jspace_k: 16
   ablate_k: 10
   dtype: bfloat16
