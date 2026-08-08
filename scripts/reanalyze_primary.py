@@ -139,22 +139,37 @@ def main() -> None:
         print("\nno archived verdict to compare against", file=sys.stderr)
         return
 
-    check = summary["neutral_strength_check"]
+    swap = summary["neutral_strength_check"]
+    push = summary["push_strength_check"]
     print("\n" + "=" * 68, file=sys.stderr)
     print(f"archived outcome : {before.get('outcome')}", file=sys.stderr)
     print(f"recomputed       : {now['outcome']}", file=sys.stderr)
     print(
         f"strength check   : {before.get('strength_check_passes')} -> "
-        f"{now['strength_check_passes']}",
+        f"{now['strength_check_passes']}  (gated on {now.get('strength_gated_on')})",
         file=sys.stderr,
     )
-    if check.get("available"):
+    if push.get("available"):
+        strongest = push["strongest_control"]
         print(
-            f"counterpart shift: {check['counterpart_shift']:+.5f} "
-            f"(floor {check.get('min_counterpart_shift')})",
+            f"  push arm       : displacement {push['role_push_displacement']:.3f} "
+            f"vs floor {push['min_push_displacement']}",
             file=sys.stderr,
         )
-        print(f"entity shift     : {check['entity_shift']:+.5f}", file=sys.stderr)
+        print(
+            f"                   strongest control {strongest} "
+            f"{push['control_displacement'][strongest]:.3f}, "
+            f"paired CI {push['vs_control_ci']}",
+            file=sys.stderr,
+        )
+    if swap.get("available"):
+        print(
+            f"  swap arm       : counterpart {swap['counterpart_shift']:+.5f} "
+            f"vs floor {swap.get('min_counterpart_shift')}, "
+            f"entity {swap['entity_shift']:+.5f}  "
+            f"(reported, not gating)",
+            file=sys.stderr,
+        )
     print("=" * 68, file=sys.stderr)
 
     if before.get("outcome") != now["outcome"]:

@@ -27,7 +27,9 @@ import numpy as np
 from jspace_binding.analysis import stats
 from jspace_binding.analysis.binding_score import (
     AGENT_PATIENT_CONSTRUCTIONS,
+    CONTROL_EDIT_TYPES,
     ScoreTable,
+    _cell_logits,
     collect_scores,
 )
 from jspace_binding.analysis.plots import forest_plot, per_condition_plot
@@ -234,6 +236,7 @@ def analyze(
         alpha=config.analysis.alpha_level,
     )
     neutral_check = _neutral_strength_check(trials, site)
+    push_check = _push_strength_check(trials, site, config)
     verdict = _verdict(
         config,
         pooled,
@@ -241,6 +244,7 @@ def analyze(
         construction_significant,
         table,
         (band_lo, band_hi),
+        push_check,
         neutral_check,
     )
 
@@ -264,6 +268,7 @@ def analyze(
             sign: {"n": len(values), "mean": float(np.mean(values))}
             for sign, values in table.gap_changes.items()
         },
+        "push_strength_check": push_check,
         "neutral_strength_check": neutral_check,
         "constructions": {
             construction: {
@@ -361,6 +366,136 @@ def _neutral_strength_check(trials: list[TrialResult], site: InjectionSite) -> d
     }
 
 
+# Minimum mean |logit| displacement of the readout under ROLE_PUSH for the
+# arm to count as live. Identical to experiments.calibrate's `min_logit_shift`,
+# deliberately and for the same reason _MIN_COUNTERPART_SHIFT matches
+# calibrate_identity_alpha: calibration and the in-run check are the same
+# question asked twice and MUST agree. Qwen's diff-means push moved the readout
+# ~0.01 log-odds non-monotonically across a 16x range (RESULTS.md §7) and is
+# the case this must exclude; 0.5 excludes it by a wide margin.
+_MIN_PUSH_DISPLACEMENT = 0.5
+
+
+def _readout_displacement(
+    trials: list[TrialResult], entity_token: str, treatment: EditType
+) -> float:
+    """Mean |logit P(entity) under `treatment` - under NO_EDIT| over all cells.
+
+    A LEVEL statistic, not a gap contrast, and that choice is load-bearing.
+
+    The obvious candidate was the "steering mirror", the difference of the two
+    signed gap changes, chosen because the binding score is their sum and the
+    two are orthogonal contrasts. It is wrong. Both gap changes are computed
+    against the SAME natural gap, so a push whose effect is uniform across
+    roles cancels entirely -- and that is exactly what a bag workspace does.
+    In DummyModel the mirror is identically zero in BOTH modes (binding:
+    dG = -2.2 under either sign; bag: a uniform sign*0.8 shift that the gap
+    subtracts away), so gating on it fails the ground-truth validation the
+    whole pipeline rests on, in the mode that is supposed to be a clean
+    negative.
+
+    Displacement has the property the gate actually needs. It is large
+    whenever the push moves the readout at all, in binding mode (~2.2) and bag
+    mode (0.8) alike, while the binding score is ~0 in bag mode -- so a null
+    binding result cannot fail its own strength check. That is the
+    non-circularity requirement, and it is met without requiring the null to
+    also be role-structured.
+    """
+    cells = _cell_logits(trials, entity_token, treatment, ProbeKind.ROLE)
+    baseline = {
+        (role, pos): cells[(role, pos, EditType.NO_EDIT, None)]
+        for role in Role
+        for pos in Position
+    }
+    shifts = [
+        abs(value - baseline[(role, pos)])
+        for (role, pos, edit, _sign), value in cells.items()
+        if edit is treatment
+    ]
+    return float(np.mean(shifts)) if shifts else 0.0
+
+
+def _push_strength_check(
+    trials: list[TrialResult], site: InjectionSite, config: Config
+) -> dict[str, object]:
+    """Intervention-strength control for the arm the binding score is built on.
+
+    The binding score is a ROLE_PUSH quantity. `_neutral_strength_check` tests
+    IDENTITY_SWAP, a different edit serving the separate (and retracted)
+    addressability claim, whose alpha failed to calibrate on both models
+    tested. Gating a push result on a swap control conflates two independent
+    claims and makes every push null uninterpretable by construction.
+
+    Passing requires BOTH:
+      1. mean readout displacement >= _MIN_PUSH_DISPLACEMENT -- an absolute
+         floor, because "significantly greater than a control" is satisfiable
+         by an arbitrarily tiny effect given enough families; and
+      2. a bootstrap CI on the paired difference against the STRONGEST control
+         edit that excludes zero -- so the movement is specific to the fitted
+         role direction rather than what any push of that norm would do.
+
+    Paired per family, so (1) and (2) describe the same families.
+    """
+    by_family: dict[str, list[TrialResult]] = {}
+    for t in trials:
+        if t.probe_kind is ProbeKind.ROLE and t.injection_site is site:
+            by_family.setdefault(t.family_id, []).append(t)
+
+    role: list[float] = []
+    controls: dict[str, list[float]] = {}
+    for family_trials in by_family.values():
+        edits = {t.edit_type for t in family_trials}
+        if EditType.ROLE_PUSH not in edits:
+            continue
+        entity = ConceptPair.entity_of(family_trials[0].pair_id)
+        role.append(_readout_displacement(family_trials, entity, EditType.ROLE_PUSH))
+        for control in CONTROL_EDIT_TYPES:
+            if control in edits:
+                controls.setdefault(control.value, []).append(
+                    _readout_displacement(family_trials, entity, control)
+                )
+
+    if not role:
+        return {
+            "available": False,
+            "note": f"no ROLE_PUSH ROLE-probe trials at {site.value}",
+        }
+
+    role_mean = float(np.mean(role))
+    control_means = {edit: float(np.mean(values)) for edit, values in controls.items()}
+    # Strongest control = most conservative comparison available. Which control
+    # that is varies by model and must not be hard-coded: on the Gemma LRE run
+    # it is null_non_participant (pushing an ABSENT entity's direction), not
+    # random_direction, and comparing against random alone would overstate the
+    # margin several-fold.
+    strongest = max(control_means, key=lambda e: control_means[e]) if control_means else None
+
+    ci_lo = ci_hi = None
+    beats_control = False
+    if strongest is not None and len(controls[strongest]) == len(role):
+        paired = [r - c for r, c in zip(role, controls[strongest], strict=True)]
+        ci_lo, ci_hi = stats.bootstrap_ci(
+            paired,
+            n_resamples=config.analysis.n_bootstrap,
+            ci_level=config.analysis.ci_level,
+            seed=config.experiment.seed,
+        )
+        beats_control = bool(ci_lo > 0.0)
+
+    clears_floor = role_mean >= _MIN_PUSH_DISPLACEMENT
+    return {
+        "available": True,
+        "role_push_displacement": role_mean,
+        "control_displacement": control_means,
+        "strongest_control": strongest,
+        "vs_control_ci": [ci_lo, ci_hi] if ci_lo is not None else None,
+        "min_push_displacement": _MIN_PUSH_DISPLACEMENT,
+        "clears_floor": bool(clears_floor),
+        "beats_strongest_control": beats_control,
+        "passes": bool(clears_floor and beats_control),
+    }
+
+
 _D_MEANINGFUL = 0.5  # a-priori effect-size threshold (proposal, §6)
 _D_CI_TIGHT = 1.0  # max CI width on d for a null to count as "clean" not "underpowered"
 
@@ -402,13 +537,14 @@ def _verdict(
     construction_significant: dict[str, bool],
     table: ScoreTable,
     band: tuple[float, float],
+    push_check: dict[str, object],
     neutral_check: dict[str, object],
 ) -> dict[str, object]:
     """Classify the outcome per the proposal's Benchmarks / Ideal Results.
 
     Outcomes:
-    - uninterpretable_strength_failure: the neutral-probe control failed, so
-      no binding conclusion is licensed either way.
+    - uninterpretable_strength_failure: the ROLE_PUSH arm did not move the
+      readout, so no binding conclusion is licensed either way.
     - positive_binding: pooled significant with d >= 0.5, the effect holds
       (Holm-significant AND d >= 0.5) in >= 2 of the 3 agent/patient
       constructions, and the random-direction control stays inside the band.
@@ -422,9 +558,13 @@ def _verdict(
     - inconclusive_underpowered: not significant with a wide CI on d —
       stimulus expansion is the remedy, not a conclusion.
     """
-    strength_passes = bool(neutral_check.get("available")) and bool(
-        neutral_check.get("passes")
-    )
+    # Gate on the arm under test. The binding score is built from ROLE_PUSH
+    # trials, so ROLE_PUSH is the intervention whose strength licenses (or
+    # refuses) a conclusion about it. IDENTITY_SWAP is still computed and
+    # reported, but it gates the addressability claim only -- letting it gate
+    # here made every push result on both models tested uninterpretable by
+    # construction, including runs whose push calibrated cleanly.
+    strength_passes = bool(push_check.get("available")) and bool(push_check.get("passes"))
     band_lo, band_hi = band
     random_scores = table.null_by_edit.get("random_direction", [])
     random_mean = float(np.mean(random_scores)) if random_scores else None
@@ -462,6 +602,11 @@ def _verdict(
     return {
         "outcome": outcome,
         "strength_check_passes": strength_passes,
+        "strength_gated_on": "role_push",
+        # Reported, NOT gating: the addressability control. Its failure means
+        # the IDENTITY_SWAP claim is unsupported, not that the push result is.
+        "identity_swap_check_passes": bool(neutral_check.get("available"))
+        and bool(neutral_check.get("passes")),
         "pooled_significant": bool(pooled_significant),
         "pooled_d": pooled["cohens_d"],
         "pooled_d_ci": [pooled["cohens_d_ci_lo"], pooled["cohens_d_ci_hi"]],
