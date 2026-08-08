@@ -1,0 +1,79 @@
+# Qwen3.6-27B, LRE-estimator variant of configs/default.yaml.
+#
+# The counterpart to configs/gemma3_12b_lre.yaml, and the reason it exists:
+# on Gemma, refitting role directions from readout gradients rather than
+# difference-of-means turned a dead push into a calibrated one (c=256, 0.91
+# log-odds; diagnose +0.94/-0.99/-0.01). Qwen's push null (RESULTS.md §7)
+# was measured under diff_means only, so it is not yet known whether that
+# null is a property of the model or an artifact of the estimator. This
+# config is the test.
+#
+# Identical to configs/default.yaml except the four blocks below. Stimuli,
+# pairs, sites and analysis settings are held fixed on purpose: changing them
+# would confound "different estimator" with "different everything else".
+
+model:
+  backend: qwen_jlens
+  model_id: Qwen/Qwen3.6-27B
+  lens_repo: neuronpedia/jacobian-lens
+  lens_subpath: qwen3.6-27b/jlens/Salesforce-wikitext
+  layer_band: [48, 48]      # unchanged: the estimator moves, the read layer does not
+  # BOTH null on purpose. default.yaml carries push_coefficient: 8.0, which
+  # was the largest value of a grid the DIFF-MEANS directions failed to move
+  # anything on (calibrate exit 3) -- it is not a calibrated value and it is
+  # meaningless for a different estimator's directions. The coefficient is in
+  # ABSOLUTE residual-norm units, so it does not transfer across estimators
+  # any more than it transfers across models. Re-derive it here.
+  alpha: null
+  push_coefficient: null
+  jspace_k: 16
+  ablate_k: 10
+  dtype: bfloat16
+  load_in_4bit: false       # 55.6 GB in bf16: needs ~3x A100-40GB via device_map=auto
+  dummy_mode: binding
+
+# Held IDENTICAL to configs/default.yaml.
+stimuli:
+  items_per_cell: 50
+  concept_pairs:
+    - [doctor, nurse]
+    - [teacher, student]
+    - [driver, passenger]
+  non_participant_entities: [chef, farmer, coach]
+
+directions:
+  # 48, not default.yaml's 24, to match configs/gemma3_12b_lre.yaml. The
+  # gradient estimator averages per-exemplar readout gradients, so exemplar
+  # count feeds its variance directly; running Qwen at half Gemma's would
+  # confound a weaker Qwen result with a noisier fit. Must stay a multiple
+  # of 6.
+  exemplars_per_role: 48
+  n_bootstrap: 200
+  stability_threshold: 0.8
+  variant: fitted
+  seed: 0
+  estimator: lre_gradient
+
+experiment:
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
+  injection_sites: [final_token, entity_token]
+  seed: 0
+
+analysis:
+  n_bootstrap: 10000
+  n_permutation: 10000
+  alpha_level: 0.05
+  ci_level: 0.95
+
+# Routed to *_lre so the diff-means Qwen artifacts in data/ are never
+# overwritten and the two estimators can be diffed side by side. All four
+# are already covered by .gitignore's data/results*/, data/directions*/,
+# data/calibration*.json and figures*/ patterns.
+paths:
+  stimuli: data/stimuli/stimuli.jsonl               # shared, unchanged
+  fitting_corpus: data/stimuli/fitting_corpus_lre.jsonl
+  directions: data/directions_lre
+  calibration: data/calibration_lre.json
+  results: data/results_lre
+  figures: figures/qwen_lre
