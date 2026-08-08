@@ -165,3 +165,72 @@ def test_strength_check_requires_a_magnitude_not_just_a_sign() -> None:
     # A rise that clears the floor but with the entity going UP is still a
     # failure: the counterpart must displace the entity, not join it.
     assert passes(0.20, +0.05) is False
+
+
+def test_push_gate_cannot_fail_the_null_it_exists_to_license(tmp_path: Path) -> None:
+    """Non-circularity, on ground truth rather than a synthetic construction.
+
+    The strength gate exists so a NULL binding score can be read as evidence
+    about binding instead of a dead intervention. If the gate's statistic were
+    entangled with the binding score, a null would fail its own gate and no
+    null could ever be reported -- the gate would silently delete the
+    project's whole class of findings.
+
+    DummyModel's bag mode is exactly that case: a push that moves the readout
+    (uniform sign*0.8) with no role structure behind it. The gate must see the
+    movement while the binding score correctly reads ~0.
+
+    This is not hypothetical. The first implementation used the "steering
+    mirror", the difference of the two signed gap changes, on the reasoning
+    that the binding score is their SUM and the two are orthogonal contrasts.
+    Both gap changes are taken against the same natural gap, so a role-uniform
+    push cancels completely: the mirror is identically zero in BOTH dummy
+    modes, and gating on it turned this clean negative into
+    uninterpretable_strength_failure.
+    """
+    summary = _run(tmp_path, "bag")
+    check = summary["push_strength_check"]
+    band_lo, band_hi = summary["null_band"]
+
+    # The intervention demonstrably moved the readout ...
+    assert check["available"] is True
+    assert check["passes"] is True
+    assert check["role_push_displacement"] >= check["min_push_displacement"]
+    # ... while the binding score sits in the null band. Both at once is the
+    # property; either alone proves nothing.
+    assert band_lo <= summary["pooled"]["mean"] <= band_hi
+    assert summary["verdict"]["outcome"] == "clean_negative"
+
+
+def test_gemma_lre_push_arm_passes_where_the_swap_arm_fails() -> None:
+    """Observed Gemma-3-12B LRE numbers, entity_token (runs/gemma3-12b-lre).
+
+    The run this gate change rescues. IDENTITY_SWAP's alpha never calibrated,
+    so the swap arm fails; the ROLE_PUSH arm calibrated cleanly and displaces
+    the readout. Gating a push result on the swap arm made this run
+    uninterpretable by construction.
+
+    The margin is NOT comfortable and this test says so: 0.593 against 0.433
+    for a direction fitted on PERMUTED labels, a ratio of 1.37. Most of the
+    displacement is what any fitted direction of that norm achieves, not
+    something role-specific, and the paper must say so rather than quoting
+    0.593 against random_direction's 0.042 and implying 14x.
+    """
+    from jspace_binding.experiments.primary import (
+        _MIN_COUNTERPART_SHIFT,
+        _MIN_PUSH_DISPLACEMENT,
+    )
+
+    role, shuffled_label, absent, random_dir = 0.59259, 0.43322, 0.43314, 0.04159
+    assert role >= _MIN_PUSH_DISPLACEMENT
+    assert role > shuffled_label          # paired CI [0.153, 0.166], excludes zero
+    assert role / shuffled_label < 1.5    # ... but only just; see docstring
+    # Ranking the controls and taking the STRONGEST is load-bearing: two
+    # controls sit near 0.433 while random sits at 0.042, so comparing against
+    # random alone would inflate the margin by an order of magnitude.
+    assert abs(shuffled_label - absent) < 0.01
+    assert shuffled_label / random_dir > 10.0
+
+    # The swap arm on the same run, for contrast: counterpart +0.00477 against
+    # a 0.05 floor. Still failing, and still correctly reported as failing.
+    assert _MIN_COUNTERPART_SHIFT > (0.010207 - 0.005436)
