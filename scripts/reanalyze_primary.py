@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""Re-score an archived primary run under the CURRENT analysis code.
+
+`run_primary.py` prints its analysis to stdout and writes no summary JSON, so
+an archived verdict is frozen at whatever `analyze()` did on the day it ran.
+When the analysis changes the archived log does not, and nothing in it says
+which side of the change it fell on.
+
+That is not hypothetical here. Commit `a5b843c` gave the neutral strength
+check a magnitude floor (`_MIN_COUNTERPART_SHIFT`); every primary log written
+before it recorded `passes` under a signs-only rule. `runs/gemma3-12b-lre`
+is one of them.
+
+The trials are the forward passes and they are already spent, so re-scoring
+needs no model, no GPU, and no lens — just the archived `trials.jsonl`.
+
+    python scripts/reanalyze_primary.py --run runs/gemma3-12b-lre --site entity_token
+
+Exits 1 if the recomputed verdict differs from the archived one, so this can
+gate a rerun rather than being read by eye.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from jspace_binding.config import Config  # noqa: E402
+from jspace_binding.experiments.primary import analyze  # noqa: E402
+from jspace_binding.types import (  # noqa: E402
+    Construction,
+    EditType,
+    InjectionSite,
+    Position,
+    ProbeKind,
+    PushSign,
+    Role,
+    TrialResult,
+)
+
+
+def load_trials(path: Path) -> list[TrialResult]:
+    """Inverse of primary._write_trials. Field-for-field, no defaulting: a
+    record missing a key is a corrupt archive and should raise, not silently
+    analyze a subset."""
+    trials = []
+    with path.open(encoding="utf-8") as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+                sign = r.get("push_sign")
+                trials.append(
+                    TrialResult(
+                        family_id=r["family_id"],
+                        pair_id=r["pair_id"],
+                        construction=Construction(r["construction"]),
+                        role=Role(r["role"]),
+                        position=Position(r["position"]),
+                        edit_type=EditType(r["edit_type"]),
+                        probe_kind=ProbeKind(r["probe_kind"]),
+                        injection_site=InjectionSite(r["injection_site"]),
+                        answer_probs=r["answer_probs"],
+                        push_sign=PushSign(sign) if sign else None,
+                    )
+                )
+            except (KeyError, ValueError) as exc:
+                raise ValueError(f"{path}:{lineno}: {exc}") from exc
+    if not trials:
+        raise ValueError(f"{path}: no trials")
+    return trials
+
+
+def archived_verdict(run_dir: Path) -> dict | None:
+    """The verdict block from the newest primary log in the archive, if any.
+
+    The logs interleave stderr (weight-loading progress) with the stdout JSON,
+    so this pulls the last balanced `"verdict": {...}` object rather than
+    trying to parse the file as a whole.
+    """
+    logs = sorted(run_dir.glob("logs/primary*.log"))
+    if not logs:
+        return None
+    text = logs[-1].read_text(encoding="utf-8", errors="replace")
+    start = text.rfind('"verdict"')
+    if start == -1:
+        return None
+    brace = text.find("{", start)
+    depth = 0
+    for i in range(brace, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return json.loads(text[brace : i + 1])
+    return None
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run", type=Path, required=True, help="archived run directory")
+    parser.add_argument(
+        "--site",
+        choices=[s.value for s in InjectionSite],
+        default=InjectionSite.ENTITY_TOKEN.value,
+        help="site to score; must be one the sweep actually covered",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="override the run's archived config_as_run.yaml (rarely correct)",
+    )
+    args = parser.parse_args()
+
+    config_path = args.config or args.run / "config_as_run.yaml"
+    if not config_path.exists():
+        sys.exit(
+            f"no config at {config_path}. Pre-{'2c961a8'} archives predate "
+            "config_as_run.yaml; pass --config with the config that run used."
+        )
+    config = Config.from_yaml(config_path)
+    trials = load_trials(args.run / "results" / "trials.jsonl")
+    print(f"loaded {len(trials)} trials from {args.run}", file=sys.stderr)
+
+    summary = analyze(config, trials, site=InjectionSite(args.site))
+    print(json.dumps(summary, indent=2))
+
+    now = summary["verdict"]
+    before = archived_verdict(args.run)
+    if before is None:
+        print("\nno archived verdict to compare against", file=sys.stderr)
+        return
+
+    check = summary["neutral_strength_check"]
+    print("\n" + "=" * 68, file=sys.stderr)
+    print(f"archived outcome : {before.get('outcome')}", file=sys.stderr)
+    print(f"recomputed       : {now['outcome']}", file=sys.stderr)
+    print(
+        f"strength check   : {before.get('strength_check_passes')} -> "
+        f"{now['strength_check_passes']}",
+        file=sys.stderr,
+    )
+    if check.get("available"):
+        print(
+            f"counterpart shift: {check['counterpart_shift']:+.5f} "
+            f"(floor {check.get('min_counterpart_shift')})",
+            file=sys.stderr,
+        )
+        print(f"entity shift     : {check['entity_shift']:+.5f}", file=sys.stderr)
+    print("=" * 68, file=sys.stderr)
+
+    if before.get("outcome") != now["outcome"]:
+        print(
+            f"\nVERDICT CHANGED: the archived label {before.get('outcome')!r} is "
+            f"stale; cite {now['outcome']!r}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print("\nverdict unchanged under current code.", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
