@@ -314,3 +314,82 @@ def test_rq2_untouched_binding_is_not_causal_involvement() -> None:
         binding_deficit=0.06, binding_specific=0.05,
         random_specific=0.01, ci_excludes_zero=True,
     ) is True
+
+
+def test_reanalyze_rq2_rescores_archived_verdicts(tmp_path) -> None:
+    """The verdict is a pure function of archived deltas, so a stale archive
+    re-scores on CPU with no rerun. Pins the two real patterns: Gemma
+    final_token (binding untouched, control drifted) and Qwen entity_token
+    (ablation improved BOTH tasks), both of which an older sign-only rule
+    called causal involvement."""
+    import importlib.util
+    import json
+
+    spec = importlib.util.spec_from_file_location(
+        "reanalyze_rq2",
+        Path(__file__).resolve().parent.parent / "scripts" / "reanalyze_rq2.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    def _site(binding, recall, specific, random_specific):
+        return {
+            "workspace_causally_involved": True,  # what the old rule said
+            "deltas": {
+                "ablate_jspace": {
+                    "binding_deficit": binding,
+                    "recall_deficit": recall,
+                    "binding_specific_deficit": specific,
+                    "ci_excludes_zero": True,
+                },
+                "ablate_random_subspace": {
+                    "binding_specific_deficit": random_specific,
+                    "ci_excludes_zero": False,
+                },
+            },
+        }
+
+    report = {
+        "workspace_causally_involved": True,
+        "sites": {
+            # Gemma final_token: binding flat, recall control improved.
+            "final_token": _site(0.00058, -0.00736, 0.00794, 0.0012),
+            # Qwen entity_token: ablation improved both tasks.
+            "entity_token": _site(-0.03215, -0.04636, 0.01421, -0.0086),
+        },
+    }
+    path = tmp_path / "results" / "rq2_ablation.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(report))
+
+    assert mod.rescore_file(path, write=True) is True  # verdict moved
+
+    corrected = json.loads(path.read_text())
+    assert corrected["workspace_causally_involved"] is False
+    for site in ("final_token", "entity_token"):
+        assert corrected["sites"][site]["workspace_causally_involved"] is False
+        # Deltas must survive untouched: this rewrites labels, not measurements.
+        assert corrected["sites"][site]["deltas"] == report["sites"][site]["deltas"]
+    assert corrected["verdict_rescored"]["previous_workspace_causally_involved"] is True
+
+    # Idempotent: a corrected file is no longer stale.
+    assert mod.rescore_file(path, write=True) is False
+
+
+def test_reanalyze_rq2_raises_on_incomplete_archive(tmp_path) -> None:
+    """A file that cannot answer the question must say so, not score a subset."""
+    import importlib.util
+
+    import pytest
+
+    spec = importlib.util.spec_from_file_location(
+        "reanalyze_rq2",
+        Path(__file__).resolve().parent.parent / "scripts" / "reanalyze_rq2.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    with pytest.raises(KeyError, match="binding_deficit"):
+        mod.rescore_site({"deltas": {"ablate_jspace": {"ci_excludes_zero": True}}})
+    with pytest.raises(KeyError, match="ablate_jspace"):
+        mod.rescore_site({"deltas": {}})
