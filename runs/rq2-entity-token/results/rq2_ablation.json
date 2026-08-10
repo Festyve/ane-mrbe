@@ -72,7 +72,7 @@
           }
         }
       },
-      "workspace_causally_involved": true,
+      "workspace_causally_involved": false,
       "baseline_margin": {
         "binding": 0.898015005719542,
         "recall": 1.3618339106088455,
@@ -86,6 +86,13 @@
   "figures": {
     "entity_token": "figures/rq2_ablation_deltas_entity_token.png"
   },
-  "workspace_causally_involved": true,
-  "null_interpretable": true
+  "workspace_causally_involved": false,
+  "null_interpretable": true,
+  "verdict_rescored": {
+    "by": "scripts/reanalyze_rq2.py",
+    "at_commit": "807dbe37cbb35e5f87bace4106dadb259ccd7b76",
+    "min_binding_deficit": 0.05,
+    "previous_workspace_causally_involved": true,
+    "note": "Verdict only. No delta was recomputed or changed; the measurements in this file are exactly as originally run."
+  }
 }

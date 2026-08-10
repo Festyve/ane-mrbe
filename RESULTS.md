@@ -42,9 +42,17 @@ bf16 · `device_map="auto"`
   reads `always_on`. Corrected to `anti_transfer_both` (commit `483ca1f`).
   0.281/0.263 are both **below** chance; the old rule never checked which side
   of 0.5 its inputs were on.
-- `runs/nonlinear-probe/results/rq2_ablation.json` — reads
-  `workspace_causally_involved: true` for `entity_token`. Corrected to **false**
-  (commit `dd6e4fa`). See RQ2 below.
+- **RQ2 `workspace_causally_involved` — now corrected IN PLACE, not just noted.**
+  Two commits changed this verdict rule: `dd6e4fa` (two improvements must not
+  read as involvement) and `e61aa81` (require a magnitude of binding damage,
+  `_MIN_BINDING_DEFICIT = 0.05`). Three archived files were written under the
+  older rules and read `true`:
+  `runs/nonlinear-probe`, `runs/rq2-entity-token`, `runs/gemma3-12b-pilot`.
+  All three now read **false**, rewritten by `scripts/reanalyze_rq2.py`, each
+  carrying a `verdict_rescored` block recording the previous value. **No delta
+  was recomputed**: the measurements are exactly as originally run. Re-check the
+  whole archive at any time with `python scripts/reanalyze_rq2.py --all`, which
+  exits 1 if any verdict has drifted from the current rule.
 - Any `nonlinear_probe.json` reading `multiplicative_code_in_jspace` —
   corrected to `null_survives_nonlinearity` (commit `bb6172b`).
 
