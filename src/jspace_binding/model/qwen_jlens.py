@@ -51,6 +51,7 @@ first-contact bugs.
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Sequence
 from pathlib import Path
@@ -332,6 +333,17 @@ class QwenJLensModel:
         kwargs: dict[str, Any] = {}
         if self.config.device_map is not None:
             kwargs["device_map"] = self.config.device_map
+            # Shared GPU box: "auto" sizes shards from free-memory-at-load-time and
+            # fills devices in order, packing the first card to the brim. The tail is
+            # then CPU-offloaded and the first forward OOMs in accelerate's
+            # pre_forward hook with megabytes to spare. JSPACE_MAX_MEMORY
+            # ("0=31GiB,1=15GiB,2=15GiB", VISIBLE indices) reserves headroom.
+            cap = os.environ.get("JSPACE_MAX_MEMORY")
+            if cap:
+                kwargs["max_memory"] = {
+                    (int(k) if k.strip().isdigit() else k.strip()): v.strip()
+                    for k, v in (item.split("=", 1) for item in cap.split(","))
+                }
         if self.config.load_in_4bit:
             from transformers import BitsAndBytesConfig
 

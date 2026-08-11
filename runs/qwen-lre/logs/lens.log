@@ -1,0 +1,4 @@
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 3 files:  33%|███▎      | 1/3 [00:00<00:00,  5.18it/s]Fetching 3 files: 100%|██████████| 3/3 [00:33<00:00, 12.35s/it]Fetching 3 files: 100%|██████████| 3/3 [00:33<00:00, 11.13s/it]
+[32m✓ Downloaded[0m
+  path: /home/jupyter-mrbe-e69b/.cache/huggingface/hub/models--neuronpedia--jacobian-lens/snapshots/a4114d7752d11eb546e6cf372213d7e75526d3a1

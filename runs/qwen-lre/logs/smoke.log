@@ -1,0 +1,94 @@
+
+=== model config: Qwen/Qwen2.5-0.5B ===
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+d_model=896 n_layers=24 -> layer_band=[17,17]
+
+=== tokenizer vocab check ===
+
+=== synthetic lens artifact (identity Jacobians == logit lens) ===
+wrote data/smoke/lens/jacobian_lens.npz
+
+=== backend construction + preflight (loads model + lens) ===
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/290 [00:00<?, ?it/s]Loading weights: 100%|██████████| 290/290 [00:00<00:00, 2914.22it/s]
+model + lens loaded
+
+=== direction fitting (sparse pursuit -> diff-of-means) ===
+  r_chef: stability=0.581
+  r_coach: stability=0.486
+  r_doctor: stability=0.634
+  r_farmer: stability=0.517
+  r_teacher: stability=0.669
+
+=== calibration (tiny grids; thresholds disabled — exercising code, not science) ===
+  note: alpha search found no passing value (no grid value moved the neutral readout by >= -1.0 (with P(entity) falling); observed counterpart shifts {1.0: -4.1263774619437754e-08}. This is the intervention-strength failure mode the proposal flags: a null binding result would be uninterpretable at these strengths.); using 1.0
+  push_coefficient=1.0 alpha=1.0
+
+=== primary sweep (16 families) + analysis ===
+[primary] 1/16 (6%)  3s elapsed
+[primary] 2/16 (12%)  5s elapsed  0.4/s  ETA 36s
+[primary] 3/16 (19%)  10s elapsed  0.3/s  ETA 48s
+[primary] 4/16 (25%)  15s elapsed  0.2/s  ETA 50s
+[primary] 5/16 (31%)  17s elapsed  0.3/s  ETA 41s
+[primary] 6/16 (38%)  20s elapsed  0.3/s  ETA 35s
+[primary] 7/16 (44%)  22s elapsed  0.3/s  ETA 30s
+[primary] 8/16 (50%)  25s elapsed  0.3/s  ETA 26s
+[primary] 9/16 (56%)  28s elapsed  0.3/s  ETA 22s
+[primary] 10/16 (62%)  30s elapsed  0.3/s  ETA 18s
+[primary] 11/16 (69%)  35s elapsed  0.3/s  ETA 16s
+[primary] 12/16 (75%)  40s elapsed  0.3/s  ETA 14s
+[primary] 13/16 (81%)  43s elapsed  0.3/s  ETA 10s
+[primary] 14/16 (88%)  46s elapsed  0.3/s  ETA 7s
+[primary] 15/16 (94%)  48s elapsed  0.3/s  ETA 3s
+[primary] 16/16 (100%)  51s elapsed  0.3/s
+  848 trials | pooled BS=-0.000 | verdict=uninterpretable_strength_failure
+
+=== RQ1 probes ===
+[rq1 final_token] 1/16 (6%)  2s elapsed
+[rq1 final_token] 2/16 (12%)  3s elapsed  0.7/s  ETA 21s
+[rq1 final_token] 3/16 (19%)  5s elapsed  0.6/s  ETA 22s
+[rq1 final_token] 4/16 (25%)  7s elapsed  0.6/s  ETA 22s
+[rq1 final_token] 5/16 (31%)  8s elapsed  0.6/s  ETA 18s
+[rq1 final_token] 6/16 (38%)  10s elapsed  0.6/s  ETA 17s
+[rq1 final_token] 7/16 (44%)  11s elapsed  0.6/s  ETA 14s
+[rq1 final_token] 8/16 (50%)  13s elapsed  0.6/s  ETA 12s
+[rq1 final_token] 9/16 (56%)  13s elapsed  0.7/s  ETA 10s
+[rq1 final_token] 10/16 (62%)  14s elapsed  0.7/s  ETA 8s
+[rq1 final_token] 11/16 (69%)  15s elapsed  0.7/s  ETA 7s
+[rq1 final_token] 12/16 (75%)  16s elapsed  0.8/s  ETA 5s
+[rq1 final_token] 13/16 (81%)  17s elapsed  0.8/s  ETA 4s
+[rq1 final_token] 14/16 (88%)  18s elapsed  0.8/s  ETA 3s
+[rq1 final_token] 15/16 (94%)  19s elapsed  0.8/s  ETA 1s
+[rq1 final_token] 16/16 (100%)  20s elapsed  0.8/s
+
+=== RQ2 ablations ===
+[rq2 final_token] 1/16 (6%)  3s elapsed
+[rq2 final_token] 2/16 (12%)  6s elapsed  0.4/s  ETA 37s
+[rq2 final_token] 3/16 (19%)  8s elapsed  0.4/s  ETA 34s
+[rq2 final_token] 4/16 (25%)  11s elapsed  0.4/s  ETA 32s
+[rq2 final_token] 5/16 (31%)  14s elapsed  0.4/s  ETA 29s
+[rq2 final_token] 6/16 (38%)  16s elapsed  0.4/s  ETA 26s
+[rq2 final_token] 7/16 (44%)  19s elapsed  0.4/s  ETA 24s
+[rq2 final_token] 8/16 (50%)  21s elapsed  0.4/s  ETA 21s
+[rq2 final_token] 9/16 (56%)  24s elapsed  0.4/s  ETA 19s
+[rq2 final_token] 10/16 (62%)  27s elapsed  0.4/s  ETA 16s
+[rq2 final_token] 11/16 (69%)  29s elapsed  0.4/s  ETA 13s
+[rq2 final_token] 12/16 (75%)  32s elapsed  0.4/s  ETA 10s
+[rq2 final_token] 13/16 (81%)  34s elapsed  0.4/s  ETA 8s
+[rq2 final_token] 14/16 (88%)  36s elapsed  0.4/s  ETA 5s
+[rq2 final_token] 15/16 (94%)  39s elapsed  0.4/s  ETA 3s
+[rq2 final_token] 16/16 (100%)  41s elapsed  0.4/s
+
+SMOKE TEST PASS — every backend stage executed.
+(Numbers are NOT science: tiny model, identity lens, tiny n.)
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "layer": 17,
+  "n_trials": 848,
+  "pooled_bs": -7.00044327671661e-06,
+  "verdict": "uninterpretable_strength_failure",
+  "rq1_sites": [
+    "final_token"
+  ],
+  "rq2_involved": false
+}
