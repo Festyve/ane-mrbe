@@ -848,3 +848,68 @@ generated 600 families
 [1;97;42m  log: runs/gemma3-12b-extra/logs/e4.log                                    [0m
 [1;97;42m                                                                            [0m
 
+archiving paths from configs/gemma3_12b.yaml
+  data/gemma3_12b/results -> 4 file(s)
+  figures/gemma3_12b -> 1 file(s)
+  (absent, not yet produced: data/gemma3_12b/directions, data/gemma3_12b/calibration.json)
+
+committed 5 file(s) under runs/gemma-e4
+pushed — outputs are now off this machine.
+GEMMA FILLER DONE
+only 1 USABLE gpu(s) [1] -- need 2 (Exclusive_Process: a card with any context is locked, even at 6 MiB)
+usable [1] | budget 35 GiB | need 52
+
+[1;97;43m  08:34:27  1 GPU -- GEMMA FILLER  [0m
+
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<07:24,  2.40it/s]Loading weights:   2%|▏         | 16/1065 [00:00<00:27, 38.41it/s]Loading weights:   3%|▎         | 28/1065 [00:00<00:17, 57.62it/s]Loading weights:   4%|▍         | 42/1065 [00:00<00:13, 74.76it/s]Loading weights:   5%|▌         | 55/1065 [00:00<00:11, 84.71it/s]Loading weights:   6%|▋         | 68/1065 [00:01<00:10, 92.80it/s]Loading weights:   8%|▊         | 81/1065 [00:01<00:10, 97.77it/s]Loading weights:   9%|▉         | 94/1065 [00:01<00:09, 101.45it/s]Loading weights:  10%|█         | 107/1065 [00:01<00:09, 102.44it/s]Loading weights:  11%|█▏        | 120/1065 [00:01<00:08, 105.22it/s]Loading weights:  12%|█▏        | 133/1065 [00:01<00:08, 106.21it/s]Loading weights:  14%|█▎        | 146/1065 [00:01<00:08, 104.00it/s]Loading weights:  15%|█▍        | 159/1065 [00:01<00:08, 106.02it/s]Loading weights:  16%|█▌        | 172/1065 [00:01<00:08, 107.85it/s]Loading weights:  17%|█▋        | 185/1065 [00:02<00:08, 107.04it/s]Loading weights:  19%|█▊        | 198/1065 [00:02<00:08, 107.90it/s]Loading weights:  20%|█▉        | 211/1065 [00:02<00:07, 108.24it/s]Loading weights:  21%|██        | 224/1065 [00:02<00:07, 107.91it/s]Loading weights:  22%|██▏       | 237/1065 [00:02<00:07, 108.17it/s]Loading weights:  23%|██▎       | 250/1065 [00:02<00:07, 107.57it/s]Loading weights:  25%|██▍       | 263/1065 [00:02<00:07, 108.93it/s]Loading weights:  26%|██▌       | 274/1065 [00:02<00:07, 102.31it/s]Loading weights:  27%|██▋       | 289/1065 [00:03<00:07, 108.53it/s]Loading weights:  28%|██▊       | 302/1065 [00:03<00:06, 110.50it/s]Loading weights:  30%|██▉       | 315/1065 [00:03<00:06, 109.98it/s]Loading weights:  31%|███       | 328/1065 [00:03<00:06, 107.83it/s]Loading weights:  32%|███▏      | 341/1065 [00:03<00:06, 109.45it/s]Loading weights:  33%|███▎      | 354/1065 [00:03<00:06, 108.78it/s]Loading weights:  34%|███▍      | 367/1065 [00:03<00:06, 109.74it/s]Loading weights:  36%|███▌      | 379/1065 [00:03<00:06, 106.27it/s]Loading weights:  37%|███▋      | 393/1065 [00:04<00:06, 109.30it/s]Loading weights:  38%|███▊      | 406/1065 [00:04<00:05, 110.07it/s]Loading weights:  39%|███▉      | 419/1065 [00:04<00:05, 107.94it/s]Loading weights:  41%|████      | 432/1065 [00:04<00:05, 108.16it/s]Loading weights:  42%|████▏     | 445/1065 [00:04<00:05, 110.23it/s]Loading weights:  43%|████▎     | 458/1065 [00:04<00:05, 109.08it/s]Loading weights:  44%|████▍     | 471/1065 [00:04<00:05, 107.86it/s]Loading weights:  45%|████▌     | 484/1065 [00:04<00:05, 109.72it/s]Loading weights:  47%|████▋     | 497/1065 [00:04<00:05, 109.45it/s]Loading weights:  48%|████▊     | 509/1065 [00:05<00:05, 105.46it/s]Loading weights:  49%|████▉     | 523/1065 [00:05<00:05, 107.02it/s]Loading weights:  50%|█████     | 536/1065 [00:05<00:04, 108.58it/s]Loading weights:  52%|█████▏    | 549/1065 [00:05<00:04, 108.36it/s]Loading weights:  53%|█████▎    | 562/1065 [00:05<00:04, 107.36it/s]Loading weights:  54%|█████▍    | 575/1065 [00:05<00:04, 108.60it/s]Loading weights:  55%|█████▌    | 588/1065 [00:05<00:04, 110.51it/s]Loading weights:  56%|█████▋    | 601/1065 [00:05<00:04, 108.57it/s]Loading weights:  58%|█████▊    | 614/1065 [00:06<00:04, 101.01it/s]Loading weights:  66%|██████▌   | 701/1065 [00:06<00:01, 292.87it/s]Loading weights:  83%|████████▎ | 879/1065 [00:06<00:00, 682.24it/s]Loading weights:  99%|█████████▉| 1055/1065 [00:06<00:00, 970.15it/s]Loading weights: 100%|██████████| 1065/1065 [00:06<00:00, 166.91it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1343.47it/s]
+[nonlinear entity_token] 10/200 (5%)  7s elapsed  1.9/s  ETA 1.7m
+[nonlinear entity_token] 20/200 (10%)  12s elapsed  1.9/s  ETA 1.6m
+[nonlinear entity_token] 30/200 (15%)  18s elapsed  1.8/s  ETA 1.5m
+[nonlinear entity_token] 40/200 (20%)  24s elapsed  1.8/s  ETA 88s
+[nonlinear entity_token] 50/200 (25%)  29s elapsed  1.8/s  ETA 83s
+[nonlinear entity_token] 60/200 (30%)  35s elapsed  1.8/s  ETA 77s
+[nonlinear entity_token] 70/200 (35%)  40s elapsed  1.8/s  ETA 72s
+[nonlinear entity_token] 80/200 (40%)  46s elapsed  1.8/s  ETA 66s
+[nonlinear entity_token] 90/200 (45%)  51s elapsed  1.8/s  ETA 60s
+[nonlinear entity_token] 100/200 (50%)  57s elapsed  1.8/s  ETA 55s
+[nonlinear entity_token] 110/200 (55%)  62s elapsed  1.8/s  ETA 49s
+[nonlinear entity_token] 120/200 (60%)  68s elapsed  1.8/s  ETA 44s
+[nonlinear entity_token] 130/200 (65%)  73s elapsed  1.8/s  ETA 38s
+[nonlinear entity_token] 140/200 (70%)  79s elapsed  1.8/s  ETA 33s
+[nonlinear entity_token] 150/200 (75%)  84s elapsed  1.8/s  ETA 27s
+[nonlinear entity_token] 160/200 (80%)  90s elapsed  1.8/s  ETA 22s
+[nonlinear entity_token] 170/200 (85%)  1.6m elapsed  1.8/s  ETA 17s
+[nonlinear entity_token] 180/200 (90%)  1.7m elapsed  1.8/s  ETA 11s
+[nonlinear entity_token] 190/200 (95%)  1.8m elapsed  1.8/s  ETA 6s
+[nonlinear entity_token] 200/200 (100%)  1.9m elapsed  1.8/s
+site=entity_token  families=200  pairs=3
+
+leave-one-pair-out accuracy, chance = 0.50   (site=entity_token)
+
+  source                linear      quad       rff      lift
+  ----------------------------------------------------------
+  jspace                 0.513     0.449     0.490    -0.023
+  orthogonal             0.619     0.587     0.516    -0.032
+  residual               0.567     0.557     0.567    -0.000
+  random_subspace        0.580     0.551     0.545    -0.029
+
+==============================================================
+THE J-SPACE NULL SURVIVES NONLINEAR PROBING.
+  jspace peaks at 0.513; chance is 0.500. Every probe
+  family leaves it within 0.08 of chance.
+  jspace tops out at 0.513 vs residual 0.567;
+  its nonlinear lift is -0.023 against -0.029 for a
+  rank-matched random subspace. A quadratic probe -- which CAN read a
+  tensor-product code -- finds no more role in J-space than a linear one.
+  The multiplicative-encoding escape hatch is closed empirically.
+==============================================================
+
+wrote data/gemma3_12b/results/nonlinear_probe.json
+
+[1;97;42m                                                                            [0m
+[1;97;42m    DONE    gemma-nonlinear                exit=0    0h03m           [0m
+[1;97;42m  log: runs/gemma3-12b-extra/logs/nonlinear.log                             [0m
+[1;97;42m                                                                            [0m
+
