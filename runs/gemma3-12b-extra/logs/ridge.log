@@ -1,0 +1,68 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<06:56,  2.56it/s]Loading weights:   1%|          | 9/1065 [00:00<00:45, 23.17it/s]Loading weights:   2%|▏         | 18/1065 [00:00<00:26, 39.67it/s]Loading weights:   3%|▎         | 31/1065 [00:00<00:16, 61.54it/s]Loading weights:   4%|▍         | 44/1065 [00:00<00:13, 75.79it/s]Loading weights:   5%|▌         | 57/1065 [00:00<00:11, 84.96it/s]Loading weights:   7%|▋         | 70/1065 [00:01<00:10, 91.34it/s]Loading weights:   8%|▊         | 83/1065 [00:01<00:10, 97.06it/s]Loading weights:   9%|▉         | 96/1065 [00:01<00:09, 101.54it/s]Loading weights:  10%|█         | 109/1065 [00:01<00:09, 103.82it/s]Loading weights:  11%|█▏        | 122/1065 [00:01<00:09, 103.41it/s]Loading weights:  13%|█▎        | 135/1065 [00:01<00:09, 103.31it/s]Loading weights:  14%|█▍        | 148/1065 [00:01<00:08, 102.65it/s]Loading weights:  15%|█▌        | 161/1065 [00:01<00:08, 104.68it/s]Loading weights:  16%|█▋        | 174/1065 [00:02<00:08, 107.00it/s]Loading weights:  18%|█▊        | 187/1065 [00:02<00:08, 106.90it/s]Loading weights:  19%|█▉        | 200/1065 [00:02<00:08, 104.27it/s]Loading weights:  20%|██        | 213/1065 [00:02<00:08, 104.07it/s]Loading weights:  21%|██        | 226/1065 [00:02<00:07, 105.66it/s]Loading weights:  22%|██▏       | 239/1065 [00:02<00:07, 108.00it/s]Loading weights:  24%|██▎       | 252/1065 [00:02<00:07, 110.05it/s]Loading weights:  25%|██▍       | 265/1065 [00:02<00:07, 107.91it/s]Loading weights:  26%|██▌       | 278/1065 [00:03<00:07, 109.32it/s]Loading weights:  27%|██▋       | 291/1065 [00:03<00:06, 110.79it/s]Loading weights:  29%|██▊       | 304/1065 [00:03<00:07, 107.70it/s]Loading weights:  30%|██▉       | 316/1065 [00:03<00:06, 110.63it/s]Loading weights:  31%|███       | 329/1065 [00:03<00:07, 105.12it/s]Loading weights:  32%|███▏      | 342/1065 [00:03<00:06, 106.06it/s]Loading weights:  33%|███▎      | 355/1065 [00:03<00:06, 108.12it/s]Loading weights:  35%|███▍      | 368/1065 [00:03<00:06, 105.75it/s]Loading weights:  36%|███▌      | 380/1065 [00:03<00:06, 107.16it/s]Loading weights:  37%|███▋      | 393/1065 [00:04<00:06, 104.98it/s]Loading weights:  38%|███▊      | 406/1065 [00:04<00:06, 103.91it/s]Loading weights:  39%|███▉      | 419/1065 [00:04<00:06, 106.74it/s]Loading weights:  41%|████      | 432/1065 [00:04<00:05, 109.37it/s]Loading weights:  42%|████▏     | 445/1065 [00:04<00:05, 107.85it/s]Loading weights:  43%|████▎     | 457/1065 [00:04<00:05, 104.54it/s]Loading weights:  44%|████▍     | 471/1065 [00:04<00:05, 103.47it/s]Loading weights:  45%|████▌     | 484/1065 [00:04<00:05, 104.85it/s]Loading weights:  47%|████▋     | 497/1065 [00:05<00:05, 106.95it/s]Loading weights:  48%|████▊     | 508/1065 [00:05<00:05, 102.89it/s]Loading weights:  49%|████▉     | 523/1065 [00:05<00:05, 104.86it/s]Loading weights:  50%|█████     | 536/1065 [00:05<00:04, 107.36it/s]Loading weights:  52%|█████▏    | 549/1065 [00:05<00:04, 108.83it/s]Loading weights:  53%|█████▎    | 560/1065 [00:05<00:04, 108.87it/s]Loading weights:  54%|█████▎    | 571/1065 [00:05<00:04, 102.75it/s]Loading weights:  55%|█████▍    | 582/1065 [00:05<00:04, 98.31it/s] Loading weights:  56%|█████▌    | 592/1065 [00:06<00:05, 94.35it/s]Loading weights:  57%|█████▋    | 603/1065 [00:06<00:04, 94.63it/s]Loading weights:  58%|█████▊    | 616/1065 [00:06<00:04, 99.78it/s]Loading weights:  69%|██████▉   | 733/1065 [00:06<00:00, 384.53it/s]Loading weights:  83%|████████▎ | 882/1065 [00:06<00:00, 688.42it/s]Loading weights:  97%|█████████▋| 1037/1065 [00:06<00:00, 917.66it/s]Loading weights: 100%|██████████| 1065/1065 [00:06<00:00, 161.57it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1460.75it/s]
+[penalty entity_token] 10/200 (5%)  7s elapsed  1.9/s  ETA 1.7m
+[penalty entity_token] 20/200 (10%)  13s elapsed  1.9/s  ETA 1.6m
+[penalty entity_token] 30/200 (15%)  18s elapsed  1.8/s  ETA 1.6m
+[penalty entity_token] 40/200 (20%)  24s elapsed  1.8/s  ETA 89s
+[penalty entity_token] 50/200 (25%)  30s elapsed  1.8/s  ETA 84s
+[penalty entity_token] 60/200 (30%)  35s elapsed  1.8/s  ETA 78s
+[penalty entity_token] 70/200 (35%)  41s elapsed  1.8/s  ETA 73s
+[penalty entity_token] 80/200 (40%)  47s elapsed  1.8/s  ETA 67s
+[penalty entity_token] 90/200 (45%)  52s elapsed  1.8/s  ETA 62s
+[penalty entity_token] 100/200 (50%)  58s elapsed  1.8/s  ETA 56s
+[penalty entity_token] 110/200 (55%)  64s elapsed  1.8/s  ETA 51s
+[penalty entity_token] 120/200 (60%)  69s elapsed  1.8/s  ETA 45s
+[penalty entity_token] 130/200 (65%)  75s elapsed  1.8/s  ETA 39s
+[penalty entity_token] 140/200 (70%)  81s elapsed  1.8/s  ETA 34s
+[penalty entity_token] 150/200 (75%)  86s elapsed  1.8/s  ETA 28s
+[penalty entity_token] 160/200 (80%)  1.5m elapsed  1.8/s  ETA 23s
+[penalty entity_token] 170/200 (85%)  1.7m elapsed  1.7/s  ETA 17s
+[penalty entity_token] 180/200 (90%)  1.8m elapsed  1.7/s  ETA 12s
+[penalty entity_token] 190/200 (95%)  1.9m elapsed  1.7/s  ETA 6s
+[penalty entity_token] 200/200 (100%)  2.0m elapsed  1.7/s
+site=entity_token  families=200  pairs=3
+
+leave-one-pair-out accuracy by ridge penalty, chance = 0.50   (site=entity_token)
+
+  source                 1e-04     1e-03     1e-02     1e-01     1e+00     1e+01     1e+02      best
+  --------------------------------------------------------------------------------------------------
+  jspace                 0.513     0.513     0.513     0.513     0.513     0.513     0.511     0.513  <- best at 1e-04
+  orthogonal             0.617     0.617     0.619     0.619     0.619     0.619     0.619     0.619
+  residual               0.565     0.567     0.567     0.567     0.567     0.567     0.567     0.567  <- best at 1e-03
+  random_subspace        0.580     0.580     0.580     0.580     0.580     0.581     0.582     0.582  <- best at 1e+02
+
+  (every other experiment used l2=1e-02)
+
+  nested CV (penalty selected on inner folds — the honest number):
+    jspace                 0.510
+    orthogonal             0.617
+    residual               0.565
+    random_subspace        0.580
+
+  at matched penalty l2=1e-02 (best for the full-rank sources):
+    jspace                 0.513
+    orthogonal             0.619
+    residual               0.567
+    random_subspace        0.580
+
+====================================================================
+THE J-SPACE NULL SURVIVES THE PENALTY SWEEP.
+  jspace never clears the rank-matched control at any penalty in the
+  grid, nor under nested CV (0.510 vs 0.580).
+  Nested-CV ranking: orthogonal > random_subspace > residual > jspace.
+
+  BUT RESTATE THE CLAIM. jspace moves from 0.513 at l2=1e-02 to
+  0.513 at its best, so 'J-space is at chance' is too
+  strong. The defensible claim is that J-space carries LESS role
+  information than an arbitrary subspace of the same rank.
+
+  ANOMALY EXPLAINED. At matched penalty l2=1e-02 residual (0.567)
+  is level with or above random_subspace (0.580).
+  'A projection beats its source' appears only at weak penalties,
+  where the 5120-dim sources overfit and the 16-dim one does not.
+  The fixed l2=1e-02 was in that regime. Report matched-penalty or
+  nested-CV numbers; the fixed-penalty ranking was confounded.
+====================================================================
+
+wrote data/gemma3_12b/results/ridge_penalty_sweep.json
