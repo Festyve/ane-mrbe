@@ -1,0 +1,7 @@
+label: gemma-nonlinear
+commit: a24eb1f219cc1e8a9e4868b11f76acc524b8c76c
+dirty: True
+config: configs/gemma3_12b.yaml
+sources: ['data/gemma3_12b/results', 'data/gemma3_12b/directions', 'figures/gemma3_12b', 'data/gemma3_12b/calibration.json']
+note: Gemma-3-12B nonlinear probe -- closes the multiplicative-code hatch (table #7 variant)
+files: 2
