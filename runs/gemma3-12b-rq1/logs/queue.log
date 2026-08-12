@@ -2279,3 +2279,9 @@ generated 600 families
 [1;97;42m  log: runs/gemma3-12b-rq1/logs/rq1_L44.log                                 [0m
 [1;97;42m                                                                            [0m
 
+archiving paths from configs/gemma3_12b.yaml
+  data/gemma3_12b/results -> 1 file(s)
+  (absent, not yet produced: data/gemma3_12b/directions, figures/gemma3_12b, data/gemma3_12b/calibration.json)
+
+committed 1 file(s) under runs/gemma-rq1-L44
+pushed — outputs are now off this machine.
