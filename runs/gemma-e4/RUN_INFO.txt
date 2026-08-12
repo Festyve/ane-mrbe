@@ -1,0 +1,7 @@
+label: gemma-e4
+commit: 76099004027ab8c0cc26c95c39176c40a0bb1e40
+dirty: True
+config: configs/gemma3_12b.yaml
+sources: ['data/gemma3_12b/results', 'data/gemma3_12b/directions', 'figures/gemma3_12b', 'data/gemma3_12b/calibration.json']
+note: Gemma-3-12B E4 recruitment
+files: 5
