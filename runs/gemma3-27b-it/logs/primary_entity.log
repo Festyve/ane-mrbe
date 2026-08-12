@@ -1,0 +1,84 @@
+generated 600 families
+httpx.HTTPStatusError: Client error '401 Unauthorized' for url 'https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+The above exception was the direct cause of the following exception:
+
+huggingface_hub.errors.GatedRepoError: 401 Client Error. (Request ID: Root=1-6a7ce882-297cbe6108482ee11a35b42d;112e6664-0834-4281-bebc-6bf6d3fbe696)
+
+Cannot access gated repo for url https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json.
+Access to model google/gemma-3-27b-it is restricted. You must have access to it and be authenticated to access it. Please log in.
+
+The above exception was the direct cause of the following exception:
+
+OSError: You are trying to access a gated repo.
+Make sure to have access to it at https://huggingface.co/google/gemma-3-27b-it.
+401 Client Error. (Request ID: Root=1-6a7ce882-297cbe6108482ee11a35b42d;112e6664-0834-4281-bebc-6bf6d3fbe696)
+
+Cannot access gated repo for url https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json.
+Access to model google/gemma-3-27b-it is restricted. You must have access to it and be authenticated to access it. Please log in.
+
+During handling of the above exception, another exception occurred:
+
+httpx.HTTPStatusError: Client error '401 Unauthorized' for url 'https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 438, in cached_files
+    hf_hub_download(
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py", line 88, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1019, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1166, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1904, in _raise_on_head_call_error
+    raise head_call_error
+huggingface_hub.errors.GatedRepoError: 401 Client Error. (Request ID: Root=1-6a7ce882-1af51d224461e3451d20fe99;ceab6b9e-a1e8-415c-8da7-8ce1b75411d4)
+
+Cannot access gated repo for url https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json.
+Access to model google/gemma-3-27b-it is restricted. You must have access to it and be authenticated to access it. Please log in.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/scripts/run_primary.py", line 60, in <module>
+    main()
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/scripts/run_primary.py", line 54, in main
+    preflight_or_exit(model, (site,) if site else config.experiment.injection_sites)
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/src/jspace_binding/model/factory.py", line 69, in preflight_or_exit
+    check(sites)
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 156, in preflight
+    self._ensure_ready()
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 319, in _ensure_ready
+    self._load_model()
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/src/jspace_binding/model/qwen_jlens.py", line 355, in _load_model
+    self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/models/auto/tokenization_auto.py", line 772, in from_pretrained
+    config = PreTrainedConfig.from_pretrained(pretrained_model_name_or_path, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 704, in from_pretrained
+    config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 745, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 800, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jupyter-mrbe-e69b/ane-mrbe/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 511, in cached_files
+    raise OSError(
+OSError: You are trying to access a gated repo.
+Make sure to have access to it at https://huggingface.co/google/gemma-3-27b-it.
+401 Client Error. (Request ID: Root=1-6a7ce882-1af51d224461e3451d20fe99;ceab6b9e-a1e8-415c-8da7-8ce1b75411d4)
+
+Cannot access gated repo for url https://huggingface.co/google/gemma-3-27b-it/resolve/main/config.json.
+Access to model google/gemma-3-27b-it is restricted. You must have access to it and be authenticated to access it. Please log in.
