@@ -63,7 +63,7 @@ model:
   # Run the edges as separate single-layer runs, never as one [24, 57] band.
   layer_band: [46, 46]
   alpha: null               # MUST be re-derived; see note below
-  push_coefficient: 64.0  # calibrated: LRE, entity_token
+  push_coefficient: 128.0  # c=64 gave in-run displacement 0.328 < 0.5 floor
   jspace_k: 16              # property of the method, not the model
   ablate_k: 10
   dtype: bfloat16
