@@ -1,7 +1,7 @@
 label: qwen-lre-primary
-commit: c15664d7e886adc15f3e778a4ceb53f9c9f05b5c
+commit: 3ccf4bb955a4f85c73faa80d8b1b8d598489c692
 dirty: True
 config: configs/default_lre.yaml
 sources: ['data/results_lre', 'data/directions_lre', 'figures/qwen_lre', 'data/calibration_lre.json']
-note: E3 primary, LRE directions, c=4.0, entity_token
-files: 11
+note: E3 primary, LRE, c=4.0, entity_token only (table #5)
+files: 10

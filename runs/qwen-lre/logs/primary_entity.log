@@ -1,0 +1,8 @@
+generated 600 families
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 15 files:   0%|          | 0/15 [00:00<?, ?it/s]Fetching 15 files:   7%|▋         | 1/15 [04:00<56:08, 240.62s/it]Fetching 15 files:  13%|█▎        | 2/15 [04:07<22:16, 102.83s/it]Fetching 15 files:  20%|██        | 3/15 [04:07<11:13, 56.11s/it] Fetching 15 files:  27%|██▋       | 4/15 [04:10<06:27, 35.25s/it]Fetching 15 files:  33%|███▎      | 5/15 [04:11<03:47, 22.75s/it]Fetching 15 files:  40%|████      | 6/15 [04:11<02:16, 15.16s/it]Fetching 15 files:  47%|████▋     | 7/15 [04:13<01:25, 10.69s/it]Fetching 15 files:  60%|██████    | 9/15 [04:43<01:17, 12.87s/it]Fetching 15 files:  67%|██████▋   | 10/15 [06:58<03:40, 44.19s/it]Fetching 15 files:  73%|███████▎  | 11/15 [07:07<02:18, 34.62s/it]Fetching 15 files:  80%|████████  | 12/15 [07:13<01:20, 26.72s/it]Fetching 15 files:  87%|████████▋ | 13/15 [07:13<00:38, 19.30s/it]Fetching 15 files:  93%|█████████▎| 14/15 [07:14<00:14, 14.04s/it]Fetching 15 files: 100%|██████████| 15/15 [07:15<00:00, 10.13s/it]Fetching 15 files: 100%|██████████| 15/15 [07:15<00:00, 29.03s/it]
+backend cannot run yet: CUDA error: CUDA-capable device(s) is/are busy or unavailable
+Search for `cudaErrorDevicesUnavailable' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+For more detailed error information, run with CUDA_LOG_FILE=stderr
+
