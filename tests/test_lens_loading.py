@@ -174,3 +174,31 @@ def test_decoder_layer_resolves_both_model_shapes() -> None:
 
     backend._model = SimpleNamespace(model=_Wrapper())
     assert backend._decoder_layer(2) == "G2"
+
+
+def test_read_arrays_accepts_stacked_jacobians(tmp_path) -> None:
+    """camilablank/workspace-lenses (R-lens + its matched J-lens) stacks the
+    per-layer Jacobians into one (n_layers, d, d) tensor with the layer indices
+    in "source_layers", where neuronpedia nests {int layer -> matrix}. Same
+    content, different packing. Rows must map onto the layers source_layers
+    names -- these releases do not start at layer 0, so positional indexing
+    would silently read the wrong layer's Jacobian."""
+    import torch
+
+    from jspace_binding.model.qwen_jlens import LensFormatError, QwenJLensModel
+
+    d, layers = 4, [12, 13, 14]
+    stacked = torch.arange(len(layers) * d * d, dtype=torch.float32).reshape(len(layers), d, d)
+    path = tmp_path / "lens.pt"
+    torch.save({"J": stacked, "source_layers": layers, "d_model": d, "n_prompts": 1000}, path)
+
+    arrays = QwenJLensModel._read_arrays(path)  # noqa: SLF001
+    assert set(arrays) == {"layer_12", "layer_13", "layer_14", "__d_model__"}
+    assert torch.equal(torch.as_tensor(arrays["layer_13"]), stacked[1])  # row -> named layer
+    assert arrays["__d_model__"] == d
+
+    # A stack whose length disagrees with source_layers cannot be mapped.
+    bad = tmp_path / "bad.pt"
+    torch.save({"J": stacked, "source_layers": [12, 13], "d_model": d}, bad)
+    with pytest.raises(LensFormatError, match="source_layers"):
+        QwenJLensModel._read_arrays(bad)  # noqa: SLF001
