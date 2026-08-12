@@ -1,0 +1,7 @@
+label: qwen-dm-diagnose
+commit: cf2e01efe626dd9c1cc013dd0247fd51f8055957
+dirty: True
+config: configs/default.yaml
+sources: ['data/results', 'data/directions', 'figures', 'data/calibration.json']
+note: diff-means push diagnosis c=4,8 -- estimator comparison (table #11)
+files: 13
