@@ -487,12 +487,30 @@ class QwenJLensModel:
                     f"{path.name} holds a {type(obj).__name__}, expected a dict of Jacobians"
                 )
             nested = obj.get("J")
-            if not isinstance(nested, dict):
+            arrays: dict[str, Any]
+            if isinstance(nested, dict):
+                # neuronpedia/jacobian-lens spelling: {int layer -> matrix}.
+                arrays = {f"layer_{int(layer)}": m for layer, m in nested.items()}
+            elif nested is not None and getattr(nested, "ndim", 0) == 3:
+                # camilablank/workspace-lenses (R-lens and its matched J-lens)
+                # stacks the per-layer Jacobians into one (n_layers, d, d)
+                # tensor and names the layers separately in "source_layers".
+                # Same content, different packing — map row i onto the layer
+                # index it actually came from rather than assuming 0..n-1,
+                # since these releases start above layer 0.
+                layers = obj.get("source_layers")
+                if layers is None or len(layers) != nested.shape[0]:
+                    raise LensFormatError(
+                        f"{path.name} stacks J as {tuple(nested.shape)} but "
+                        f"source_layers has {0 if layers is None else len(layers)} "
+                        "entries; cannot map rows to layers"
+                    )
+                arrays = {f"layer_{int(layer)}": nested[i] for i, layer in enumerate(layers)}
+            else:
                 raise LensFormatError(
-                    f"{path.name} has no 'J' mapping of per-layer Jacobians; "
-                    f"top-level keys: {sorted(map(str, obj))[:12]}"
+                    f"{path.name} has no 'J' mapping or (n_layers, d, d) stack of "
+                    f"per-layer Jacobians; top-level keys: {sorted(map(str, obj))[:12]}"
                 )
-            arrays: dict[str, Any] = {f"layer_{int(layer)}": m for layer, m in nested.items()}
             if "d_model" in obj:
                 arrays["__d_model__"] = obj["d_model"]
             return arrays

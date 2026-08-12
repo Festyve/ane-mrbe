@@ -1,0 +1,131 @@
+# Gemma-3-27B-IT read through the MATCHED J-lens from the R-lens release.
+#
+# The controlled baseline for configs/gemma3_27b_it_rlens.yaml: same repo, same
+# forward pass, only the backward differs. Any R-vs-J difference measured
+# against THIS is a lens-type difference; measured against the neuronpedia
+# lens it would also carry provenance and corpus differences.
+#
+# Tests whether our workspace findings are J-lens-specific or a property of
+# workspace-lens readouts generally. This matters most for RQ2: on this model
+# J-space ablation destroyed 28% of binding discriminability while a matched
+# random subspace did nothing -- the project's only positive causal result. If
+# R-lens ablation does the same, that result is paradigm-level. If it does not,
+# the J-lens version needs a hard second look, since Nanda et al. report R-lens
+# directions are MORE causally loaded than J-lens ones.
+#
+# R-lens (Nanda et al., "R-lens: making J-lens more faithful on early layers")
+# applies layer-wise relevance propagation to the backward pass, reducing error
+# accumulation. Their headline gains are on EARLY layers; we read mid-workspace
+# (raw 46 of 62), where J-lens is already reliable by their account -- so the
+# honest expectation is little change, and the value here is closing the
+# "did you try the successor tool?" objection with data.
+#
+# The repo ships a MATCHED j-lens alongside (same forward pass, only gradients
+# differ). Use gemma-3-27b-it/j-lens as the baseline for any R-vs-J claim:
+# comparing against the neuronpedia lens would confound lens type with
+# provenance and fitting corpus.
+#
+# Artifact packs J as one (n_layers, d, d) stack with layer indices in
+# "source_layers", not neuronpedia's {layer: matrix} mapping. _read_arrays
+# handles both.
+
+#
+# Chosen because this is the one model where all three readouts exist:
+#   J-lens  neuronpedia/jacobian-lens  gemma-3-27b-it/jlens/Salesforce-wikitext
+#   R-lens  camilablank/workspace-lenses  gemma-3-27b-it/r-lens
+#   NLA     kitft/nla-gemma3-27b-L41-{av,ar}
+# It is also matched in scale to Qwen3.6-27B, so cross-family replication is
+# no longer confounded with model size the way Gemma-3-12B was.
+#
+# TWO DEPARTURES FROM EVERY PREVIOUS RUN, both deliberate, both to be stated
+# in the paper rather than discovered by a reviewer:
+#
+# 1. INSTRUCTION-TUNED weights. Qwen3.6-27B and Gemma-3-12B were both base
+#    (-pt). This is -it, because every released NLA is instruction-tuned and
+#    the R-lens Gemma is -it. The lens here is fitted on -it as well (verified
+#    in its config.yaml), so lens and weights agree -- but results are not
+#    weight-matched to the earlier runs.
+# 2. Raw continuation probes on a chat model. Our probes are bare
+#    "Question: ... Answer: The" continuations, with NO chat template. Kept
+#    identical to the -pt runs so the readout is comparable; the cost is that
+#    an IT model is being read outside its trained format. If the gate or the
+#    no-edit baselines look degraded, this is the first thing to suspect.
+
+model:
+  backend: qwen_jlens        # backend is model-agnostic despite the name
+  model_id: google/gemma-3-27b-it   # GATED on HF: accept the license first.
+                                    # Separate gate from gemma-3-12b-pt.
+  lens_repo: camilablank/workspace-lenses
+  # Provenance verified: fitted on google/gemma-3-27b-it, Salesforce/wikitext
+  # (wikitext-103-raw-v1, n_prompts 1000, bf16) -- the SAME corpus as the
+  # Qwen3.6-27B and Gemma-3-12B lenses, which is what keeps the three runs
+  # comparable. Artifact is 3.53 GB.
+  lens_subpath: gemma-3-27b-it/j-lens
+  # Source paper's single-layer analyses sit mid-workspace (~L75 of their
+  # reindexed 100). This model has 62 layers (confirmed independently by the
+  # released NLA, which reads block 41 of 62), so:
+  #
+  #     round(75/100 * 62) = 46.5  <-- LANDS EXACTLY ON A .5 BOUNDARY
+  #
+  # Neither previous conversion was ambiguous (Qwen 48.0, Gemma-12B 36.0).
+  # Python's round() is banker's rounding and gives 46; conventional rounding
+  # gives 47. Taking 46 (the codebase's own round()), but this is a judgement
+  # call worth one line in the methods section, and 47 is a legitimate
+  # robustness point to sweep.
+  #
+  # Workspace band edges, reindexed L38-92 -> raw:
+  #     round(38/100 * 62) = 24     band start
+  #     round(92/100 * 62) = 57     band end
+  # Run the edges as separate single-layer runs, never as one [24, 57] band.
+  layer_band: [46, 46]
+  alpha: null               # MUST be re-derived; see note below
+  push_coefficient: null    # MUST be re-derived; see note below
+  jspace_k: 16              # property of the method, not the model
+  ablate_k: 10
+  dtype: bfloat16
+  # 27B in bf16 is ~54 GB and does NOT fit one 40 GB A100. Either shard across
+  # two cards (device_map auto with two GPUs visible) or set load_in_4bit.
+  # 4-bit is INCOMPATIBLE with the lre_gradient estimator, which needs backward
+  # passes -- so if the primary is to use LRE directions, shard rather than
+  # quantize.
+  load_in_4bit: false
+  dummy_mode: binding
+
+# Held IDENTICAL to both previous runs. Changing them would confound "different
+# model" with "different stimuli" and forfeit the replication.
+stimuli:
+  items_per_cell: 50
+  concept_pairs:
+    - [doctor, nurse]
+    - [teacher, student]
+    - [driver, passenger]
+  non_participant_entities: [chef, farmer, coach]
+
+directions:
+  exemplars_per_role: 48    # matches the Gemma-3-12B run; multiple of 6
+  n_bootstrap: 200
+  stability_threshold: 0.8
+  variant: fitted
+  seed: 0
+
+experiment:
+  edit_types: [role_push, no_edit, null_non_participant, random_direction, shuffled_label_direction, identity_swap]
+  push_signs: [toward_agent, toward_patient]
+  injection_sites: [final_token, entity_token]
+  seed: 0
+
+analysis:
+  n_bootstrap: 10000
+  n_permutation: 10000
+  alpha_level: 0.05
+  ci_level: 0.95
+
+# Routed under data/gemma3_27b/ so neither the Qwen nor the Gemma-3-12B
+# artifacts can be overwritten, and the three runs can be diffed side by side.
+paths:
+  stimuli: data/stimuli/stimuli.jsonl               # shared, unchanged
+  fitting_corpus: data/stimuli/fitting_corpus.jsonl # shared, unchanged
+  directions: data/gemma3_27b_jlens_matched/directions
+  calibration: data/gemma3_27b_jlens_matched/calibration.json
+  results: data/gemma3_27b_jlens_matched/results
+  figures: figures/gemma3_27b_jlens_matched
