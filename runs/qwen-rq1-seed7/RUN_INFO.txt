@@ -1,0 +1,7 @@
+label: qwen-rq1-seed7
+commit: ed85da5c011f6e225897d0c5eaa29884fc1d67a2
+dirty: True
+config: configs/default.yaml
+sources: ['data/results', 'data/directions', 'figures', 'data/calibration.json']
+note: Qwen RQ1 seed 7 (table #12)
+files: 13
