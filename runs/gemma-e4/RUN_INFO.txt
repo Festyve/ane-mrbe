@@ -1,5 +1,5 @@
 label: gemma-e4
-commit: 078d9cc3c0873c2e7d160b9905f383f17b3dc2e6
+commit: f287d599f339e109670a859b27cf94406e4579d7
 dirty: True
 config: configs/gemma3_12b.yaml
 sources: ['data/gemma3_12b/results', 'data/gemma3_12b/directions', 'figures/gemma3_12b', 'data/gemma3_12b/calibration.json']
