@@ -1,27 +1,27 @@
 generated 600 families
 [transformers] `torch_dtype` is deprecated! Use `dtype` instead!
-Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<05:32,  3.20it/s]Loading weights:   1%|          | 13/1065 [00:00<00:26, 39.58it/s]Loading weights:   2%|▏         | 21/1065 [00:00<00:20, 51.74it/s]Loading weights:   3%|▎         | 31/1065 [00:00<00:16, 63.54it/s]Loading weights:   4%|▍         | 43/1065 [00:00<00:13, 75.64it/s]Loading weights:   5%|▌         | 56/1065 [00:00<00:11, 87.01it/s]Loading weights:   6%|▋         | 68/1065 [00:00<00:11, 88.71it/s]Loading weights:   8%|▊         | 81/1065 [00:01<00:10, 95.75it/s]Loading weights:   9%|▉         | 94/1065 [00:01<00:09, 100.98it/s]Loading weights:  10%|█         | 107/1065 [00:01<00:09, 99.48it/s]Loading weights:  11%|█▏        | 120/1065 [00:01<00:09, 101.09it/s]Loading weights:  12%|█▏        | 133/1065 [00:01<00:08, 106.86it/s]Loading weights:  14%|█▎        | 146/1065 [00:01<00:08, 106.48it/s]Loading weights:  15%|█▍        | 159/1065 [00:01<00:08, 102.06it/s]Loading weights:  16%|█▌        | 172/1065 [00:01<00:08, 101.89it/s]Loading weights:  17%|█▋        | 185/1065 [00:02<00:08, 105.95it/s]Loading weights:  18%|█▊        | 197/1065 [00:02<00:07, 109.47it/s]Loading weights:  20%|█▉        | 209/1065 [00:02<00:07, 108.29it/s]Loading weights:  21%|██        | 220/1065 [00:02<00:08, 100.06it/s]Loading weights:  22%|██▏       | 231/1065 [00:02<00:08, 95.23it/s] Loading weights:  23%|██▎       | 241/1065 [00:02<00:09, 87.97it/s]Loading weights:  24%|██▎       | 252/1065 [00:02<00:09, 90.11it/s]Loading weights:  25%|██▍       | 265/1065 [00:02<00:08, 93.91it/s]Loading weights:  26%|██▌       | 278/1065 [00:03<00:07, 99.34it/s]Loading weights:  27%|██▋       | 290/1065 [00:03<00:07, 102.95it/s]Loading weights:  29%|██▊       | 304/1065 [00:03<00:06, 111.08it/s]Loading weights:  30%|██▉       | 317/1065 [00:03<00:06, 108.82it/s]Loading weights:  31%|███       | 329/1065 [00:03<00:06, 111.81it/s]Loading weights:  32%|███▏      | 342/1065 [00:03<00:06, 109.98it/s]Loading weights:  33%|███▎      | 355/1065 [00:03<00:06, 110.61it/s]Loading weights:  34%|███▍      | 367/1065 [00:03<00:06, 111.98it/s]Loading weights:  36%|███▌      | 380/1065 [00:03<00:06, 111.86it/s]Loading weights:  37%|███▋      | 393/1065 [00:04<00:06, 108.04it/s]Loading weights:  38%|███▊      | 406/1065 [00:04<00:06, 107.71it/s]Loading weights:  39%|███▉      | 419/1065 [00:04<00:05, 111.13it/s]Loading weights:  41%|████      | 432/1065 [00:04<00:05, 107.73it/s]Loading weights:  42%|████▏     | 445/1065 [00:04<00:05, 103.47it/s]Loading weights:  43%|████▎     | 458/1065 [00:04<00:05, 103.11it/s]Loading weights:  44%|████▍     | 471/1065 [00:04<00:05, 107.98it/s]Loading weights:  45%|████▌     | 484/1065 [00:04<00:05, 103.56it/s]Loading weights:  47%|████▋     | 497/1065 [00:05<00:05, 107.15it/s]Loading weights:  48%|████▊     | 508/1065 [00:05<00:05, 105.92it/s]Loading weights:  49%|████▊     | 519/1065 [00:05<00:05, 102.85it/s]Loading weights:  50%|████▉     | 530/1065 [00:05<00:05, 103.02it/s]Loading weights:  51%|█████     | 541/1065 [00:05<00:05, 101.97it/s]Loading weights:  52%|█████▏    | 552/1065 [00:05<00:05, 95.89it/s] Loading weights:  53%|█████▎    | 564/1065 [00:05<00:05, 96.00it/s]Loading weights:  54%|█████▍    | 576/1065 [00:05<00:04, 100.81it/s]Loading weights:  55%|█████▌    | 589/1065 [00:06<00:04, 99.68it/s] Loading weights:  57%|█████▋    | 602/1065 [00:06<00:04, 104.64it/s]Loading weights:  58%|█████▊    | 614/1065 [00:06<00:04, 108.08it/s]Loading weights:  59%|█████▊    | 625/1065 [00:06<00:04, 107.02it/s]Loading weights:  72%|███████▏  | 764/1065 [00:06<00:00, 464.26it/s]Loading weights:  90%|████████▉ | 955/1065 [00:06<00:00, 875.70it/s]Loading weights: 100%|██████████| 1065/1065 [00:06<00:00, 161.78it/s]
-Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1370.84it/s]
-[e4] 30/600 (5%)  37s elapsed  0.8/s  ETA 11.2m
-[e4] 60/600 (10%)  74s elapsed  0.8/s  ETA 10.8m
-[e4] 90/600 (15%)  1.8m elapsed  0.8/s  ETA 10.1m
-[e4] 120/600 (20%)  2.4m elapsed  0.8/s  ETA 9.5m
-[e4] 150/600 (25%)  3.0m elapsed  0.8/s  ETA 8.9m
-[e4] 180/600 (30%)  3.6m elapsed  0.8/s  ETA 8.3m
-[e4] 210/600 (35%)  4.1m elapsed  0.9/s  ETA 7.6m
-[e4] 240/600 (40%)  4.7m elapsed  0.9/s  ETA 7.0m
-[e4] 270/600 (45%)  5.3m elapsed  0.8/s  ETA 6.5m
-[e4] 300/600 (50%)  6.0m elapsed  0.8/s  ETA 6.0m
-[e4] 330/600 (55%)  6.6m elapsed  0.8/s  ETA 5.4m
-[e4] 360/600 (60%)  7.3m elapsed  0.8/s  ETA 4.8m
-[e4] 390/600 (65%)  7.9m elapsed  0.8/s  ETA 4.2m
-[e4] 420/600 (70%)  8.5m elapsed  0.8/s  ETA 3.6m
-[e4] 450/600 (75%)  9.1m elapsed  0.8/s  ETA 3.0m
-[e4] 480/600 (80%)  9.8m elapsed  0.8/s  ETA 2.5m
-[e4] 510/600 (85%)  10.5m elapsed  0.8/s  ETA 1.9m
-[e4] 540/600 (90%)  11.1m elapsed  0.8/s  ETA 74s
-[e4] 570/600 (95%)  11.8m elapsed  0.8/s  ETA 37s
-[e4] 600/600 (100%)  12.4m elapsed  0.8/s
+Loading weights:   0%|          | 0/1065 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1065 [00:00<07:28,  2.37it/s]Loading weights:   1%|          | 13/1065 [00:00<00:33, 31.71it/s]Loading weights:   2%|▏         | 23/1065 [00:00<00:21, 49.25it/s]Loading weights:   3%|▎         | 32/1065 [00:00<00:17, 59.21it/s]Loading weights:   4%|▍         | 43/1065 [00:00<00:14, 69.49it/s]Loading weights:   5%|▌         | 57/1065 [00:00<00:11, 84.29it/s]Loading weights:   7%|▋         | 70/1065 [00:01<00:11, 89.82it/s]Loading weights:   8%|▊         | 82/1065 [00:01<00:10, 97.10it/s]Loading weights:   9%|▉         | 95/1065 [00:01<00:09, 100.48it/s]Loading weights:  10%|█         | 108/1065 [00:01<00:09, 99.65it/s]Loading weights:  11%|█▏        | 121/1065 [00:01<00:09, 103.34it/s]Loading weights:  13%|█▎        | 134/1065 [00:01<00:08, 106.83it/s]Loading weights:  14%|█▎        | 146/1065 [00:01<00:08, 107.44it/s]Loading weights:  15%|█▍        | 159/1065 [00:01<00:08, 107.02it/s]Loading weights:  16%|█▌        | 170/1065 [00:02<00:08, 106.26it/s]Loading weights:  17%|█▋        | 181/1065 [00:02<00:08, 99.74it/s] Loading weights:  18%|█▊        | 192/1065 [00:02<00:08, 100.40it/s]Loading weights:  19%|█▉        | 203/1065 [00:02<00:08, 98.42it/s] Loading weights:  20%|██        | 213/1065 [00:02<00:09, 90.64it/s]Loading weights:  21%|██        | 226/1065 [00:02<00:08, 94.71it/s]Loading weights:  22%|██▏       | 239/1065 [00:02<00:08, 102.31it/s]Loading weights:  24%|██▎       | 251/1065 [00:02<00:07, 106.18it/s]Loading weights:  25%|██▍       | 263/1065 [00:02<00:07, 107.43it/s]Loading weights:  26%|██▌       | 276/1065 [00:03<00:07, 106.64it/s]Loading weights:  27%|██▋       | 289/1065 [00:03<00:07, 100.79it/s]Loading weights:  28%|██▊       | 300/1065 [00:03<00:07, 99.08it/s] Loading weights:  29%|██▉       | 310/1065 [00:03<00:08, 90.74it/s]Loading weights:  30%|███       | 320/1065 [00:03<00:08, 89.29it/s]Loading weights:  31%|███       | 330/1065 [00:03<00:09, 81.57it/s]Loading weights:  32%|███▏      | 343/1065 [00:03<00:07, 92.17it/s]Loading weights:  33%|███▎      | 355/1065 [00:03<00:07, 96.09it/s]Loading weights:  34%|███▍      | 367/1065 [00:04<00:07, 97.20it/s]Loading weights:  36%|███▌      | 380/1065 [00:04<00:06, 100.38it/s]Loading weights:  37%|███▋      | 393/1065 [00:04<00:06, 99.57it/s] Loading weights:  38%|███▊      | 404/1065 [00:04<00:06, 98.94it/s]Loading weights:  39%|███▉      | 414/1065 [00:04<00:07, 91.43it/s]Loading weights:  40%|███▉      | 424/1065 [00:04<00:07, 88.52it/s]Loading weights:  41%|████      | 433/1065 [00:04<00:07, 86.05it/s]Loading weights:  42%|████▏     | 446/1065 [00:04<00:06, 94.91it/s]Loading weights:  43%|████▎     | 459/1065 [00:05<00:06, 95.90it/s]Loading weights:  44%|████▍     | 471/1065 [00:05<00:06, 97.76it/s]Loading weights:  45%|████▌     | 483/1065 [00:05<00:05, 97.20it/s]Loading weights:  46%|████▋     | 495/1065 [00:05<00:05, 102.56it/s]Loading weights:  48%|████▊     | 506/1065 [00:05<00:05, 96.33it/s] Loading weights:  48%|████▊     | 516/1065 [00:05<00:06, 85.32it/s]Loading weights:  50%|████▉     | 529/1065 [00:05<00:05, 96.07it/s]Loading weights:  51%|█████     | 539/1065 [00:05<00:05, 93.12it/s]Loading weights:  52%|█████▏    | 551/1065 [00:06<00:05, 94.22it/s]Loading weights:  53%|█████▎    | 564/1065 [00:06<00:04, 101.70it/s]Loading weights:  54%|█████▍    | 577/1065 [00:06<00:04, 98.88it/s] Loading weights:  55%|█████▌    | 589/1065 [00:06<00:04, 99.39it/s]Loading weights:  56%|█████▋    | 601/1065 [00:06<00:04, 98.97it/s]Loading weights:  58%|█████▊    | 615/1065 [00:06<00:04, 99.80it/s]Loading weights:  60%|█████▉    | 637/1065 [00:06<00:03, 129.69it/s]Loading weights:  68%|██████▊   | 729/1065 [00:06<00:00, 338.40it/s]Loading weights:  77%|███████▋  | 815/1065 [00:06<00:00, 477.57it/s]Loading weights:  93%|█████████▎| 987/1065 [00:07<00:00, 820.51it/s]Loading weights: 100%|██████████| 1065/1065 [00:07<00:00, 148.89it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 814.38it/s]
+[e4] 30/600 (5%)  43s elapsed  0.7/s  ETA 12.9m
+[e4] 60/600 (10%)  82s elapsed  0.8/s  ETA 11.8m
+[e4] 90/600 (15%)  2.1m elapsed  0.7/s  ETA 11.4m
+[e4] 120/600 (20%)  2.8m elapsed  0.7/s  ETA 10.9m
+[e4] 150/600 (25%)  3.5m elapsed  0.7/s  ETA 10.3m
+[e4] 180/600 (30%)  4.2m elapsed  0.7/s  ETA 9.6m
+[e4] 210/600 (35%)  4.9m elapsed  0.7/s  ETA 8.9m
+[e4] 240/600 (40%)  5.5m elapsed  0.7/s  ETA 8.2m
+[e4] 270/600 (45%)  6.1m elapsed  0.7/s  ETA 7.4m
+[e4] 300/600 (50%)  6.8m elapsed  0.7/s  ETA 6.8m
+[e4] 330/600 (55%)  7.5m elapsed  0.7/s  ETA 6.1m
+[e4] 360/600 (60%)  8.2m elapsed  0.7/s  ETA 5.4m
+[e4] 390/600 (65%)  8.9m elapsed  0.7/s  ETA 4.8m
+[e4] 420/600 (70%)  9.5m elapsed  0.7/s  ETA 4.1m
+[e4] 450/600 (75%)  10.2m elapsed  0.7/s  ETA 3.4m
+[e4] 480/600 (80%)  11.0m elapsed  0.7/s  ETA 2.7m
+[e4] 510/600 (85%)  11.7m elapsed  0.7/s  ETA 2.1m
+[e4] 540/600 (90%)  12.4m elapsed  0.7/s  ETA 82s
+[e4] 570/600 (95%)  13.0m elapsed  0.7/s  ETA 41s
+[e4] 600/600 (100%)  13.7m elapsed  0.7/s
 {
   "provenance": {
     "backend": "qwen_jlens",
@@ -40,7 +40,7 @@ generated 600 families
     "n_concept_pairs": 3,
     "n_families": 600,
     "seed": 0,
-    "git_commit": "078d9cc3c0873c2e7d160b9905f383f17b3dc2e6",
+    "git_commit": "f287d599f339e109670a859b27cf94406e4579d7",
     "git_branch": "main",
     "git_dirty": true
   },
