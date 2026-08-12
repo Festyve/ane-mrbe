@@ -183,7 +183,7 @@ def test_read_arrays_accepts_stacked_jacobians(tmp_path) -> None:
     content, different packing. Rows must map onto the layers source_layers
     names -- these releases do not start at layer 0, so positional indexing
     would silently read the wrong layer's Jacobian."""
-    import torch
+    torch = pytest.importorskip("torch")
 
     from jspace_binding.model.qwen_jlens import LensFormatError, QwenJLensModel
 
