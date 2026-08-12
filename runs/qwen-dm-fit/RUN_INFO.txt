@@ -1,0 +1,7 @@
+label: qwen-dm-fit
+commit: 0ad027f15691462b49597903148534a4a55c392e
+dirty: True
+config: configs/default.yaml
+sources: ['data/results', 'data/directions', 'figures', 'data/calibration.json']
+note: Qwen diff-means directions refit at current HEAD (table #11 control)
+files: 13
