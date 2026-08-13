@@ -1,0 +1,19 @@
+label: gemma3-27b-it-c64
+config: configs/gemma3_27b_it_lre.yaml
+push_coefficient: 64.0
+site: entity_token
+estimator: lre_gradient
+note: |
+  First point of the c=64/128/256 sweep. Coefficient chosen by calibration
+  (smallest grid value clearing 0.5 log-odds on the FITTING corpus: 0.532).
+
+  Verdict: uninterpretable_strength_failure. In-run displacement 0.328 against
+  the 0.5 floor -- the push transfers at ~62% strength from the fitting corpus
+  to the evaluation stimuli. Retained as the evidence for that transfer gap,
+  which is why the coefficient was raised.
+
+  pooled mean -0.0134, d -0.197. NOT binding-specific: the pooled mean is
+  INSIDE the null band [-0.147, 0.123], and it is SMALLER than the
+  non-participant control (-0.0161), ratio 0.83 -- i.e. pushing the fitted
+  direction of an entity absent from the sentence moves the score slightly
+  more than pushing the real one.

@@ -1,0 +1,97 @@
+label: gemma3-27b-it
+model: google/gemma-3-27b-it (62 layers, d_model 5376) -- INSTRUCTION-TUNED
+lens: neuronpedia/jacobian-lens  gemma-3-27b-it/jlens/Salesforce-wikitext
+layer_band: [46, 46]   round(75/100 * 62) = 46.5, taken as 46 (see config note)
+config: configs/gemma3_27b_it.yaml (+ _lre.yaml for the LRE-estimator runs)
+site: entity_token unless stated
+
+WHY THIS MODEL. The only checkpoint with all three readouts available -- the
+neuronpedia J-lens, Nanda et al.'s R-lens (plus its matched J-lens from the
+same forward pass), and a released NLA (kitft/nla-gemma3-27b-L41). Also
+scale-matched to Qwen3.6-27B, so cross-family comparison is no longer
+confounded with model size the way Gemma-3-12B was. Two deliberate departures
+from the other runs: instruction-tuned weights (every released NLA is IT), and
+raw continuation probes kept identical to the -pt runs rather than chat-
+formatted, so the readout stays comparable. The gate passing and residual
+within-pair at 0.978 show the raw-continuation choice did not degrade the
+readout.
+
+CONTENTS
+  results/            gate, within_pair (BOTH sites), rq1 (seed 0), rq2 (both sites)
+  seeds/              rq1 at seeds 7, 42, 123, 2024   (seed 0 is results/rq1_probe.json)
+  layers/             rq1 at L24 and L57 (band edges); L46 is results/rq1_probe.json
+  lenses/             rq1 + rq2 under R-lens and under the MATCHED J-lens
+  directions/         diff-of-means fits, both sites
+  directions_lre/     LRE gradient fits, both sites
+  calibration_lre.json
+  ../gemma3-27b-it-c64, -c128, -c256   primary at three coefficients
+
+FINDINGS
+
+1. Gate PASS. Atoms readable, diagonal dominates.
+
+2. Direction stability replicates the site asymmetry, third model running:
+   entity_token 0.908-0.951 (all six pass the 0.8 gate),
+   final_token  0.698-0.849 (four of six fail).
+   The LRE estimator is stable at BOTH sites (0.997 / 0.985), which
+   diff-of-means is not.
+
+3. Within-pair, final_token -- the cleanest replication in the project:
+       jspace 0.574 | random 0.590 | orthogonal 0.974 | residual 0.978
+   Qwen3.6-27B gave 0.587/0.643/0.984/0.989 and Gemma-3-12B 0.573/0.589/
+   0.949/0.975. J-space lands within 0.014 across two families, two scales,
+   base and instruction-tuned.
+   At entity_token: jspace 0.702 | random 0.879 | orthogonal 0.846 |
+   residual 0.834.
+
+4. RQ1. Seed 0 at entity_token reads jspace +0.059 vs orthogonal +0.162 and
+   residual +0.167. READ THE SEEDS AND LAYERS BEFORE CITING THAT.
+   Across five seeds, jspace mean +0.076 (range 0.050-0.143) versus
+   random_subspace +0.092 (0.055-0.179) -- overlapping. Residual ranges
+   0.005-0.255, so it is NOT reliably the strongest source on this model.
+   Across L24/L46/L57 the jspace-minus-random difference flips sign
+   (-0.218, -0.015, +0.146).
+   WHAT SURVIVES seeds and layers: orthogonal beats jspace at every layer and
+   every seed. "J-space carries less than the orthogonal complement" is the
+   defensible claim; "no better than a random subspace" is true on average but
+   layer- and seed-dependent.
+   final_token RQ1 inverts at all three layers, all four sources. The
+   Hewitt-Liang label control sits at chance (0.475-0.529) throughout, which
+   rules out leakage and fold-construction error; random_subspace is a
+   projection of REAL activations, so its inverting is consistent with a
+   genuine anti-transfer rather than evidence against one.
+
+5. RQ2 -- the project's only positive causal result, and it is lens-independent.
+   entity_token, ablate_jspace: role accuracy 0.99 -> 0.74, binding deficit
+   0.284 (a FRACTION of the 12.31 baseline margin, i.e. ~3.5 log-odds),
+   binding-specific 0.275, CI [0.262, 0.288].
+   ablate_random_subspace, matched dimension, edit-magnitude ratio 0.94:
+   binding deficit -0.0015, accuracy 0.989. Recall control 0.009.
+   Under R-lens: 0.297.  Under the matched J-lens: 0.334. Same control.
+   Using the MATCHED J-lens matters: it comes from the same forward pass as
+   R-lens, so a difference would be lens type rather than provenance.
+   final_token shows nothing (-0.002, verdict false).
+   Qwen was -0.032 and Gemma-3-12B -0.046 here, both ablation-IMPROVES, both
+   false. This model is the only one with real ablation damage. That remains
+   confounded between instruction tuning and scale -- it is both our first
+   non-base model and our largest Gemma -- and we chose not to run the base
+   model, which has neither R-lens nor NLA, so state it as a limitation.
+
+6. Primary: NULL at all three coefficients. See ../gemma3-27b-it-c*.
+   Calibration selected c=64 on the fitting corpus, but in-run displacement
+   was only 0.328 against the 0.5 floor: the push transfers at ~62% strength
+   from fitting to evaluation stimuli. At c=128 and c=256 the check passes and
+   |d| reaches 0.585 and 0.681 with every construction Holm-significant -- but
+   the pooled mean sits INSIDE the null band at all three, and tracks the
+   non-participant control (ratios 0.83 / 1.01 / 0.84). At c=256 the
+   absent-entity push moved the score MORE than the real one. The dose
+   response is the controls scaling, not a binding effect.
+   This is what motivated the _verdict fix: the classifier read p and Cohen's
+   d without ever comparing the pooled mean to control_means.
+
+7. Identity swap fails to calibrate again: counterpart shift +0.0001 against
+   the 0.05 floor. Three models for three. It is the source paper's own core
+   intervention, inherited unmodified.
+
+READING ORDER for anyone new: results/within_pair.json (final_token),
+then lenses/rq2_ablation_*.json, then ../gemma3-27b-it-c128/RUN_INFO.txt.
