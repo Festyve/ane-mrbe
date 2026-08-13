@@ -1,30 +1,30 @@
 {
-  "site": "entity_token",
+  "site": "final_token",
   "n_families": 200,
   "within_pair": {
     "jspace": {
-      "doctor->nurse": 0.7,
-      "driver->passenger": 0.684375,
-      "teacher->student": 0.721875,
-      "mean": 0.7020833333333334
+      "doctor->nurse": 0.546875,
+      "driver->passenger": 0.60625,
+      "teacher->student": 0.56875,
+      "mean": 0.5739583333333332
     },
     "orthogonal": {
-      "doctor->nurse": 0.765625,
-      "driver->passenger": 0.909375,
-      "teacher->student": 0.8625,
-      "mean": 0.8458333333333333
+      "doctor->nurse": 0.975,
+      "driver->passenger": 0.971875,
+      "teacher->student": 0.975,
+      "mean": 0.9739583333333334
     },
     "residual": {
-      "doctor->nurse": 0.78125,
-      "driver->passenger": 0.846875,
-      "teacher->student": 0.875,
-      "mean": 0.834375
+      "doctor->nurse": 0.98125,
+      "driver->passenger": 0.975,
+      "teacher->student": 0.978125,
+      "mean": 0.9781249999999999
     },
     "random_subspace": {
-      "doctor->nurse": 0.865625,
-      "driver->passenger": 0.865625,
-      "teacher->student": 0.90625,
-      "mean": 0.8791666666666668
+      "doctor->nurse": 0.61875,
+      "driver->passenger": 0.546875,
+      "teacher->student": 0.603125,
+      "mean": 0.5895833333333332
     }
   },
   "verdict": "present_not_filler_general"
