@@ -435,9 +435,22 @@ real one. `_verdict` now checks the pooled mean against the control band before
 any effect-size branch, and reports `pooled_mean`, `null_band`,
 `clears_null_band`, `strongest_control` and `vs_strongest_control_ratio`.
 
-**Consequence for this file:** every primary run scored before that fix needs
-re-scoring with `scripts/reanalyze_primary.py` (CPU, seconds). Qwen's E3 and
-Gemma-3-12B's primary both reported `significant_but_tiny` and were never
-checked against their controls. **No measurement changed in any case — only which measurements were
+**Re-scored, all three models** (`scripts/reanalyze_primary.py`, CPU, from the
+archived trials — no measurement changed):
+
+| model | outcome under the fixed rule | pooled mean | inside null band | mean ÷ strongest control |
+|---|---|---|---|---|
+| Qwen3.6-27B (diff-of-means, c=8) | `uninterpretable_strength_failure` | −0.0050 | yes | 0.61 |
+| Qwen3.6-27B (LRE, c=4) | `uninterpretable_strength_failure` | −0.0006 | yes | 0.14 |
+| Gemma-3-12B | `indistinguishable_from_controls` | −0.0140 | yes | 0.46 |
+| Gemma-3-27B-IT (c=128) | `indistinguishable_from_controls` | −0.0568 | yes | 1.01 |
+| Gemma-3-27B-IT (c=256) | `indistinguishable_from_controls` | −0.1809 | yes | 0.84 |
+
+**No model shows a binding-specific push effect.** Every pooled mean sits
+inside its own control band, and every one moved the score *less than or equal
+to* its strongest control — a strength-matched push of a direction belonging to
+an entity absent from the sentence. Gemma-3-12B's previously reported
+`significant_but_tiny` was the old rule reading consistency as a small real
+effect. **No measurement changed in any case — only which measurements were
 allowed to be called a result.** Each fix carries a regression test pinning the
 observed numbers.
