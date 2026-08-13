@@ -3,3 +3,11 @@ config: configs/gemma3_27b_it_lre.yaml
 push_coefficient: 256.0
 site: entity_token
 note: Third point of the c=64/128/256 sweep. Strength check passes; pooled d -0.681. BUT the effect is NOT binding-specific: control_means show null_non_participant -0.216 and shuffled_label -0.133 scaling with the coefficient alongside it, and at c=128 the pooled mean (-0.0568) equals the non-participant control (-0.0561) at a ratio of 1.01 and sits INSIDE the null band. The large Cohen d measures consistency, not specificity. Read pooled mean against control_means, not the verdict label.
+
+Verified from the archived trials: displacement 1.255 (passes), pooled mean
+-0.1809, d -0.681, inside the null band [-0.481, 0.154]. The non-participant
+control is -0.2161 -- LARGER in magnitude than the real push, ratio 0.84. A
+direction belonging to an entity absent from the sentence perturbs the binding
+score more than the entity's own direction does. All three coefficients give
+the same picture (ratios 0.83 / 1.01 / 0.84), so the sweep measures generic
+perturbation scaling with c, not a binding effect.
