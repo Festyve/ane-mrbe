@@ -3,3 +3,323 @@ generated 600 families
 Fetching 15 files:   0%|          | 0/15 [00:00<?, ?it/s]Fetching 15 files:   7%|▋         | 1/15 [00:15<03:38, 15.61s/it]Fetching 15 files:  13%|█▎        | 2/15 [00:16<01:27,  6.75s/it]Fetching 15 files:  20%|██        | 3/15 [00:16<00:45,  3.80s/it]Fetching 15 files:  27%|██▋       | 4/15 [00:17<00:28,  2.58s/it]Fetching 15 files:  53%|█████▎    | 8/15 [00:17<00:05,  1.23it/s]Fetching 15 files:  67%|██████▋   | 10/15 [00:21<00:06,  1.28s/it]Fetching 15 files:  80%|████████  | 12/15 [00:23<00:03,  1.12s/it]Fetching 15 files:  87%|████████▋ | 13/15 [00:24<00:02,  1.15s/it]Fetching 15 files:  93%|█████████▎| 14/15 [00:24<00:00,  1.04it/s]Fetching 15 files: 100%|██████████| 15/15 [00:24<00:00,  1.31it/s]Fetching 15 files: 100%|██████████| 15/15 [00:24<00:00,  1.66s/it]
 Loading weights:   0%|          | 0/851 [00:00<?, ?it/s]Loading weights:   0%|          | 1/851 [00:00<02:46,  5.11it/s]Loading weights:   1%|          | 10/851 [00:00<00:21, 39.89it/s]Loading weights:   2%|▏         | 16/851 [00:00<00:20, 40.31it/s]Loading weights:   3%|▎         | 27/851 [00:00<00:15, 52.58it/s]Loading weights:   5%|▍         | 40/851 [00:00<00:11, 73.59it/s]Loading weights:   6%|▌         | 49/851 [00:01<00:15, 50.28it/s]Loading weights:   7%|▋         | 61/851 [00:01<00:12, 62.98it/s]Loading weights:   8%|▊         | 69/851 [00:01<00:13, 58.37it/s]Loading weights:   9%|▉         | 78/851 [00:01<00:15, 48.56it/s]Loading weights:  11%|█         | 95/851 [00:01<00:10, 69.86it/s]Loading weights:  12%|█▏        | 104/851 [00:01<00:11, 65.97it/s]Loading weights:  14%|█▍        | 118/851 [00:01<00:10, 70.29it/s]Loading weights:  16%|█▌        | 132/851 [00:02<00:08, 84.29it/s]Loading weights:  17%|█▋        | 142/851 [00:02<00:08, 80.09it/s]Loading weights:  18%|█▊        | 151/851 [00:02<00:10, 68.29it/s]Loading weights:  19%|█▊        | 159/851 [00:02<00:11, 61.20it/s]Loading weights:  20%|█▉        | 168/851 [00:02<00:10, 66.55it/s]Loading weights:  21%|██        | 176/851 [00:02<00:10, 62.32it/s]Loading weights:  22%|██▏       | 186/851 [00:02<00:09, 70.75it/s]Loading weights:  23%|██▎       | 194/851 [00:03<00:09, 72.97it/s]Loading weights:  24%|██▎       | 202/851 [00:03<00:10, 60.40it/s]Loading weights:  25%|██▍       | 209/851 [00:03<00:12, 53.00it/s]Loading weights:  26%|██▌       | 222/851 [00:03<00:09, 68.96it/s]Loading weights:  27%|██▋       | 230/851 [00:03<00:10, 61.51it/s]Loading weights:  28%|██▊       | 239/851 [00:03<00:09, 63.56it/s]Loading weights:  29%|██▉       | 246/851 [00:03<00:09, 64.50it/s]Loading weights:  30%|██▉       | 253/851 [00:04<00:10, 59.33it/s]Loading weights:  31%|███       | 260/851 [00:04<00:11, 52.48it/s]Loading weights:  32%|███▏      | 272/851 [00:04<00:08, 66.82it/s]Loading weights:  33%|███▎      | 280/851 [00:04<00:09, 63.34it/s]Loading weights:  34%|███▍      | 292/851 [00:04<00:07, 73.52it/s]Loading weights:  35%|███▌      | 300/851 [00:04<00:07, 74.00it/s]Loading weights:  36%|███▌      | 308/851 [00:04<00:09, 56.46it/s]Loading weights:  37%|███▋      | 315/851 [00:05<00:10, 53.28it/s]Loading weights:  39%|███▊      | 328/851 [00:05<00:07, 69.10it/s]Loading weights:  39%|███▉      | 336/851 [00:05<00:08, 63.27it/s]Loading weights:  41%|████      | 345/851 [00:05<00:07, 68.70it/s]Loading weights:  41%|████▏     | 353/851 [00:05<00:07, 68.14it/s]Loading weights:  42%|████▏     | 361/851 [00:05<00:09, 54.16it/s]Loading weights:  43%|████▎     | 368/851 [00:05<00:09, 50.70it/s]Loading weights:  45%|████▌     | 383/851 [00:06<00:06, 69.50it/s]Loading weights:  46%|████▌     | 391/851 [00:06<00:07, 62.04it/s]Loading weights:  47%|████▋     | 400/851 [00:06<00:07, 64.25it/s]Loading weights:  48%|████▊     | 412/851 [00:06<00:06, 66.51it/s]Loading weights:  49%|████▉     | 419/851 [00:06<00:07, 56.47it/s]Loading weights:  51%|█████     | 436/851 [00:06<00:05, 77.33it/s]Loading weights:  52%|█████▏    | 445/851 [00:07<00:05, 68.54it/s]Loading weights:  53%|█████▎    | 453/851 [00:07<00:07, 54.84it/s]Loading weights:  54%|█████▍    | 461/851 [00:07<00:06, 59.07it/s]Loading weights:  55%|█████▌    | 470/851 [00:07<00:06, 60.13it/s]Loading weights:  56%|█████▌    | 477/851 [00:07<00:06, 62.28it/s]Loading weights:  57%|█████▋    | 489/851 [00:07<00:04, 74.19it/s]Loading weights:  58%|█████▊    | 497/851 [00:07<00:05, 66.85it/s]Loading weights:  59%|█████▉    | 505/851 [00:08<00:05, 59.64it/s]Loading weights:  60%|██████    | 512/851 [00:08<00:05, 60.66it/s]Loading weights:  61%|██████    | 519/851 [00:08<00:05, 61.89it/s]Loading weights:  62%|██████▏   | 526/851 [00:08<00:05, 54.43it/s]Loading weights:  63%|██████▎   | 540/851 [00:08<00:04, 72.94it/s]Loading weights:  64%|██████▍   | 548/851 [00:08<00:04, 62.68it/s]Loading weights:  65%|██████▌   | 557/851 [00:08<00:04, 60.30it/s]Loading weights:  67%|██████▋   | 570/851 [00:09<00:03, 74.86it/s]Loading weights:  68%|██████▊   | 579/851 [00:09<00:04, 56.51it/s]Loading weights:  70%|██████▉   | 592/851 [00:09<00:03, 67.71it/s]Loading weights:  71%|███████   | 600/851 [00:09<00:03, 63.35it/s]Loading weights:  72%|███████▏  | 610/851 [00:09<00:03, 66.18it/s]Loading weights:  73%|███████▎  | 618/851 [00:09<00:03, 64.11it/s]Loading weights:  73%|███████▎  | 625/851 [00:09<00:03, 60.99it/s]Loading weights:  74%|███████▍  | 632/851 [00:10<00:04, 53.12it/s]Loading weights:  76%|███████▌  | 648/851 [00:10<00:02, 75.14it/s]Loading weights:  77%|███████▋  | 657/851 [00:10<00:02, 68.45it/s]Loading weights:  78%|███████▊  | 665/851 [00:10<00:03, 54.41it/s]Loading weights:  80%|███████▉  | 677/851 [00:10<00:02, 64.35it/s]Loading weights:  80%|████████  | 685/851 [00:10<00:03, 53.59it/s]Loading weights:  82%|████████▏ | 698/851 [00:11<00:02, 68.34it/s]Loading weights:  83%|████████▎ | 707/851 [00:11<00:02, 59.41it/s]Loading weights:  84%|████████▍ | 716/851 [00:11<00:02, 61.49it/s]Loading weights:  85%|████████▍ | 723/851 [00:11<00:02, 63.06it/s]Loading weights:  86%|████████▌ | 730/851 [00:11<00:01, 63.55it/s]Loading weights:  87%|████████▋ | 737/851 [00:11<00:02, 49.11it/s]Loading weights:  88%|████████▊ | 750/851 [00:11<00:01, 63.02it/s]Loading weights:  89%|████████▉ | 758/851 [00:12<00:01, 56.89it/s]Loading weights:  90%|█████████ | 769/851 [00:12<00:01, 64.72it/s]Loading weights:  91%|█████████▏| 777/851 [00:12<00:01, 61.33it/s]Loading weights:  92%|█████████▏| 784/851 [00:12<00:01, 60.26it/s]Loading weights:  93%|█████████▎| 791/851 [00:12<00:01, 48.89it/s]Loading weights:  95%|█████████▍| 805/851 [00:12<00:00, 65.74it/s]Loading weights:  96%|█████████▌| 813/851 [00:13<00:00, 59.34it/s]Loading weights:  97%|█████████▋| 822/851 [00:13<00:00, 63.19it/s]Loading weights:  97%|█████████▋| 829/851 [00:13<00:00, 64.05it/s]Loading weights:  98%|█████████▊| 836/851 [00:13<00:00, 61.24it/s]Loading weights:  99%|█████████▉| 843/851 [00:13<00:00, 46.52it/s]Loading weights: 100%|██████████| 851/851 [00:13<00:00, 62.01it/s]
 Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files:  33%|███▎      | 1/3 [00:00<00:00,  2.98it/s]Fetching 3 files:  67%|██████▋   | 2/3 [00:00<00:00,  3.97it/s]Fetching 3 files: 100%|██████████| 3/3 [00:05<00:00,  2.27s/it]Fetching 3 files: 100%|██████████| 3/3 [00:05<00:00,  1.74s/it]
+[primary] 30/600 (5%)  13.7m elapsed  0.0/s  ETA 4.3h
+[primary] 60/600 (10%)  31.7m elapsed  0.0/s  ETA 4.8h
+[primary] 90/600 (15%)  56.4m elapsed  0.0/s  ETA 5.3h
+[primary] 120/600 (20%)  69.2m elapsed  0.0/s  ETA 4.6h
+[primary] 150/600 (25%)  79.2m elapsed  0.0/s  ETA 4.0h
+[primary] 180/600 (30%)  89.2m elapsed  0.0/s  ETA 3.5h
+[primary] 210/600 (35%)  1.7h elapsed  0.0/s  ETA 3.1h
+[primary] 240/600 (40%)  1.8h elapsed  0.0/s  ETA 2.7h
+[primary] 270/600 (45%)  2.1h elapsed  0.0/s  ETA 2.5h
+[primary] 300/600 (50%)  2.4h elapsed  0.0/s  ETA 2.4h
+[primary] 330/600 (55%)  2.6h elapsed  0.0/s  ETA 2.1h
+[primary] 360/600 (60%)  2.7h elapsed  0.0/s  ETA 1.8h
+[primary] 390/600 (65%)  2.9h elapsed  0.0/s  ETA 1.6h
+[primary] 420/600 (70%)  3.1h elapsed  0.0/s  ETA 78.4m
+[primary] 450/600 (75%)  3.2h elapsed  0.0/s  ETA 64.3m
+[primary] 480/600 (80%)  3.5h elapsed  0.0/s  ETA 52.8m
+[primary] 510/600 (85%)  3.8h elapsed  0.0/s  ETA 40.0m
+[primary] 540/600 (90%)  4.0h elapsed  0.0/s  ETA 26.3m
+[primary] 570/600 (95%)  4.1h elapsed  0.0/s  ETA 13.0m
+[primary] 600/600 (100%)  4.3h elapsed  0.0/s
+{
+  "site": "entity_token",
+  "ci_level": 0.95,
+  "n_trials": 31800,
+  "null_band": [
+    -0.12191379212255742,
+    0.11977773542712943
+  ],
+  "n_null_scores": 1800,
+  "pooled": {
+    "n": 600,
+    "mean": -0.0006410336023239968,
+    "ci_lo": -0.005466950916478033,
+    "ci_hi": 0.004280731533930215,
+    "p_perm": 0.7978202179782021,
+    "cohens_d": -0.010460229099853256,
+    "cohens_d_ci_lo": -0.08947561873680314,
+    "cohens_d_ci_hi": 0.06968522600342376
+  },
+  "gap_change_by_sign": {
+    "toward_agent": {
+      "n": 600,
+      "mean": -0.030052335167413003
+    },
+    "toward_patient": {
+      "n": 600,
+      "mean": 0.031334402372061
+    }
+  },
+  "push_strength_check": {
+    "available": true,
+    "role_push_displacement": 0.40192640367552107,
+    "control_displacement": {
+      "null_non_participant": 0.32660895322558736,
+      "random_direction": 0.03228569490987348,
+      "shuffled_label_direction": 0.26155992057537863
+    },
+    "strongest_control": "null_non_participant",
+    "vs_control_ci": [
+      0.07220964821530394,
+      0.0783824959273424
+    ],
+    "min_push_displacement": 0.5,
+    "clears_floor": false,
+    "beats_strongest_control": true,
+    "passes": false
+  },
+  "neutral_strength_check": {
+    "available": true,
+    "p_counterpart_no_edit": 0.0026901513662051,
+    "p_counterpart_swap": 0.003931241611418651,
+    "p_entity_no_edit": 0.18507393153229107,
+    "p_entity_swap": 0.18090749108543,
+    "counterpart_shift": 0.001241090245213551,
+    "entity_shift": -0.004166440446861069,
+    "min_counterpart_shift": 0.05,
+    "passes": false
+  },
+  "constructions": {
+    "active_passive": {
+      "n": 150,
+      "mean": -0.009070666690415492,
+      "ci_lo": -0.018332738815624347,
+      "ci_hi": 0.0004518137300278027,
+      "p_perm": 0.059394060593940604,
+      "cohens_d": -0.15503574877072338,
+      "cohens_d_ci_lo": -0.3259573965299502,
+      "cohens_d_ci_hi": 0.007704089134635462,
+      "significant_holm": false,
+      "agent_patient_family": true
+    },
+    "dative": {
+      "n": 150,
+      "mean": -0.003286555540843784,
+      "ci_lo": -0.013160495004183778,
+      "ci_hi": 0.006739373825201957,
+      "p_perm": 0.5176482351764824,
+      "cohens_d": -0.052902588560460366,
+      "cohens_d_ci_lo": -0.21146602364100045,
+      "cohens_d_ci_hi": 0.11088676720721638,
+      "significant_holm": false,
+      "agent_patient_family": false
+    },
+    "cleft": {
+      "n": 150,
+      "mean": 0.004945627252883295,
+      "ci_lo": -0.00543107888263284,
+      "ci_hi": 0.015138844234588378,
+      "p_perm": 0.3444655534446555,
+      "cohens_d": 0.07711360903800343,
+      "cohens_d_ci_lo": -0.08599863653561003,
+      "cohens_d_ci_hi": 0.23670771889381248,
+      "significant_holm": false,
+      "agent_patient_family": true
+    },
+    "relative_clause": {
+      "n": 150,
+      "mean": 0.00484746056907999,
+      "ci_lo": -0.0045096854043952354,
+      "ci_hi": 0.014274689182767825,
+      "p_perm": 0.3224677532246775,
+      "cohens_d": 0.08122149222190547,
+      "cohens_d_ci_lo": -0.07510711192580805,
+      "cohens_d_ci_hi": 0.24782798940970577,
+      "significant_holm": false,
+      "agent_patient_family": true
+    }
+  },
+  "groups": {
+    "active_passive|doctor->nurse": {
+      "construction": "active_passive",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.010853409015131255,
+      "ci_lo": -0.027766981405956133,
+      "ci_hi": 0.006555252768928482,
+      "p_perm": 0.22457754224577542,
+      "cohens_d": -0.1760753017262606,
+      "cohens_d_ci_lo": -0.5193219653616252,
+      "cohens_d_ci_hi": 0.09690995991718918,
+      "significant_holm": false
+    },
+    "dative|doctor->nurse": {
+      "construction": "dative",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": -0.008583086234853416,
+      "ci_lo": -0.023242024415552287,
+      "ci_hi": 0.0059909014705506,
+      "p_perm": 0.2696730326967303,
+      "cohens_d": -0.15909185154767225,
+      "cohens_d_ci_lo": -0.4441127604287574,
+      "cohens_d_ci_hi": 0.11654801312451844,
+      "significant_holm": false
+    },
+    "cleft|doctor->nurse": {
+      "construction": "cleft",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": 0.0064035241321194905,
+      "ci_lo": -0.013593011250454885,
+      "ci_hi": 0.025764181296094823,
+      "p_perm": 0.5224477552244775,
+      "cohens_d": 0.09050403052062486,
+      "cohens_d_ci_lo": -0.19281686700833728,
+      "cohens_d_ci_hi": 0.38035845715397343,
+      "significant_holm": false
+    },
+    "relative_clause|doctor->nurse": {
+      "construction": "relative_clause",
+      "pair_id": "doctor->nurse",
+      "n": 50,
+      "mean": 0.004263750248055923,
+      "ci_lo": -0.012335288010097667,
+      "ci_hi": 0.020510672283043995,
+      "p_perm": 0.6167383261673832,
+      "cohens_d": 0.07112236116926879,
+      "cohens_d_ci_lo": -0.20001488387758157,
+      "cohens_d_ci_hi": 0.3749639184811959,
+      "significant_holm": false
+    },
+    "active_passive|teacher->student": {
+      "construction": "active_passive",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.003929962750596339,
+      "ci_lo": -0.020027532600042145,
+      "ci_hi": 0.012365446790904174,
+      "p_perm": 0.6438356164383562,
+      "cohens_d": -0.0662294832457858,
+      "cohens_d_ci_lo": -0.3407133470524644,
+      "cohens_d_ci_hi": 0.22452447403256506,
+      "significant_holm": false
+    },
+    "dative|teacher->student": {
+      "construction": "dative",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": 0.0024728724524600075,
+      "ci_lo": -0.016633679757676795,
+      "ci_hi": 0.021146039465080153,
+      "p_perm": 0.8028197180281972,
+      "cohens_d": 0.03542436391381646,
+      "cohens_d_ci_lo": -0.22855600322792274,
+      "cohens_d_ci_hi": 0.34252664198331984,
+      "significant_holm": false
+    },
+    "cleft|teacher->student": {
+      "construction": "cleft",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.00746331753895361,
+      "ci_lo": -0.02365598936826953,
+      "ci_hi": 0.009394393635983121,
+      "p_perm": 0.3832616738326167,
+      "cohens_d": -0.12302102179606504,
+      "cohens_d_ci_lo": -0.4483417289723393,
+      "cohens_d_ci_hi": 0.14753244039669966,
+      "significant_holm": false
+    },
+    "relative_clause|teacher->student": {
+      "construction": "relative_clause",
+      "pair_id": "teacher->student",
+      "n": 50,
+      "mean": -0.0019420071179270743,
+      "ci_lo": -0.019647532976941228,
+      "ci_hi": 0.01507540243702893,
+      "p_perm": 0.83001699830017,
+      "cohens_d": -0.03044053783887188,
+      "cohens_d_ci_lo": -0.31581092631048635,
+      "cohens_d_ci_hi": 0.2466345336378241,
+      "significant_holm": false
+    },
+    "active_passive|driver->passenger": {
+      "construction": "active_passive",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": -0.012428628305518883,
+      "ci_lo": -0.027399392779900878,
+      "ci_hi": 0.0026417801266599007,
+      "p_perm": 0.11428857114288571,
+      "cohens_d": -0.2251747177559993,
+      "cohens_d_ci_lo": -0.5613489323721272,
+      "cohens_d_ci_hi": 0.04746627590250081,
+      "significant_holm": false
+    },
+    "dative|driver->passenger": {
+      "construction": "dative",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": -0.0037494528401379413,
+      "ci_lo": -0.020665070034113952,
+      "ci_hi": 0.013039762012260415,
+      "p_perm": 0.6738326167383262,
+      "cohens_d": -0.060119748954086276,
+      "cohens_d_ci_lo": -0.34708205562358174,
+      "cohens_d_ci_hi": 0.2126321101782435,
+      "significant_holm": false
+    },
+    "cleft|driver->passenger": {
+      "construction": "cleft",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": 0.015896675165484007,
+      "ci_lo": -0.0006034667019100126,
+      "ci_hi": 0.03189259481174588,
+      "p_perm": 0.06359364063593641,
+      "cohens_d": 0.2672096154069333,
+      "cohens_d_ci_lo": -0.009341503752455481,
+      "cohens_d_ci_hi": 0.6056704843716502,
+      "significant_holm": false
+    },
+    "relative_clause|driver->passenger": {
+      "construction": "relative_clause",
+      "pair_id": "driver->passenger",
+      "n": 50,
+      "mean": 0.012220638577111122,
+      "ci_lo": -0.0033602616173753603,
+      "ci_hi": 0.027210630508869717,
+      "p_perm": 0.12688731126887312,
+      "cohens_d": 0.2207610972217828,
+      "cohens_d_ci_lo": -0.05756650911534829,
+      "cohens_d_ci_hi": 0.5415564368756155,
+      "significant_holm": false
+    }
+  },
+  "verdict": {
+    "outcome": "uninterpretable_strength_failure",
+    "strength_check_passes": false,
+    "strength_gated_on": "role_push",
+    "identity_swap_check_passes": false,
+    "pooled_significant": false,
+    "pooled_mean": -0.0006410336023239968,
+    "null_band": [
+      -0.12191379212255742,
+      0.11977773542712943
+    ],
+    "clears_null_band": false,
+    "strongest_control": "random_direction",
+    "vs_strongest_control_ratio": 0.1393929989981069,
+    "pooled_d": -0.010460229099853256,
+    "pooled_d_ci": [
+      -0.08947561873680314,
+      0.06968522600342376
+    ],
+    "d_threshold": 0.5,
+    "meaningful_constructions": [],
+    "random_direction_mean": -0.004598750345651884,
+    "random_direction_in_band": true,
+    "control_means": {
+      "null_non_participant": -0.003313674295053791,
+      "random_direction": -0.004598750345651884,
+      "shuffled_label_direction": -0.0005953927071436368
+    }
+  },
+  "figures": {
+    "forest": "figures/qwen_lre/forest.png",
+    "per_condition": "figures/qwen_lre/per_condition.png"
+  }
+}
