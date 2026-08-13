@@ -27,3 +27,8 @@ data/smoke*/
 # Local real-backend runs on substitute models (directions, figures, results).
 data/local_*/
 data/gemma3_12b/
+# Per-model run outputs. Same rule as gemma3_12b above: data/ holds working
+# output, runs/ holds the archive. The 27B configs wrote to paths no existing
+# pattern matched, so 24 result files were committed here before being
+# archived properly under runs/gemma3-27b-it*.
+data/gemma3_27b*/
