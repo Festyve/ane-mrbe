@@ -169,13 +169,21 @@ def main() -> None:
     print("=" * 68)
     n_pairs = len(covered)
     if best > 0.65:
-        verdict = "present_not_filler_general"
-        print("ROLE IS PRESENT, BUT NOT FILLER-GENERAL.")
-        print(f"  Within-pair decoding works ({best:.3f}) while cross-pair inverts.")
-        print("  Role is linearly encoded, but the axis does not transfer across")
-        print("  concept pairs -- so it is not separable from the filler, which is")
-        print("  what role-filler binding requires. A claim about the")
-        print("  representation, not a null result.")
+        # Renamed from "present_not_filler_general" (2026-08): that label
+        # asserted the cross-pair conclusion in its own name, and this script
+        # never measures cross-pair. Archives written before the rename carry
+        # the old string for the same measurement -- see RESULTS.md.
+        verdict = "present_within_pair"
+        print("ROLE IS PRESENT AND LINEARLY DECODABLE WITHIN A PAIR.")
+        print(f"  Within-pair decoding reaches {best:.3f} on random splits, so role")
+        print("  is linearly encoded here. This script measures WITHIN-pair only.")
+        print()
+        print("  Whether that axis is filler-GENERAL is a cross-pair question and")
+        print("  is NOT measured here -- it is RQ1's leave-one-pair-out. Read that")
+        print("  result with its capacity control: on some models the random")
+        print("  subspace inverts too, and a control cannot anti-transfer for")
+        print("  representational reasons, so an inversion there is evidence about")
+        print("  fold construction rather than about the model.")
         if per_source["jspace"]["mean"] < per_source["random_subspace"]["mean"] + 0.05:
             print()
             print("  AND: jspace does no better than a random subspace of equal rank")

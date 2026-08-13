@@ -26,15 +26,48 @@ bf16 · `device_map="auto"`
 | RQ1 seed replication | `runs/rq1-seed42/results_S42/rq1_probe.json` | control reproduces |
 | RQ1 6 pairs | `runs/rq1-6pair/results_6pair/rq1_probe.json` | replicates `entity_token` |
 | E4 (recruitment) | `runs/e4-corrected/results/e4_recruitment.json` | `anti_transfer_both` |
-| Within-pair `final_token` | `runs/within-pair-allpairs/results/within_pair.json` | `present_not_filler_general` |
-| Within-pair `entity_token` | `runs/within-pair-entity/results/within_pair.json` | `present_not_filler_general` |
+| Within-pair `final_token` | `runs/within-pair-allpairs/results/within_pair.json` | `present_within_pair` (archived as `present_not_filler_general`) |
+| Within-pair `entity_token` | `runs/within-pair-entity/results/within_pair.json` | `present_within_pair` (archived as `present_not_filler_general`) |
 | RQ2 `final_token` | `runs/rq2/results/rq2_ablation.json` | not causally involved |
 | RQ2 `entity_token` | `runs/rq2-entity-token/…` (+ patch below) | **not causally involved** |
 | fit_directions | `runs/fit-directions/results/…` | site dissociation |
 | calibrate | `runs/calibrate-exit3/…` | **exit 3** |
-| Primary (E3) | `runs/logs/primary.log` | `significant_but_tiny` |
+| Primary (E3) | `runs/logs/primary.log` | ⚠️ **`significant_but_tiny` is STALE — needs re-scoring** |
 | Nonlinear probe | `runs/nonlinear-probe/results/nonlinear_probe.json` | `null_survives_nonlinearity` |
 | Ridge penalty sweep | `runs/ridge-penalty/results/ridge_penalty_sweep.json` | `jspace_null_survives_penalty_sweep` |
+
+### Cross-model results (this file is Qwen-only)
+
+Two further models are archived with their own `RUN_INFO.txt`, which is
+authoritative for them:
+
+| model | archive | scope |
+|---|---|---|
+| Gemma-3-12B (`-pt`) | `runs/gemma3-12b-pilot`, `runs/gemma3-12b-lre`, `runs/gemma-rq1-seeds` | RQ1 (5 seeds, L18/L44), RQ2, primary, estimator comparison |
+| Gemma-3-27B-IT | `runs/gemma3-27b-it` + `-c64` / `-c128` / `-c256` | full pipeline, 5 seeds, 3 layers, **3 lenses**, primary at 3 coefficients |
+
+**What replicates across all three.** Within-pair at `final_token` is the
+tightest result in the project — J-space 0.587 / 0.573 / 0.574 against
+orthogonal and residual at 0.949–0.989, i.e. within 0.014 across two families,
+two scales, and base vs instruction-tuned. Direction stability shows the same
+site asymmetry in all three (entity_token passes the 0.8 gate, final_token
+mostly fails). The identity swap fails to calibrate in all three (+0.0012 /
++0.0048 / +0.0001 against a 0.05 floor).
+
+**What does NOT replicate.** RQ2 causal involvement. Qwen (−0.032) and
+Gemma-3-12B (−0.046) show ablation *improving* binding; Gemma-3-27B-IT shows a
+real deficit of 0.284 of baseline margin against a −0.0015 random-subspace
+control, and it holds under R-lens (0.297) and the matched J-lens (0.334).
+This is the project's only positive causal result. It is confounded between
+instruction tuning and scale — that model is both our first non-base model and
+our largest Gemma — and we did not run the base 27B, which has neither R-lens
+nor NLA. State it as a limitation rather than a resolved question.
+
+**Read seeds before quoting RQ1 selectivity.** On Gemma-3-27B-IT, residual
+selectivity ranges 0.005–0.255 across five seeds and the J-space-minus-random
+difference flips sign across the layer band. What survives seeds and layers is
+that the orthogonal complement beats J-space; "no better than a random
+subspace" is true on average but not at every layer.
 
 ### Stale labels to ignore
 
@@ -42,6 +75,15 @@ bf16 · `device_map="auto"`
   reads `always_on`. Corrected to `anti_transfer_both` (commit `483ca1f`).
   0.281/0.263 are both **below** chance; the old rule never checked which side
   of 0.5 its inputs were on.
+- **Within-pair verdict renamed: `present_not_filler_general` -> `present_within_pair`.**
+  The old label asserted the cross-pair conclusion in its own name, but
+  `check_within_pair.py` measures WITHIN-pair only; filler-generality is RQ1's
+  leave-one-pair-out, a different experiment. Every archive written before the
+  rename carries the old string for the identical measurement — the numbers are
+  unaffected, only the claim the label makes. The printed prose previously said
+  "cross-pair inverts" as fact; it now points at RQ1 and flags that the random
+  subspace inverts there too on some models, which is evidence about fold
+  construction rather than about the model.
 - **RQ2 `workspace_causally_involved` — now corrected IN PLACE, not just noted.**
   Two commits changed this verdict rule: `dd6e4fa` (two improvements must not
   read as involvement) and `e61aa81` (require a magnitude of binding damage,
@@ -375,11 +417,27 @@ magnitude threshold.
 
 ## Note on verdict labels
 
-Three verdict-labelling bugs were found and fixed during analysis: E4's
-`always_on` (commit `483ca1f`), RQ2's `workspace_causally_involved`
-(`dd6e4fa`), and the nonlinear probe's `multiplicative_code_in_jspace`
-(`bb6172b`). All three shared one failure: a threshold comparing two quantities
-without first asking whether either was distinguishable from chance or from
-zero. **No measurement changed in any case — only which measurements were
+Five verdict-labelling bugs were found and fixed during analysis: E4's
+`always_on` (commit `483ca1f`), RQ2's `workspace_causally_involved` twice
+(`dd6e4fa` for the sign clause, `e61aa81` for the magnitude floor), the
+nonlinear probe's `multiplicative_code_in_jspace` (`bb6172b`), the primary's
+`significant_but_tiny` firing on results that never cleared their own control
+band, and `check_within_pair`'s `present_not_filler_general`, which asserted a
+cross-pair conclusion the script does not measure.
+
+All five shared one failure: a threshold comparing two quantities without first
+asking whether either was distinguishable from chance, from zero, or from its
+own control. The primary case is the sharpest — on Gemma-3-27B-IT the push was
+Holm-significant in every construction with |d| up to 0.68 while sitting inside
+its null band and within 20% of the non-participant control at all three
+coefficients; at c=256 the absent-entity push moved the score *more* than the
+real one. `_verdict` now checks the pooled mean against the control band before
+any effect-size branch, and reports `pooled_mean`, `null_band`,
+`clears_null_band`, `strongest_control` and `vs_strongest_control_ratio`.
+
+**Consequence for this file:** every primary run scored before that fix needs
+re-scoring with `scripts/reanalyze_primary.py` (CPU, seconds). Qwen's E3 and
+Gemma-3-12B's primary both reported `significant_but_tiny` and were never
+checked against their controls. **No measurement changed in any case — only which measurements were
 allowed to be called a result.** Each fix carries a regression test pinning the
 observed numbers.
