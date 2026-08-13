@@ -234,3 +234,56 @@ def test_gemma_lre_push_arm_passes_where_the_swap_arm_fails() -> None:
     # The swap arm on the same run, for contrast: counterpart +0.00477 against
     # a 0.05 floor. Still failing, and still correctly reported as failing.
     assert _MIN_COUNTERPART_SHIFT > (0.010207 - 0.005436)
+
+
+def test_significance_inside_the_null_band_is_not_a_small_effect() -> None:
+    """A pooled mean INSIDE the control band must not be classified on effect
+    size. p and Cohen's d both answer "how consistently does the push move the
+    score", neither answers "compared to what" -- a strength-matched push of an
+    ABSENT entity's direction moves it just as far.
+
+    Pins the real Gemma-3-27B-IT pattern (runs/gemma3-27b-it-c128, c256): the
+    push was Holm-significant in every construction with |d| up to 0.68 while
+    sitting inside its own null band and within 20% of NULL_NON_PARTICIPANT --
+    at c=256 the absent-entity push moved the score MORE than the real one.
+    The old rule read that as significant_but_tiny, which implies a real effect
+    that is merely small.
+    """
+    from jspace_binding.analysis.binding_score import ScoreTable
+    from jspace_binding.experiments.primary import _verdict
+
+    config = Config.from_yaml("configs/default.yaml")
+    # c=256 numbers, verified by reanalyze_primary over the archived trials.
+    pooled = {
+        "n": 600, "mean": -0.1809, "p_perm": 1e-4,
+        "cohens_d": -0.681, "cohens_d_ci_lo": -0.788, "cohens_d_ci_hi": -0.582,
+    }
+    table = ScoreTable(
+        null_by_edit={
+            "null_non_participant": [-0.2161] * 20,
+            "random_direction": [-0.0035] * 20,
+            "shuffled_label_direction": [-0.1329] * 20,
+        },
+    )
+    verdict = _verdict(
+        config, pooled, {}, {}, table, (-0.481, 0.154),
+        push_check={"available": True, "passes": True},
+        neutral_check={"available": True, "passes": False},
+    )
+    assert verdict["outcome"] == "indistinguishable_from_controls"
+    assert verdict["clears_null_band"] is False
+    assert verdict["strongest_control"] == "null_non_participant"
+    # The real push moved the score LESS than the absent-entity control.
+    assert verdict["vs_strongest_control_ratio"] < 1.0
+
+    # Same significance and effect size, but clearing the band, is a real
+    # (if small) effect and must still be classified on size.
+    cleared = _verdict(
+        config, {**pooled, "mean": 0.30, "cohens_d": 0.30,
+                 "cohens_d_ci_lo": 0.2, "cohens_d_ci_hi": 0.4},
+        {}, {}, table, (-0.481, 0.154),
+        push_check={"available": True, "passes": True},
+        neutral_check={"available": True, "passes": False},
+    )
+    assert cleared["outcome"] == "significant_but_tiny"
+    assert cleared["clears_null_band"] is True

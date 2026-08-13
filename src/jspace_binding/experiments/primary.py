@@ -545,11 +545,21 @@ def _verdict(
     Outcomes:
     - uninterpretable_strength_failure: the ROLE_PUSH arm did not move the
       readout, so no binding conclusion is licensed either way.
-    - positive_binding: pooled significant with d >= 0.5, the effect holds
-      (Holm-significant AND d >= 0.5) in >= 2 of the 3 agent/patient
-      constructions, and the random-direction control stays inside the band.
-    - significant_but_tiny: real but too weak to support the monitoring
-      agenda in practice (d < 0.5) — a different story, told separately.
+    - indistinguishable_from_controls: pooled-significant, but the pooled mean
+      lies INSIDE the null band the control edits define. Significance and
+      effect size both measure how CONSISTENTLY the push moves the score, not
+      whether the movement has anything to do with role structure; a
+      strength-matched push of a direction belonging to an entity absent from
+      the sentence moves it just as far. Checked before effect size, because
+      "how big" is only meaningful once "distinguishable from nothing" is
+      settled.
+    - positive_binding: pooled significant with d >= 0.5, the pooled mean above
+      the null band, the effect holding (Holm-significant AND d >= 0.5) in
+      >= 2 of the 3 agent/patient constructions, and the random-direction
+      control inside the band.
+    - significant_but_tiny: clears the null band but is too weak to support the
+      monitoring agenda in practice (d < 0.5) — a different story, told
+      separately.
     - suggestive_not_conclusive: pooled-significant but the per-construction
       criterion is unmet (e.g. carried by one construction, or underpowered
       slices).
@@ -581,11 +591,37 @@ def _verdict(
     pooled_significant = pooled["p_perm"] < config.analysis.alpha_level
     d_ci_width = pooled["cohens_d_ci_hi"] - pooled["cohens_d_ci_lo"]
 
+    # Does the effect clear the band the CONTROLS define? A binding score is
+    # positive-means-binding, so a real effect sits ABOVE the band; anything
+    # inside it is what a strength-matched control produces. Observed on
+    # Gemma-3-27B-IT at three coefficients (64/128/256): pooled means -0.013,
+    # -0.057, -0.181 with |d| up to 0.68 and every construction
+    # Holm-significant, yet every one inside its own null band and within 20%
+    # of the NULL_NON_PARTICIPANT control -- at c=256 the absent-entity push
+    # moved the score MORE than the real one (ratio 0.84).
+    pooled_mean = float(pooled["mean"])
+    clears_null_band = not (band_lo <= pooled_mean <= band_hi)
+    strongest_control = (
+        min(table.null_by_edit, key=lambda e: float(np.mean(table.null_by_edit[e])))
+        if table.null_by_edit
+        else None
+    )
+    control_ratio = None
+    if strongest_control is not None:
+        strongest_mean = float(np.mean(table.null_by_edit[strongest_control]))
+        if abs(strongest_mean) > 1e-12:
+            control_ratio = pooled_mean / strongest_mean
+
     if not strength_passes:
         outcome = "uninterpretable_strength_failure"
+    elif pooled_significant and not clears_null_band:
+        # Ordered BEFORE the effect-size branches on purpose: p and d both
+        # answer "how reliably", and neither answers "vs what".
+        outcome = "indistinguishable_from_controls"
     elif (
         pooled_significant
         and pooled["cohens_d"] >= _D_MEANINGFUL
+        and pooled_mean > band_hi
         and len(meaningful) >= 2
         and random_in_band
     ):
@@ -608,6 +644,13 @@ def _verdict(
         "identity_swap_check_passes": bool(neutral_check.get("available"))
         and bool(neutral_check.get("passes")),
         "pooled_significant": bool(pooled_significant),
+        # The comparison the outcome now turns on, reported so a reader never
+        # has to recompute it from control_means to know what the label means.
+        "pooled_mean": pooled_mean,
+        "null_band": [band_lo, band_hi],
+        "clears_null_band": bool(clears_null_band),
+        "strongest_control": strongest_control,
+        "vs_strongest_control_ratio": control_ratio,
         "pooled_d": pooled["cohens_d"],
         "pooled_d_ci": [pooled["cohens_d_ci_lo"], pooled["cohens_d_ci_hi"]],
         "d_threshold": _D_MEANINGFUL,
