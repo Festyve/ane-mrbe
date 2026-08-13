@@ -114,7 +114,11 @@ def main() -> None:
             )
 
     model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
-    preflight_or_exit(model, (site,))
+    # No sites: passing them makes preflight demand fitted directions, and this
+    # script fits nothing and pushes nothing -- probe_activation only reads. The
+    # NLA layer (41) is not where directions are fitted (46), so requiring them
+    # would ask for a fit nobody wants at a layer nobody intervenes at.
+    preflight_or_exit(model)
 
     families = generate_families(config)
     if args.limit:
