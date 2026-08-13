@@ -1,0 +1,5 @@
+label: gemma3-27b-it-c256
+config: configs/gemma3_27b_it_lre.yaml
+push_coefficient: 256.0
+site: entity_token
+note: Third point of the c=64/128/256 sweep. Strength check passes; pooled d -0.681. BUT the effect is NOT binding-specific: control_means show null_non_participant -0.216 and shuffled_label -0.133 scaling with the coefficient alongside it, and at c=128 the pooled mean (-0.0568) equals the non-participant control (-0.0561) at a ratio of 1.01 and sits INSIDE the null band. The large Cohen d measures consistency, not specificity. Read pooled mean against control_means, not the verdict label.
