@@ -1,0 +1,31 @@
+{
+  "site": "final_token",
+  "n_families": 200,
+  "within_pair": {
+    "jspace": {
+      "doctor->nurse": 0.546875,
+      "driver->passenger": 0.60625,
+      "teacher->student": 0.56875,
+      "mean": 0.5739583333333332
+    },
+    "orthogonal": {
+      "doctor->nurse": 0.975,
+      "driver->passenger": 0.971875,
+      "teacher->student": 0.975,
+      "mean": 0.9739583333333334
+    },
+    "residual": {
+      "doctor->nurse": 0.98125,
+      "driver->passenger": 0.975,
+      "teacher->student": 0.978125,
+      "mean": 0.9781249999999999
+    },
+    "random_subspace": {
+      "doctor->nurse": 0.61875,
+      "driver->passenger": 0.546875,
+      "teacher->student": 0.603125,
+      "mean": 0.5895833333333332
+    }
+  },
+  "verdict": "present_not_filler_general"
+}

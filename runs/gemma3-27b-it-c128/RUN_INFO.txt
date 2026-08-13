@@ -1,0 +1,22 @@
+label: gemma3-27b-it-c128
+config: configs/gemma3_27b_it_lre.yaml
+push_coefficient: 128.0
+site: entity_token
+estimator: lre_gradient
+note: |
+  Second point of the c=64/128/256 sweep. Strength check PASSES: in-run
+  displacement 0.645 against the 0.5 floor.
+
+  pooled mean -0.0568, d -0.585, all four constructions Holm-significant.
+  Read that d with care -- it measures CONSISTENCY, not specificity. The
+  pooled mean sits INSIDE the null band [-0.187, 0.118], and equals the
+  non-participant control (-0.0561) at a ratio of 1.01: a direction from an
+  entity ABSENT from the sentence produces the same binding score as the real
+  one. shuffled_label is -0.0390; only random_direction (+0.0001) is quiet.
+
+  The verdict label significant_but_tiny is misleading here. _verdict fires on
+  |d| >= 0.5 without comparing the pooled mean to control_means, so a result
+  indistinguishable from its own control reads as a real small effect.
+
+  PROVENANCE: the first archive copy of trials.jsonl was truncated at 28760 of
+  31800 lines by a full disk. Restored intact from commit fe1ad7a.

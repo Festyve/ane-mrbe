@@ -1,0 +1,262 @@
+{
+  "provenance": {
+    "backend": "qwen_jlens",
+    "model_id": "google/gemma-3-27b-it",
+    "lens_repo": "neuronpedia/jacobian-lens",
+    "lens_subpath": "gemma-3-27b-it/jlens/Salesforce-wikitext",
+    "layer_band": [
+      24,
+      24
+    ],
+    "jspace_k": 16,
+    "ablate_k": 10,
+    "dtype": "bfloat16",
+    "dummy_mode": null,
+    "config_model_mismatch": null,
+    "n_concept_pairs": 3,
+    "n_families": 600,
+    "seed": 0,
+    "git_commit": "c878de00599078f07811c6286c8b8ed2b06f5c4a",
+    "git_branch": "main",
+    "git_dirty": true
+  },
+  "sites": {
+    "final_token": {
+      "jspace": {
+        "accuracy": 0.33166666666666667,
+        "control_accuracy": 0.49041666666666667,
+        "selectivity": -0.15875,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.33625,
+          0.33,
+          0.32875
+        ],
+        "control_fold_accuracies": [
+          0.48625,
+          0.47125,
+          0.51375
+        ],
+        "fold_spread": 0.007500000000000007,
+        "inverting_folds": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ]
+      },
+      "orthogonal": {
+        "accuracy": 0.2825,
+        "control_accuracy": 0.5025,
+        "selectivity": -0.21999999999999997,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.2875,
+          0.27625,
+          0.28375
+        ],
+        "control_fold_accuracies": [
+          0.495,
+          0.50625,
+          0.50625
+        ],
+        "fold_spread": 0.011249999999999982,
+        "inverting_folds": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ]
+      },
+      "residual": {
+        "accuracy": 0.27625,
+        "control_accuracy": 0.47875,
+        "selectivity": -0.2025,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.28625,
+          0.27625,
+          0.26625
+        ],
+        "control_fold_accuracies": [
+          0.4625,
+          0.47375,
+          0.5
+        ],
+        "fold_spread": 0.020000000000000018,
+        "inverting_folds": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ]
+      },
+      "random_subspace": {
+        "accuracy": 0.33166666666666667,
+        "control_accuracy": 0.49874999999999997,
+        "selectivity": -0.1670833333333333,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.34,
+          0.3175,
+          0.3375
+        ],
+        "control_fold_accuracies": [
+          0.48,
+          0.50375,
+          0.5125
+        ],
+        "fold_spread": 0.02250000000000002,
+        "inverting_folds": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ]
+      }
+    },
+    "entity_token": {
+      "jspace": {
+        "accuracy": 0.50375,
+        "control_accuracy": 0.6483333333333333,
+        "selectivity": -0.14458333333333329,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.49625,
+          0.51125,
+          0.50375
+        ],
+        "control_fold_accuracies": [
+          0.6075,
+          0.7125,
+          0.625
+        ],
+        "fold_spread": 0.014999999999999958,
+        "inverting_folds": []
+      },
+      "orthogonal": {
+        "accuracy": 0.6129166666666667,
+        "control_accuracy": 0.3529166666666667,
+        "selectivity": 0.25999999999999995,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.52125,
+          0.5675,
+          0.75
+        ],
+        "control_fold_accuracies": [
+          0.3625,
+          0.37125,
+          0.325
+        ],
+        "fold_spread": 0.22875,
+        "inverting_folds": []
+      },
+      "residual": {
+        "accuracy": 0.5854166666666667,
+        "control_accuracy": 0.38833333333333336,
+        "selectivity": 0.19708333333333333,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.49375,
+          0.5125,
+          0.75
+        ],
+        "control_fold_accuracies": [
+          0.22625,
+          0.38625,
+          0.5525
+        ],
+        "fold_spread": 0.25625,
+        "inverting_folds": []
+      },
+      "random_subspace": {
+        "accuracy": 0.52125,
+        "control_accuracy": 0.4475,
+        "selectivity": 0.07374999999999998,
+        "n_examples": 2400,
+        "n_folds": 3,
+        "fold_ids": [
+          "doctor->nurse",
+          "driver->passenger",
+          "teacher->student"
+        ],
+        "fold_accuracies": [
+          0.5025,
+          0.52,
+          0.54125
+        ],
+        "control_fold_accuracies": [
+          0.27375,
+          0.62,
+          0.44875
+        ],
+        "fold_spread": 0.03875000000000006,
+        "inverting_folds": []
+      }
+    }
+  },
+  "inverting_folds_present": true,
+  "inverting_folds": {
+    "final_token|jspace": [
+      "doctor->nurse",
+      "driver->passenger",
+      "teacher->student"
+    ],
+    "final_token|orthogonal": [
+      "doctor->nurse",
+      "driver->passenger",
+      "teacher->student"
+    ],
+    "final_token|residual": [
+      "doctor->nurse",
+      "driver->passenger",
+      "teacher->student"
+    ],
+    "final_token|random_subspace": [
+      "doctor->nurse",
+      "driver->passenger",
+      "teacher->student"
+    ]
+  },
+  "figure": "figures/gemma3_27b_L24/rq1_selectivity.png",
+  "note": "decodability, not use; a linear null does not rule out multiplicative binding codes (proposal, Potential Limitations)"
+}

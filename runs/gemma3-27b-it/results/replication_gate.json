@@ -1,0 +1,58 @@
+{
+  "layer": 46,
+  "checks": {
+    "non_degenerate": true,
+    "directed_modulation": true,
+    "jspace_fraction_of_residual": [
+      0.037013400346040726,
+      0.045724622905254364,
+      0.051406752318143845
+    ],
+    "diagonal_wins": 3,
+    "observed_atoms": {
+      "The doctor treated the lawyer.": [
+        "sentence",
+        "<unused179>",
+        "\u4f8b\u6587\u5e33\u306b\u8ffd\u52a0",
+        ".**",
+        "</em>",
+        "noun",
+        "........",
+        "\\[",
+        "\u2014",
+        "\u0915\u093f\u0938\u0915\u0940",
+        "(%)",
+        "m\u00e9dicos"
+      ],
+      "The chef prepared the meal in the kitchen.": [
+        "noun",
+        "........",
+        "Passive",
+        "<unused1044>",
+        "\u2015",
+        "\ud83e\ude77",
+        "</i>",
+        "**,",
+        "sentence",
+        "$[",
+        "\ufffd",
+        "\u00c2"
+      ],
+      "The pilot landed the aircraft safely.": [
+        "\u4e58\u5ba2",
+        "<unused1044>",
+        "\u8b66\u65b9",
+        ".\u2026",
+        "fortunately",
+        "</s>",
+        "\u2074",
+        "nothing",
+        "</h3>",
+        "\u0930\u093f\u092a\u094b\u0930\u094d\u091f",
+        "#[",
+        "pronoun"
+      ]
+    }
+  },
+  "verdict": "PASS"
+}
