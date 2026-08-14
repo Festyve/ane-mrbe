@@ -1,0 +1,8 @@
+needs pandas + pyarrow: pip install pandas pyarrow
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1247 [00:00<?, ?it/s]Loading weights:  70%|██████▉   | 871/1247 [00:00<00:00, 8706.56it/s]Loading weights: 100%|██████████| 1247/1247 [00:00<00:00, 8540.07it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1562.71it/s]
+backend cannot run yet: no fitted directions at data/gemma3_27b_nla/directions/directions_entity_token.npz; run scripts/fit_directions.py first
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/1247 [00:00<?, ?it/s]Loading weights:  68%|██████▊   | 847/1247 [00:00<00:00, 8451.35it/s]Loading weights: 100%|██████████| 1247/1247 [00:00<00:00, 8617.78it/s]
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files: 100%|██████████| 3/3 [00:00<00:00, 1505.67it/s]
