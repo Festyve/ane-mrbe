@@ -20,18 +20,20 @@ Three lines of evidence, each with a capacity control, across
 ## The finding
 
 **Role–filler information is present and linearly readable in the residual
-stream, but J-space is not a privileged locus for it — J-space carries *less*
-role information than an arbitrary subspace of the same rank — and it is not
-filler-general.**
+stream, but J-space is not a privileged locus for it — at the layers we
+measured it carries no more role information than an arbitrary subspace of the
+same rank — and it is not filler-general.**
 
 Role decodes at 0.989 from the residual stream and 0.587 from J-space, below a
-rank-matched random control, and that ordering holds at every layer in the
-workspace band and across four orders of magnitude of ridge penalty. Cross-pair
+rank-matched random control, and that ordering holds at every Qwen layer we
+tested and across four orders of magnitude of ridge penalty, though the two tie
+at layer 18 of Gemma-3-12B (0.323 against 0.322). Cross-pair
 transfer is systematically *inverted* rather than merely absent. Ablating
 J-space produces no binding deficit on two of three models; the one positive
-causal result (Gemma-3-27B-IT, 0.284 of baseline margin, holding under three
-lenses) is confounded between instruction tuning and scale. No model shows a
-binding-specific push effect.
+causal result (Gemma-3-27B-IT, 0.284 of baseline margin, or 0.275 after
+subtracting the recall deficit, holding under three lenses) is confounded
+between instruction tuning and scale. No model shows a binding-specific push
+effect.
 
 **[RESULTS.md](RESULTS.md) is the authoritative record** — every number, every
 control, every retraction, and the authoritative artifact for each experiment.
