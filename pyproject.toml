@@ -5,10 +5,6 @@ description = "Is the J-space global workspace a privileged locus for role-fille
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
-authors = [
-    { name = "Michael Zhang" },
-    { name = "Reya Dawlah" },
-]
 keywords = ["interpretability", "global-workspace", "jacobian-lens", "role-filler-binding"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
