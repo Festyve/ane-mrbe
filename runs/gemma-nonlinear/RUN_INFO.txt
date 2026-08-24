@@ -1,5 +1,5 @@
 label: gemma-nonlinear
-commit: a0abad6c5e4aa5978710d3452956ec62a37bb293
+commit: af15018965a7337350ed97355d300a2b1a6f93fa
 dirty: True
 config: configs/gemma3_12b.yaml
 sources: ['data/gemma3_12b/results', 'data/gemma3_12b/directions', 'figures/gemma3_12b', 'data/gemma3_12b/calibration.json']

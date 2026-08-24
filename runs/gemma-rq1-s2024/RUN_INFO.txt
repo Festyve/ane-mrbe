@@ -1,5 +1,5 @@
 label: gemma-rq1-s2024
-commit: ba64fc89a1c0894d720a516d3c8b1b11e3a5d44a
+commit: be0295b5c698bb06daaf843539940af1545d4c79
 dirty: True
 config: configs/gemma3_12b.yaml
 sources: ['data/gemma3_12b/results', 'data/gemma3_12b/directions', 'figures/gemma3_12b', 'data/gemma3_12b/calibration.json']

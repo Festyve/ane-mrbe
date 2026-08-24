@@ -1,8 +1,8 @@
 label: gemma3-12b-lre
-commit: f6a983a79f47bcef6c3ba9884ebee524ebc9b7e5
+commit: 697d300c7c65bc8c68a1900ce9a0debd22693752
 note: LRE gradient directions (stability 0.995+); push calibrated c=256 (linearity prediction c~125 vs observed 0.49 shift at 128); diagnose +0.94/-0.99/-0.01; primary verdict significant_but_tiny — steering mirror +/-0.22-0.25 real, binding score -0.014 d=-0.20 below pre-registered 0.5, wrong-signed for binding damage; alpha uncalibrated but in-run strength check passed
 
-VERDICT RE-DERIVED. This run predates both a5b843c and the push-arm gate.
+VERDICT RE-DERIVED. This run predates both de2c023 and the push-arm gate.
 Re-scored under current code with scripts/reanalyze_primary.py (no GPU; the
 archived trials.jsonl is the input):
 
@@ -16,7 +16,7 @@ archived trials.jsonl is the input):
 No measurement moved at any point: pooled_d is -0.1954804702346339 here and
 in the original log.
 
-Under a5b843c alone this run read uninterpretable_strength_failure, because
+Under de2c023 alone this run read uninterpretable_strength_failure, because
 _verdict gated every outcome on IDENTITY_SWAP's alpha -- a control for the
 separate, retracted addressability claim, which failed on both models tested.
 The binding score is a ROLE_PUSH quantity, so the gate now keys on the push
