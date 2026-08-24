@@ -19,6 +19,7 @@ gate a rerun rather than being read by eye.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import sys
 from pathlib import Path
@@ -39,12 +40,32 @@ from jspace_binding.types import (  # noqa: E402
 )
 
 
+def find_trials(run: Path) -> Path:
+    """The run's trials file, in whichever shape save_run.py left it.
+
+    Archives differ in two ways that are not the caller's business: the
+    diff-of-means runs write `results/` where the LRE runs write `results_lre/`,
+    and anything over save_run's size threshold arrives gzipped.
+    """
+    candidates = [
+        run / results / name
+        for results in ("results", "results_lre")
+        for name in ("trials.jsonl", "trials.jsonl.gz")
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    searched = ", ".join(str(c.relative_to(run)) for c in candidates)
+    raise SystemExit(f"no trials file under {run} (looked for {searched})")
+
+
 def load_trials(path: Path) -> list[TrialResult]:
     """Inverse of primary._write_trials. Field-for-field, no defaulting: a
     record missing a key is a corrupt archive and should raise, not silently
     analyze a subset."""
     trials = []
-    with path.open(encoding="utf-8") as f:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as f:
         for lineno, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -123,8 +144,9 @@ def main() -> None:
             "config_as_run.yaml; pass --config with the config that run used."
         )
     config = Config.from_yaml(config_path)
-    trials = load_trials(args.run / "results" / "trials.jsonl")
-    print(f"loaded {len(trials)} trials from {args.run}", file=sys.stderr)
+    trials_path = find_trials(args.run)
+    trials = load_trials(trials_path)
+    print(f"loaded {len(trials)} trials from {trials_path}", file=sys.stderr)
 
     summary = analyze(config, trials, site=InjectionSite(args.site))
     print(json.dumps(summary, indent=2))
