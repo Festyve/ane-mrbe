@@ -1,5 +1,5 @@
 label: g27-primary
-commit: 9d2d9cbce0889564e4a3ef27bdc54c579b2957e7
+commit: 21bce6f16e06e6b2418af8e7fcb064d3a09ee9fc
 dirty: True
 config: configs/gemma3_27b_it_lre.yaml
 sources: ['data/gemma3_27b/results_lre', 'data/gemma3_27b/directions_lre', 'figures/gemma3_27b_lre', 'data/gemma3_27b/calibration_lre.json']

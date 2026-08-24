@@ -1,5 +1,5 @@
 label: qwen-lre-fit
-commit: a8d1c806c8f3f83387ca69dd9438fa7b11c3f087
+commit: 65b955fc4f40b011ad15bba9cc35c20a09c1e896
 dirty: True
 config: configs/default_lre.yaml
 sources: ['data/results_lre', 'data/directions_lre', 'figures/qwen_lre', 'data/calibration_lre.json']

@@ -19,4 +19,4 @@ note: |
   indistinguishable from its own control reads as a real small effect.
 
   PROVENANCE: the first archive copy of trials.jsonl was truncated at 28760 of
-  31800 lines by a full disk. Restored intact from commit 5a79d1c.
+  31800 lines by a full disk. Restored intact from commit 611f379.

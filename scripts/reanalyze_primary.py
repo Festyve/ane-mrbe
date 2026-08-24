@@ -4,7 +4,7 @@
 `run_primary.py` prints its analysis to stdout and writes no summary JSON, so
 an archived verdict is frozen at whatever `analyze()` did on the day it ran and
 nothing in the log says which side of a later change it fell on. Commit
-`de2c023` gave the neutral strength check a magnitude floor, for instance, and
+`6dc4258` gave the neutral strength check a magnitude floor, for instance, and
 every log written before it recorded `passes` under a signs-only rule.
 
 The forward passes are already spent, so re-scoring needs only the archived
@@ -140,7 +140,7 @@ def main() -> None:
     config_path = args.config or args.run / "config_as_run.yaml"
     if not config_path.exists():
         sys.exit(
-            f"no config at {config_path}. Pre-{'049f001'} archives predate "
+            f"no config at {config_path}. Pre-{'f2cd63c'} archives predate "
             "config_as_run.yaml; pass --config with the config that run used."
         )
     config = Config.from_yaml(config_path)

@@ -1,5 +1,5 @@
 label: rq1-6pair
-commit: e756e106e35b26e82eb2843b9e067be48d54ce6c
+commit: 5d026a2fa6cafbb61d9d03ae891fb4dd03ca4eb7
 dirty: True
 config: configs/expanded_pairs.yaml
 sources: ['data/results_6pair', 'data/directions_6pair', 'figures_6pair', 'data/calibration_6pair.json']

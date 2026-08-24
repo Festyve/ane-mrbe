@@ -66,7 +66,7 @@ subspace" is true on average but not at every layer.
 
 ### Stale labels to ignore
 
-- E4's `always_on` — corrected to `anti_transfer_both` (commit `308cd74`).
+- E4's `always_on` — corrected to `anti_transfer_both` (commit `0990a02`).
   0.281/0.263 are both **below** chance; the old rule never checked which side
   of 0.5 its inputs were on.
 - **Within-pair verdict renamed: `present_not_filler_general` -> `present_within_pair`.**
@@ -79,8 +79,8 @@ subspace" is true on average but not at every layer.
   subspace inverts there too on some models, which is evidence about fold
   construction rather than about the model.
 - **RQ2 `workspace_causally_involved` — now corrected IN PLACE, not just noted.**
-  Two commits changed this verdict rule: `e2a843f` (two improvements must not
-  read as involvement) and `86c96cc` (require a magnitude of binding damage,
+  Two commits changed this verdict rule: `93d4053` (two improvements must not
+  read as involvement) and `e2bd7d9` (require a magnitude of binding damage,
   `_MIN_BINDING_DEFICIT = 0.05`). Three archived files were written under the
   older rules and read `true`:
   `runs/nonlinear-probe`, `runs/rq2-entity-token`, `runs/gemma3-12b-pilot`.
@@ -90,7 +90,7 @@ subspace" is true on average but not at every layer.
   whole archive at any time with `python scripts/reanalyze_rq2.py --all`, which
   exits 1 if any verdict has drifted from the current rule.
 - Any `nonlinear_probe.json` reading `multiplicative_code_in_jspace` —
-  corrected to `null_survives_nonlinearity` (commit `11182b5`).
+  corrected to `null_survives_nonlinearity` (commit `4aeee83`).
 
 **Primary's verdict JSON exists only in `runs/logs/primary.log`.**
 `run_primary.py` prints its analysis to stdout and never writes a summary file;
@@ -415,9 +415,9 @@ magnitude threshold.
 ## Note on verdict labels
 
 Five verdict-labelling bugs were found and fixed during analysis: E4's
-`always_on` (commit `308cd74`), RQ2's `workspace_causally_involved` twice
-(`e2a843f` for the sign clause, `86c96cc` for the magnitude floor), the
-nonlinear probe's `multiplicative_code_in_jspace` (`11182b5`), the primary's
+`always_on` (commit `0990a02`), RQ2's `workspace_causally_involved` twice
+(`93d4053` for the sign clause, `e2bd7d9` for the magnitude floor), the
+nonlinear probe's `multiplicative_code_in_jspace` (`4aeee83`), the primary's
 `significant_but_tiny` firing on results that never cleared their own control
 band, and `check_within_pair`'s `present_not_filler_general`, which asserted a
 cross-pair conclusion the script does not measure.

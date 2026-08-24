@@ -15,7 +15,7 @@ DummyModel scores only two of the four constructions correctly — its role
 inference is lexical and cannot parse pseudo-clefts or `that`-relatives. That
 is a dummy limitation, not a labelling error.
 
-Co-authored by Claude Opus 5 and human reviewed.
+Co-authored by Claude Opus 5.
 """
 
 from __future__ import annotations
