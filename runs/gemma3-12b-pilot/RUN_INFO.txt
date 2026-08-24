@@ -1,5 +1,5 @@
 label: gemma3-12b-pilot
-commit: feaf5e0fa518237bd3e4d1afb20816a33ebef99d
+commit: 07a364d3e96e526ac7e702bf7f99c2ef05988446
 dirty: True
 config: configs/gemma3_12b.yaml
 model: google/gemma-3-12b-pt (48 layers, d_model 3840), lens gemma-3-12b/jlens/Salesforce-wikitext

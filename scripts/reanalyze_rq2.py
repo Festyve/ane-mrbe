@@ -2,8 +2,8 @@
 """Re-score archived RQ2 ablation verdicts under the CURRENT verdict rule.
 
 An archived `rq2_ablation.json` is frozen at whatever `_involvement_verdict`
-did on the day it ran, and two commits have since changed that rule: `dd6e4fa`
-(two improvements must not read as involvement) and `e61aa81` (require a
+did on the day it ran, and two commits have since changed that rule: `e2a843f`
+(two improvements must not read as involvement) and `86c96cc` (require a
 magnitude of binding damage). Neither changed a measurement — only which
 measurements were allowed to be called a result.
 
