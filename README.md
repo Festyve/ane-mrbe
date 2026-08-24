@@ -45,8 +45,9 @@ src/jspace_binding/    the package: stimuli, directions, interventions, model
 scripts/               one CLI per pipeline stage and per follow-up check
 configs/               one YAML per model / variant; paths, layer band, sweep
 tests/                 unit + end-to-end contracts, run against DummyModel
-runs/                  archived results, one directory per run, each with a
-                       RUN_INFO.txt stating what it was and what it showed
+runs/                  archived results, one directory per run; the larger
+                       ones carry a RUN_INFO.txt saying what they showed, and
+                       RESULTS.md indexes which copy is authoritative
 docs/ARCHITECTURE.md   data flow, the binding-score math, module contracts
 RUNBOOK.md             executing the experiments on a GPU box
 ```
