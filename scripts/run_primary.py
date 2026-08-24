@@ -20,7 +20,12 @@ import json
 import sys
 
 from jspace_binding.config import Config
-from jspace_binding.experiments.primary import analyze, run_primary, validate_config
+from jspace_binding.experiments.primary import (
+    analyze,
+    resolve_calibrated_strengths,
+    run_primary,
+    validate_config,
+)
 from jspace_binding.model.factory import add_backend_args, build_model, preflight_or_exit
 from jspace_binding.stimuli.generate import generate_families
 from jspace_binding.types import InjectionSite
@@ -43,13 +48,19 @@ def main() -> None:
 
     config = Config.from_yaml(args.config)
     validate_config(config)
+    site = InjectionSite(args.site) if args.site else None
+    # Load the calibrated alpha / push_coefficient from data/calibration.json
+    # when the config leaves them open, so the calibrate -> primary handoff no
+    # longer depends on a manual YAML edit (and cannot silently degrade to a
+    # pure swap). Bypassed under --dry-run. Exits 2 if a push experiment has no
+    # usable coefficient.
+    config = resolve_calibrated_strengths(config, site, dry_run=args.dry_run)
     model = build_model(config, dry_run=args.dry_run, dummy_mode=args.dummy_mode)
     # Always regenerate: generation is deterministic and effectively free, and
     # loading a stale stimuli.jsonl written under a different config would
     # silently win. scripts/generate_stimuli.py remains the archival path.
     families = generate_families(config)
     print(f"generated {len(families)} families", file=sys.stderr)
-    site = InjectionSite(args.site) if args.site else None
     # Only the swept sites need fitted directions.
     preflight_or_exit(model, (site,) if site else config.experiment.injection_sites)
     trials = run_primary(config, model, families, site=site)

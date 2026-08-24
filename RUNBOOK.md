@@ -53,12 +53,14 @@ python scripts/run_e4.py  --config configs/default.yaml
 
 # --- primary experiment pipeline ---------------------------------------
 python scripts/fit_directions.py --config configs/default.yaml   # -> data/directions
-python scripts/calibrate.py      --config configs/default.yaml   # -> alpha, push_coefficient
+python scripts/calibrate.py      --config configs/default.yaml   # -> data/calibration.json
 
-#    !! MANUAL !! copy the two printed values into configs/default.yaml as
-#    model.alpha and model.push_coefficient. The runner reads them from CONFIG;
-#    data/calibration.json is only the audit record. Skipping this silently
-#    runs the primary experiment with a pure swap and no push scaling.
+#    run_primary.py now loads model.alpha and model.push_coefficient from
+#    data/calibration.json automatically, matching on the calibrated site. No
+#    manual YAML edit is needed. Set model.push_coefficient / model.alpha in the
+#    config only to OVERRIDE the record. If neither the config nor a matching
+#    calibration supplies a push coefficient, run_primary.py now EXITS 2 before
+#    the sweep instead of silently running a pure swap with no push scaling.
 
 python scripts/run_primary.py --config configs/default.yaml
 ```
