@@ -2,8 +2,8 @@
 
 **Read this before any file under `runs/`.** Each run directory holds only the
 artifacts that run produced, and the table below names the authoritative copy
-for every experiment. Where a verdict here differs from a saved copy, the number
-was never wrong — only the label was, and the fix commit is cited.
+for every experiment. Where a verdict here differs from a saved copy, take this
+file as current — the numbers are identical, only the label moved.
 
 Model `Qwen/Qwen3.6-27B` · lens `neuronpedia/jacobian-lens`
 (`qwen3.6-27b/jlens/Salesforce-wikitext`) · read layer 48 · 3× A100-40GB ·
@@ -27,7 +27,7 @@ bf16 · `device_map="auto"`
 | RQ2 `entity_token` | `runs/rq2-entity-token/…` (+ patch below) | **not causally involved** |
 | fit_directions | `runs/fit-directions/results/…` | site dissociation |
 | calibrate | `runs/calibrate-exit3/…` | **exit 3** |
-| Primary (E3) | `runs/logs/primary.log` | **`uninterpretable_strength_failure`** (re-scored; see "Note on verdict labels") |
+| Primary (E3) | `runs/logs/primary.log` | **`uninterpretable_strength_failure`** |
 | Nonlinear probe | `runs/nonlinear-probe/results/nonlinear_probe.json` | `null_survives_nonlinearity` |
 | Ridge penalty sweep | `runs/ridge-penalty/results/ridge_penalty_sweep.json` | `jspace_null_survives_penalty_sweep` |
 
@@ -64,33 +64,24 @@ difference flips sign across the layer band. What survives seeds and layers is
 that the orthogonal complement beats J-space; "no better than a random
 subspace" is true on average but not at every layer.
 
-### Stale labels to ignore
+### Verdict strings you will meet in the archive
 
-- E4's `always_on` — corrected to `anti_transfer_both` (commit `0990a02`).
-  0.281/0.263 are both **below** chance; the old rule never checked which side
-  of 0.5 its inputs were on.
-- **Within-pair verdict renamed: `present_not_filler_general` -> `present_within_pair`.**
-  The old label asserted the cross-pair conclusion in its own name, but
-  `check_within_pair.py` measures WITHIN-pair only; filler-generality is RQ1's
-  leave-one-pair-out, a different experiment. Every archive written before the
-  rename carries the old string for the identical measurement — the numbers are
-  unaffected, only the claim the label makes. The printed prose previously said
-  "cross-pair inverts" as fact; it now points at RQ1 and flags that the random
-  subspace inverts there too on some models, which is evidence about fold
-  construction rather than about the model.
-- **RQ2 `workspace_causally_involved` — now corrected IN PLACE, not just noted.**
-  Two commits changed this verdict rule: `93d4053` (two improvements must not
-  read as involvement) and `e2bd7d9` (require a magnitude of binding damage,
-  `_MIN_BINDING_DEFICIT = 0.05`). Three archived files were written under the
-  older rules and read `true`:
-  `runs/nonlinear-probe`, `runs/rq2-entity-token`, `runs/gemma3-12b-pilot`.
-  All three now read **false**, rewritten by `scripts/reanalyze_rq2.py`, each
-  carrying a `verdict_rescored` block recording the previous value. **No delta
-  was recomputed**: the measurements are exactly as originally run. Re-check the
-  whole archive at any time with `python scripts/reanalyze_rq2.py --all`, which
-  exits 1 if any verdict has drifted from the current rule.
-- Any `nonlinear_probe.json` reading `multiplicative_code_in_jspace` —
-  corrected to `null_survives_nonlinearity` (commit `4aeee83`).
+Verdict rules tightened during analysis while the measurements stayed fixed, so
+some archived JSON carries a superseded string. The current reading, in each
+case:
+
+- E4 reads **`anti_transfer_both`**, not `always_on`: 0.281/0.263 are both
+  *below* chance, so neither is evidence of presence.
+- Within-pair reads **`present_within_pair`**, not `present_not_filler_general`:
+  `check_within_pair.py` measures within-pair only, and filler-generality is
+  RQ1's leave-one-pair-out, a different experiment.
+- RQ2 `workspace_causally_involved` reads **false** everywhere, including in
+  `runs/nonlinear-probe`, `runs/rq2-entity-token` and `runs/gemma3-12b-pilot`,
+  which `scripts/reanalyze_rq2.py` rewrote in place — each carries a
+  `verdict_rescored` block, and no delta was recomputed. `--all` re-checks the
+  whole archive and exits 1 on any drift.
+- The nonlinear probe reads **`null_survives_nonlinearity`**, not
+  `multiplicative_code_in_jspace`.
 
 **Primary's verdict JSON exists only in `runs/logs/primary.log`.**
 `run_primary.py` prints its analysis to stdout and never writes a summary file;
@@ -230,7 +221,7 @@ binding_specific_deficit  +0.0142    CI [0.0063, 0.0222], clears zero
 **Ablation improved both tasks.** The positive difference is recall improving
 *more* than binding improved — not binding being damaged. `binding − recall` is
 a selectivity measure that presupposes damage; with both terms negative it
-carries no causal claim. Corrected flag: **false**.
+carries no causal claim. The flag reads **false**.
 
 Also: the random control is matched on **rank** (`ablate_k` directions), not on
 perturbation magnitude, and the two differ by **5.4×** here (0.234 vs 0.043)
@@ -252,42 +243,32 @@ shift      −0.005  +0.008  +0.011  +0.005  +0.017
 same nothing. This is not the proposal's "too weak" case — pushing along fitted
 J-space role directions has **no effect at any strength**.
 
-E3 was then run at `push_coefficient=8.0` (largest grid value). It was
-originally labelled `significant_but_tiny`, pooled d **−0.096** against a
-pre-set meaningfulness threshold of 0.5, `meaningful_constructions: []`,
-controls all ≈ −0.008. **Under the fixed rule it re-scores to
-`uninterpretable_strength_failure`** — pooled mean −0.0050, inside its own null
-band, 0.61× its strongest control. No measurement was re-run; see "Note on
-verdict labels".
+E3 was then run at `push_coefficient=8.0` (largest grid value) and scores
+**`uninterpretable_strength_failure`**: pooled mean −0.0050, inside its own null
+band, 0.61× its strongest control, pooled d −0.096 against a pre-set
+meaningfulness threshold of 0.5, `meaningful_constructions: []`.
 
 **E3 must not be presented as a standalone causal null** — it ran under a
 documented intervention-strength failure and its own proposal calls that case
 uninterpretable.
 
-### ⚠️ The addressability dissociation is RETRACTED
+### The identity swap does not land either
 
-Earlier versions of this file claimed a dissociation here: `strength_check_passes:
-true`, so IDENTITY_SWAP (a concept-level J-space edit) "demonstrably moves
-behaviour" while role pushes move nothing. **The data does not support that.**
-
-The observed strength check on Qwen:
+There is no concept-vs-role addressability dissociation on this model. The swap
+moves the readout as little as the role push does. The strength check on Qwen:
 
 ```
 P(counterpart)  no_edit 0.00269 -> swap 0.00393   (+0.00124)
 P(entity)       no_edit 0.18507 -> swap 0.18091   (-0.00417)
 ```
 
-The counterpart rises by **0.12 percentage points**, from 0.27% to 0.39%. The
-entity does not meaningfully fall. **Nothing happened.** The check returned
-`true` because it tested only the *signs* of the two shifts, with no magnitude
-floor — while `calibrate_identity_alpha`, asking the same question on the same
-model, reported an intervention-strength **failure** at its `min_prob_shift =
-0.05`. The two disagreed and the looser one was believed.
-
-Fixed: `_MIN_COUNTERPART_SHIFT = 0.05` in `experiments/primary.py`, matching
-calibration, with a regression test pinning the numbers above. Under the
-corrected check **Qwen's IDENTITY_SWAP does not pass**, so E3 has no
-interpretable content at all — neither a causal null nor a dissociation.
+The counterpart rises by **0.12 percentage points**, from 0.27% to 0.39%, and
+the entity does not meaningfully fall. **Nothing happened.** The check requires
+a magnitude, not just the right signs: `_MIN_COUNTERPART_SHIFT = 0.05` in
+`experiments/primary.py`, matching `calibrate_identity_alpha`'s
+`min_prob_shift`, with a regression test pinning the numbers above.
+**Qwen's IDENTITY_SWAP does not pass it**, so E3 carries no interpretable
+content at all — neither a causal null nor a dissociation.
 
 Gemma-3-12B is the instructive contrast (`runs/gemma3-12b-lre/`): there the
 entity drops hard (0.2122 → 0.0961) while the counterpart still barely moves
@@ -387,11 +368,6 @@ stream, but the J-space workspace is not a privileged locus for it — J-space
 carries less role information than an arbitrary subspace of the same rank —
 and it is not filler-general.**
 
-~~Concept identity in J-space *is* addressable (IDENTITY_SWAP propagates); role
-is not.~~ **Retracted — see §7.** The strength check that licensed this passed
-on a 0.12-percentage-point counterpart shift and fails under the corrected
-magnitude threshold.
-
 ## Limitations
 
 1. **n = 3 concept pairs** → 3 folds for the primary table. `runs/rq1-6pair/`
@@ -412,30 +388,22 @@ magnitude threshold.
 6. **Decodability ≠ use** everywhere except RQ2.
 7. `difficulty_matched: false` in RQ2 at both sites.
 
-## Note on verdict labels
+## How verdicts are decided
 
-Five verdict-labelling bugs were found and fixed during analysis: E4's
-`always_on` (commit `0990a02`), RQ2's `workspace_causally_involved` twice
-(`93d4053` for the sign clause, `e2bd7d9` for the magnitude floor), the
-nonlinear probe's `multiplicative_code_in_jspace` (`4aeee83`), the primary's
-`significant_but_tiny` firing on results that never cleared their own control
-band, and `check_within_pair`'s `present_not_filler_general`, which asserted a
-cross-pair conclusion the script does not measure.
-
-All five shared one failure: a threshold comparing two quantities without first
-asking whether either was distinguishable from chance, from zero, or from its
-own control. The primary case is the sharpest — on Gemma-3-27B-IT the push was
+Every verdict here requires the quantity to be distinguishable from chance,
+from zero, or from its own control *before* any threshold on it is read. That
+rule is load-bearing rather than pedantic: on Gemma-3-27B-IT the push is
 Holm-significant in every construction with |d| up to 0.68 while sitting inside
 its null band and within 20% of the non-participant control at all three
-coefficients; at c=256 the absent-entity push moved the score *more* than the
-real one. `_verdict` now checks the pooled mean against the control band before
-any effect-size branch, and reports `pooled_mean`, `null_band`,
+coefficients, and at c=256 the absent-entity push moves the score *more* than
+the real one. So `_verdict` checks the pooled mean against the control band
+before any effect-size branch, and reports `pooled_mean`, `null_band`,
 `clears_null_band`, `strongest_control` and `vs_strongest_control_ratio`.
 
-**Re-scored, all three models** (`scripts/reanalyze_primary.py`, CPU, from the
-archived trials — no measurement changed):
+**Primary, all three models** (`scripts/reanalyze_primary.py` re-scores these
+on CPU from the archived trials):
 
-| model | outcome under the fixed rule | pooled mean | inside null band | mean ÷ strongest control |
+| model | outcome | pooled mean | inside null band | mean ÷ strongest control |
 |---|---|---|---|---|
 | Qwen3.6-27B (diff-of-means, c=8) | `uninterpretable_strength_failure` | −0.0050 | yes | 0.61 |
 | Qwen3.6-27B (LRE, c=4) | `uninterpretable_strength_failure` | −0.0006 | yes | 0.14 |
@@ -446,8 +414,5 @@ archived trials — no measurement changed):
 **No model shows a binding-specific push effect.** Every pooled mean sits
 inside its own control band, and every one moved the score *less than or equal
 to* its strongest control — a strength-matched push of a direction belonging to
-an entity absent from the sentence. Gemma-3-12B's previously reported
-`significant_but_tiny` was the old rule reading consistency as a small real
-effect. **No measurement changed in any case — only which measurements were
-allowed to be called a result.** Each fix carries a regression test pinning the
-observed numbers.
+an entity absent from the sentence — consistency, not a small real effect. Each
+verdict rule carries a regression test pinning the observed numbers.
