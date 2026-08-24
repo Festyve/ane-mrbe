@@ -1,23 +1,19 @@
 """Validate RQ2's CONCEPT recall control against a real model.
 
-Reads the committed stimuli and scores the counterbalanced CONCEPT probe
-exactly as `experiments.rq2_ablation` does, alongside the NEUTRAL probe it
-replaced. Answers the three questions a recall control has to answer before a
-metered run depends on it:
+Scores the counterbalanced CONCEPT probe exactly as `experiments.rq2_ablation`
+does, alongside the NEUTRAL probe it replaced, answering the three questions a
+recall control must answer before a metered run depends on it:
 
-  1. Does it have room to fall?  NEUTRAL did not — it read 1.0 under every
-     condition, so `binding_specific_deficit` reduced to the raw binding
-     deficit and no run could support a "binding-specific" claim.
-  2. Is it role-blind?  A control that moves with the agent/patient swap is
-     absorbing part of the binding effect. Reported as the SIGNED shift
-     against its standard error, because the absolute value cannot separate a
-     systematic role effect from per-cell noise the design already averages.
-  3. Is any profession pair too weak to use?  Cue strength varies; a pair
-     below `_MIN_BASELINE_MARGIN` has no discriminability to lose.
+  1. Does it have room to fall? NEUTRAL did not — it read 1.0 under every
+     condition, so no run could support a "binding-specific" claim.
+  2. Is it role-blind? Reported as the SIGNED shift against its standard error;
+     the absolute value cannot separate a systematic role effect from per-cell
+     noise the design already averages away.
+  3. Is any profession pair too weak to use? A pair below
+     `_MIN_BASELINE_MARGIN` has no discriminability to lose.
 
-CPU-friendly by design (`--model` defaults to a 1.5B): the point is the probe's
-behaviour, and this is meant to be runnable before renting a GPU. Re-run on the
-target model before trusting the numbers for a real result — see
+CPU-friendly by design (`--model` defaults to a 1.5B) so it can run before
+renting a GPU. Re-run on the target model before trusting the numbers; see
 docs/CONCEPT_PROBE.md for the recorded 1.5B baseline.
 
     python scripts/check_concept_probe.py --limit 80

@@ -1,43 +1,29 @@
 #!/usr/bin/env python3
-"""Is the J-space null an artifact of using LINEAR probes? (Potential Limitations)
+"""Is the J-space null an artifact of using LINEAR probes?
 
-The proposal concedes that a linear null does not rule out a multiplicative /
-tensor-product binding code (Smolensky 1990): if role and filler are combined by
-an outer product, no linear readout can recover role, and every result in this
-project would be a statement about our instrument rather than about the model.
-That concession is currently unaddressed empirically, and a reviewer will treat
-an unaddressed escape hatch as the whole paper's escape hatch.
+A linear null does not rule out a multiplicative / tensor-product binding code
+(Smolensky 1990): if role and filler are combined by an outer product, no linear
+readout can recover role. This closes that escape hatch empirically, running
+three probe families of increasing expressivity over the same cached
+activations and the same leave-one-pair-out split:
 
-This closes it. Same cached activations, same leave-one-pair-out split, three
-probe families of increasing expressivity:
+  linear  ridge on the raw activation; the existing RQ1 probe.
+  quad    ridge on random pairwise products x_i * x_j. A tensor-product code is
+          exactly a bilinear form, so this can read one where linear cannot.
+  rff     ridge on random ReLU features. General nonlinearity.
 
-  linear   ridge on the raw activation.  The existing RQ1 probe; baseline.
-  quad     ridge on random PAIRWISE PRODUCTS x_i * x_j.  Aimed squarely at the
-           multiplicative hypothesis: a tensor-product code is exactly a
-           bilinear form in the activation, so a quadratic probe can read one
-           where a linear probe provably cannot.
-  rff      ridge on random ReLU features (a random one-hidden-layer net with a
-           closed-form output layer).  General nonlinearity, in case the code is
-           neither linear nor cleanly bilinear.
+Random features rather than a trained MLP: closed-form, deterministic given the
+seed, and free of learning-rate or early-stopping choices.
 
-Random features rather than a trained MLP deliberately: closed-form via the
-project's own fit_ridge_probe, no SGD, no learning-rate or early-stopping
-choices that a reviewer can call p-hacking, and deterministic given the seed.
-The expressivity argument is the standard one -- random ReLU features are a
-universal approximator as the feature count grows.
+Reading the output — the decisive contrast is the SOURCE pattern, not whether
+nonlinear beats linear in general (it usually will, from capacity alone):
 
-READING THE OUTPUT. The decisive contrast is not "does nonlinear beat linear"
-in general (it usually will, from extra capacity alone) but the SOURCE pattern:
+  lifts residual but NOT jspace  -> the null is about J-space, not linearity.
+  lifts jspace to residual level -> role IS in J-space, multiplicatively
+                                    encoded, and the headline flips.
 
-  nonlinear lifts residual but NOT jspace  -> the null is about J-SPACE, not
-                                             about linearity. Escape closed.
-  nonlinear lifts jspace to residual level -> role IS in J-space, multiplicatively
-                                             encoded. The headline flips, and
-                                             that is a bigger finding than the null.
-
-random_subspace is the capacity control throughout: extra expressivity helps
-every source somewhat, so a jspace gain only counts if it exceeds the gain a
-rank-matched random subspace gets for free.
+random_subspace is the capacity control: a jspace gain only counts if it exceeds
+what a rank-matched random subspace gets for free.
 
     python scripts/check_nonlinear_probe.py --config configs/default.yaml --limit 200
 """
@@ -97,18 +83,10 @@ def _features(
 
     if kind == "quad":
         # Standardised x CONCATENATED with random pairwise products x_i * x_j.
-        #
-        # The products are the point -- a tensor-product (role (x) filler) code
-        # is a bilinear form, so its role component is linear in exactly these
-        # features while being invisible to a probe on x itself. But the raw
-        # terms have to come along, or the probe is not a SUPERSET of the
-        # linear one and a null tells you nothing about linearity.
-        #
-        # Caught by the dummy: on `binding` mode, where role is planted
-        # LINEARLY in jspace, products-only scored exactly 0.500 (chance) while
-        # the linear probe scored 0.990. Products alone discard the linear
-        # term, so a products-only null is uninformative about whether the
-        # linear null was an artifact -- which is the entire question here.
+        # The products read a bilinear (tensor-product) code that is invisible
+        # to a probe on x itself, but the raw terms must come along or the probe
+        # is not a SUPERSET of the linear one. Products alone score exactly
+        # chance on the dummy's linearly-planted signal.
         i = rng.integers(0, d, size=_N_FEATURES)
         j = rng.integers(0, d, size=_N_FEATURES)
         return (
@@ -217,14 +195,8 @@ def main() -> None:
     jspace_best = max(table["jspace"][k] for k in PROBE_KINDS)
     residual_best = max(table["residual"][k] for k in PROBE_KINDS)
 
-    # ABSOLUTE bar first. The original rule was purely RELATIVE -- "jspace within
-    # 0.1 of residual" and "jspace lift beats the control's lift" -- and both
-    # fired degenerately on the real run: residual itself was only 0.605, so
-    # "within 0.1" was satisfied at 0.522, and the control's lift was NEGATIVE
-    # (-0.099), so "beat the control + 0.05" was satisfied by +0.009. It printed
-    # "THIS OVERTURNS THE HEADLINE" for a J-space probe sitting 0.022 above
-    # chance. A relative rule with no floor will always find a winner among
-    # numbers that are all noise.
+    # Absolute bar first: a purely relative rule with no floor will always find
+    # a winner among numbers that are all noise.
     decisively_above_chance = jspace_best > 0.5 + _MIN_ABOVE_CHANCE
 
     print("\n" + "=" * 62)

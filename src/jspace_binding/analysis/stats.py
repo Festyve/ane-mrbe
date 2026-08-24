@@ -1,17 +1,10 @@
 """Statistics over family-level binding scores. Pure numpy.
 
-The unit of resampling and permutation is the ItemFamily: each family i
-contributes one score
-
-    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2,
-    dG(s) = [L(agent, push_s) - L(patient, push_s)]
-          - [L(agent, no_edit) - L(patient, no_edit)]
-
-in position-averaged log-odds (see analysis.binding_score). The pairing lives
-inside BS_i, so family-level resampling preserves it, and a within-family
-agent/patient label swap negates BS_i exactly (each dG flips sign), keeping
-the sign-flip permutation test exact. All randomness flows through a local
-np.random.default_rng(seed) — no global RNG state — so every reported number
+The unit of resampling and permutation is the ItemFamily, which contributes
+one BS_i (see analysis.binding_score). The pairing lives inside BS_i, so
+family-level resampling preserves it, and a within-family agent/patient label
+swap negates BS_i exactly, keeping the sign-flip permutation test exact. All
+randomness flows through a local np.random.default_rng(seed), so every number
 is reproducible from the config seed alone.
 """
 
@@ -56,17 +49,10 @@ def permutation_pvalue(
 ) -> float:
     """Two-sided sign-flip permutation test of mean(BS_i) = 0.
 
-    Under H0 (no role binding) the agent/patient labels within a family are
-    exchangeable. Swapping the labels in family i exchanges L(agent, e, s)
-    with L(patient, e, s) for every edit condition, which negates each gap
-    change dG(s) and hence negates
-
-        BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2
-
-    itself: the within-family label swap is exactly a sign flip of that
-    family's score. The permutation null is therefore built by drawing s_i in
-    {-1, +1} uniformly and recomputing mean(s_i * BS_i). Two-sided, with the
-    add-one correction that keeps p > 0:
+    Under H0 the agent/patient labels within a family are exchangeable, and
+    swapping them is exactly a sign flip of that family's score. The null is
+    built by drawing s_i in {-1, +1} uniformly and recomputing
+    mean(s_i * BS_i). Two-sided, with the add-one correction that keeps p > 0:
     p = (1 + #{|T_perm| >= |T_obs|}) / (1 + n_permutations).
     """
     arr = np.asarray(scores, dtype=float)
@@ -101,15 +87,12 @@ def cohens_d_ci(
     ci_level: float = 0.95,
     seed: int = 0,
 ) -> tuple[float, float]:
-    """Percentile bootstrap CI on Cohen's d itself (proposal, §6: report a CI
-    on d, not just on BS, from the same item-level resamples).
+    """Percentile bootstrap CI on Cohen's d itself, resampling families.
 
-    Uses the same resampling unit as bootstrap_ci (families). Degenerate
-    resamples (zero variance, which would make d infinite) are dropped; if
-    every resample is degenerate the input itself is unusable and we raise.
-    The CI width is what separates "clean negative" (tight around 0) from
-    "underpowered" (wide, e.g. crossing zero from a large point estimate) in
-    the outcome classification.
+    Degenerate resamples (zero variance, which would make d infinite) are
+    dropped; if every resample is degenerate the input is unusable and we
+    raise. The CI width separates "clean negative" from "underpowered" in the
+    outcome classification.
     """
     arr = np.asarray(scores, dtype=float)
     if arr.size < 2:
@@ -130,11 +113,9 @@ def cohens_d_ci(
 def holm_bonferroni(pvalues: dict[K, float], alpha: float = 0.05) -> dict[K, bool]:
     """Holm-Bonferroni step-down over the per-group p-values.
 
-    Sort the m p-values ascending; reject the k-th smallest (k = 0..m-1) while
-    p_(k) <= alpha / (m - k); the first failure retains itself and everything
-    after it. Controls family-wise error at alpha with no independence
-    assumption — needed because we test one mean BS per
-    (construction x concept pair) group.
+    Sort the m p-values ascending; reject the k-th smallest while
+    p_(k) <= alpha / (m - k). Controls family-wise error at alpha with no
+    independence assumption, over one mean BS per (construction x pair) group.
     """
     ordered = sorted(pvalues.items(), key=lambda kv: kv[1])
     m = len(ordered)
@@ -152,11 +133,9 @@ def null_band(
 ) -> tuple[float, float]:
     """Percentile band of control-edit binding scores.
 
-    Controls (null_non_participant, random_direction) run the same DiD as the
-    real edit but carry no role information, so their scores sample the
-    no-binding distribution directly. Returns the ((1-ci_level)/2,
-    1-(1-ci_level)/2) percentiles — the shaded band the REAL-edit mean must
-    clear to count as binding.
+    Controls run the same DiD as the real edit but carry no role information,
+    so their scores sample the no-binding distribution directly. The returned
+    percentiles are the band the real-edit mean must clear.
     """
     arr = np.asarray(scores, dtype=float)
     if arr.size == 0:

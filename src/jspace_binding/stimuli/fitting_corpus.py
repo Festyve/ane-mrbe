@@ -1,24 +1,14 @@
 """Fitting corpus: agent/patient exemplars used to fit role directions.
 
-Disjoint from the primary stimulus set at the template level (proposal,
-Datasets §1): every frame here is a distinct surface template from the four
-primary constructions, and the verb pool shares no lemma with
-templates.VERBS_BY_CONSTRUCTION. tests/test_fitting_corpus.py asserts both.
-(The agent-second / patient-first frames are necessarily passive-like — English
-has no other way to put an agent late — but their added material keeps the
-template strings distinct; flagged for team review.)
+Disjoint from the primary stimulus set at the template level — every frame is a
+distinct surface template and the verb pool shares no lemma with
+templates.VERBS_BY_CONSTRUCTION, both asserted by tests. Balanced by design:
+for each entity and role, half the frames place the entity first and half
+second, so a fitted direction cannot be a linear-position direction in
+disguise. Each frame exists in an agent/patient mirrored pair, so the two role
+classes are lexically matched and the difference-of-means isolates role.
 
-The corpus is balanced by design: for each entity and each role, half the
-frames place the entity FIRST and half SECOND, so a fitted difference-of-means
-direction cannot be a linear-position direction in disguise.
-
-Each frame exists in an agent/patient mirrored pair (same surface template,
-entity and other swapped), so the two role classes are lexically matched and
-the difference-of-means isolates role.
-
-r_entity is fitted separately per injection site (final-token activations vs
-entity-token activations; proposal, Methods) — the corpus itself is shared,
-the activations differ.
+The corpus is shared across injection sites; only the activations differ.
 """
 
 from __future__ import annotations
@@ -72,23 +62,11 @@ _FRAMES: tuple[tuple[str, Role, Position, str], ...] = (
 class FittingExample:
     """One fitting sentence: the entity in a known role at a known position.
 
-    role_probe mirrors the primary role-probe format so push-coefficient
-    calibration (experiments.calibrate) can run on fitting sentences with the
-    same readout as the primary experiment — the proposal requires calibrating
-    on the fitting corpus, never on the primary stimuli.
-
-    The remaining probes mirror ItemFamily's, so a held-out corpus can be
-    scored on the same readouts as the primary set. All are optional: corpora
-    written before they existed (and the fitting corpus itself, which only
-    calibrates on the ROLE probe) load with "".
-
-    - recipient_probe: DATIVE only, asks for the recipient rather than the
-      giver; empty for every other construction, which has no recipient.
-    - neutral_probe: role-blind, satisfied by BOTH participants.
-    - concept_probe_entity / concept_probe_other: RQ2's role-blind recall
-      control, asked once per participant. Both are needed — scoring either
-      alone reintroduces the base-rate and primacy confounds the counter-
-      balanced pair exists to cancel (see ProbeKind.CONCEPT).
+    The probes mirror ItemFamily's so a held-out corpus can be scored on the
+    same readouts as the primary set. All are optional and load with "" —
+    calibration only uses role_probe. recipient_probe is DATIVE-only; the two
+    concept probes are RQ2's recall control and are both needed, since scoring
+    either alone reintroduces the confounds counterbalancing cancels.
     """
 
     entity: str
@@ -113,21 +91,13 @@ def distractor_pool(
     """Professions usable as the distractor opposite `entity`.
 
     A distractor must never be an entity whose own direction is being fitted.
-    If two fitted entities are each other's distractor, their sentence SETS
-    coincide — every A-agent sentence is literally a B-patient sentence — and
-    because the final-token activation depends only on the sentence string,
-    r_B = -r_A exactly. The pairwise cosine is then pinned at -1 by
-    construction for any model, destroying the filler-general vs
-    entity-specific comparison that is the point of comparing directions.
+    If two fitted entities are each other's distractor their sentence sets
+    coincide, every A-agent sentence being literally a B-patient sentence, so
+    r_B = -r_A exactly and the pairwise cosine is pinned at -1 for any model —
+    destroying the filler-general vs entity-specific comparison. Counterparts
+    are excluded for the same reason.
 
-    Counterparts are excluded too, restoring the invariant templates.py
-    already states for the primary set: "pair.counterpart never appears in any
-    sentence". Excluding only counterparts would not be enough — it would
-    leave doctor and teacher as each other's first distractor and merely move
-    the mirroring.
-
-    Defaults reproduce the historical pool (everything but the entity) so
-    callers that pass neither argument are unaffected.
+    Defaults reproduce the historical pool (everything but the entity).
     """
     banned = {entity, *fitted_entities, *counterparts}
     pool = tuple(e for e in PROFESSION_ENTITIES if e not in banned)
@@ -146,17 +116,12 @@ def generate_fitting_corpus(
     counterparts: tuple[str, ...] = (),
 ) -> list[FittingExample]:
     """Deterministic corpus: for each entity x role, exemplars_per_role
-    sentences cycling through frames (fastest), verbs, then distractors —
-    position stays balanced whenever exemplars_per_role is a multiple of the
-    6 per-role frames.
+    sentences cycling through frames, verbs, then distractors. Position stays
+    balanced whenever exemplars_per_role is a multiple of the 6 per-role frames.
 
-    No randomness and no dependence on any experiment seed: regeneration is
-    byte-identical, matching stimuli.generate's determinism contract.
-
-    `entities` doubles as the fitted set, so no entity is ever another's
-    distractor; pass `counterparts` (the identity-swap partners) to keep them
-    out of sentences as well. See :func:`distractor_pool` for why — omitting
-    both pins some pairwise direction cosines at -1 regardless of the model.
+    `entities` doubles as the fitted set, so no entity is another's distractor;
+    pass `counterparts` to keep the swap partners out of sentences too. See
+    :func:`distractor_pool`.
     """
     if exemplars_per_role % 6 != 0:
         raise ValueError(

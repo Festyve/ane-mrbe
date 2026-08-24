@@ -1,22 +1,14 @@
-"""Steering-strength calibration (proposal, Methods / Concept-swap intervention).
+"""Steering-strength calibration. Two dials, both on data disjoint from the
+primary stimulus set, both under a "smallest value that works" rule:
 
-Two separate dials, calibrated on separate data, never on the primary
-stimulus set:
+- push_coefficient: smallest grid value whose toward-agent push on
+  patient-role FITTING-CORPUS sentences lifts the entity's role-probe answer
+  by at least min_logit_shift.
+- alpha (IDENTITY_SWAP): smallest grid value whose swap moves the role-neutral
+  readout — P(counterpart) up and P(entity) down at the NEUTRAL probe.
 
-- push_coefficient (ROLE_PUSH and its controls): smallest grid value whose
-  toward-agent push on PATIENT-role FITTING-CORPUS sentences lifts the
-  entity's role-probe answer by at least min_logit_shift. Calibrating on the
-  fitting corpus keeps calibration and testing on disjoint data.
-- alpha (IDENTITY_SWAP): smallest grid value whose swap detectably moves the
-  role-neutral readout on a small stimulus sample — P(counterpart) rises and
-  P(entity) falls at the NEUTRAL probe. This is the "smallest value that
-  works" rule: strong enough to be interpretable, not so strong it saturates
-  the residual stream.
-
-Both searches are written against the WorkspaceModel protocol. The DummyModel
-has no strength dial (it ignores coefficient/alpha), so a --dry-run
-calibration returns the smallest grid value — the scripts exist to be
-exercised end-to-end, the numbers only mean something on the real backend.
+DummyModel ignores both dials, so a --dry-run calibration returns the smallest
+grid value; the numbers only mean something on the real backend.
 """
 
 from __future__ import annotations

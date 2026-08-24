@@ -1,37 +1,23 @@
-"""E4: is binding information RECRUITED on demand? (proposal §6 E4, tests H3)
+"""E4: is binding information RECRUITED on demand?
 
-The proposal's novel twist, and the one experiment that can separate three
-hypotheses the others conflate. Present the IDENTICAL stimulus tokens under two
-questions — a role question ("Who treated someone?") and a bag question ("Which
-professions are mentioned?") — and measure how strongly role information is
-linearly decodable from J-space in each.
+Present identical stimulus tokens under a role question ("Who treated
+someone?") and a bag question ("Which professions are mentioned?") and measure
+how decodable role is from J-space in each:
 
     recruitment_delta = accuracy(role question) - accuracy(bag question)
 
-    always-on binding : both high, delta ~ 0     (H1/H2)
-    recruited         : role high, bag ~ chance, delta LARGE  (H3)
-    absent from jspace: both ~ chance            (bag workspace)
+    always-on binding : both high, delta ~ 0
+    recruited         : role high, bag ~ chance, delta LARGE
+    absent from jspace: both ~ chance
 
-RQ1 cannot make this distinction. It reads activations with no question in
-context at all, so an always-on workspace and an on-demand one look identical
-to it — which is precisely why E4 exists as a separate experiment rather than
-another RQ1 source.
+RQ1 cannot make this distinction — it reads with no question in context, so
+always-on and on-demand look identical to it.
 
-READ POSITION (forced, not chosen). The question is appended AFTER the
-sentence, so under a causal mask it cannot influence any token inside the
-sentence. Reading at InjectionSite.FINAL_TOKEN (the sentence's last token) or
-ENTITY_TOKEN would hand back byte-identical activations for both conditions and
-`recruitment_delta` would be exactly 0.0 for every model, a measurement
-artifact indistinguishable from a real null. The read is therefore at the final
-token of the full prompt — see model.base.RecruitmentActivationSource. There is
-no per-site breakdown here for the same reason.
-
-The probe machinery is RQ1's (analysis.probes.leave_one_pair_out): same
-leave-one-pair-out split so no profession noun appears on both sides, same
-control-task selectivity, same per-fold reporting. Only the activations differ.
-Interpretation guardrails carry over unchanged — decodability is evidence about
-information PRESENCE, not use, and a linear null does not rule out a
-multiplicative binding code.
+The read position is forced, not chosen: the question follows the sentence, so
+under a causal mask reading at FINAL_TOKEN or ENTITY_TOKEN would return
+byte-identical activations for both conditions and the delta would be 0.0 by
+construction. The read is at the final token of the full prompt, and for the
+same reason there is no per-site breakdown. Probe machinery is RQ1's.
 """
 
 from __future__ import annotations
@@ -178,26 +164,16 @@ def _report_block(report: ProbeReport) -> dict[str, Any]:
 
 
 def _verdict(role_accuracy: float, bag_accuracy: float, delta: float) -> str:
-    """Which of the hypotheses this source's numbers support.
+    """Which hypothesis this source's numbers support.
 
-    "recruited" additionally requires the bag condition to sit near chance: a
-    large delta between two ABOVE-chance conditions is a modulation of an
-    always-present signal, which is a weaker claim than H3 and should not be
-    reported under the same label.
+    "recruited" also requires the bag condition near chance: a large delta
+    between two ABOVE-chance conditions is modulation of an always-present
+    signal, a weaker claim.
 
-    BELOW-CHANCE conditions are named separately and never fall through to a
-    presence verdict. The first version of this function checked only "is the
-    delta large" and "is it near chance", so the real Qwen3.6-27B run --
-    role 0.281, bag 0.263, both far BELOW chance with every fold inverting --
-    was reported as `always_on`, i.e. "binding is continuously present". That is
-    the opposite of what those numbers say.
-
-    Chance is 0.5 and noise scatters around it. A probe landing consistently
-    below chance under leave-one-pair-out has learned a rule that ANTI-transfers
-    across concept pairs: the direction meaning "agent" for one pair means
-    "patient" for the held-out one. That is evidence about how role is encoded
-    (lexically entangled rather than filler-general), not evidence that role is
-    absent, and certainly not evidence that it is always present.
+    Below-chance conditions are named separately and never fall through to a
+    presence verdict. A probe landing consistently below chance under
+    leave-one-pair-out has learned a rule that ANTI-transfers across concept
+    pairs — evidence about how role is encoded, not that it is absent.
     """
     role_at_chance = abs(role_accuracy - 0.5) < _CHANCE_TOLERANCE
     bag_at_chance = abs(bag_accuracy - 0.5) < _CHANCE_TOLERANCE

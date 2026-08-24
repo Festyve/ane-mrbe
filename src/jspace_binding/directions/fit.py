@@ -1,34 +1,20 @@
 """Closed-form role-direction fitting over cached J-space activations.
 
-Pure numpy — no model dependencies — so every function is unit-testable on any
-machine. The backend's job is only to supply activations already projected
-into the J-space subspace (model.fitting_activation); everything here is
-arithmetic on those arrays.
+Pure numpy; the backend supplies activations already projected into the J-space
+subspace (model.fitting_activation) and everything here is arithmetic. The fit
+is per injection site,
 
-The fit (proposal, Methods / Role directions):
+    r_entity = mean(activation | entity = agent) - mean(activation | entity = patient)
 
-    r_entity = mean(J-space activation | entity = agent)
-             - mean(J-space activation | entity = patient)
+stored as a UNIT vector plus its raw norm, so a push of coefficient * unit(r)
+makes the RANDOM_DIRECTION control norm-matched by construction.
 
-fitted separately per injection site. Directions are stored as UNIT vectors
-plus their raw norm: the push applied at test time is coefficient * unit(r),
-which makes the RANDOM_DIRECTION control norm-matched by construction (a
-random unit vector under the same coefficient).
-
-Three variants per (entity, site):
-- fitted: the real difference-of-means direction (primary).
-- shuffled: refit with agent/patient labels randomly shuffled — the
-  direction-overfitting control. If a shuffled direction also produces a
-  binding effect, the real one cannot be attributed to role information.
-- generic_loo: leave-one-entity-out average of the other entities' fitted unit
-  directions (parallel to Feng & Steinhardt's filler-general binding vectors).
-  Comparable scores under per-entity and generic directions => role structure
-  is filler-general; only-per-entity working => entity-specific.
-
-Stability (proposal, Datasets §1 pilot check): bootstrap-resample the fitting
-rows and report the mean cosine between each resampled direction and the
-full-fit direction. Low stability means the fitting corpus is too small or
-carries no role signal — the fit script warns rather than silently proceeding.
+Three variants per (entity, site): `fitted` (the real direction), `shuffled`
+(refit on shuffled labels — the direction-overfitting control), and
+`generic_loo` (leave-one-entity-out mean of the others, which tests whether the
+role structure is filler-general). Bootstrap stability reports the mean cosine
+between resampled fits and the full fit; a low value means the corpus is too
+small or carries no role signal, and the fit script warns.
 """
 
 from __future__ import annotations
@@ -111,15 +97,13 @@ def fit_role_direction(agent_acts: np.ndarray, patient_acts: np.ndarray) -> np.n
 
 
 def fit_gradient_direction(rows: np.ndarray) -> np.ndarray:
-    """Unit mean of per-exemplar readout gradients (LRE/LRC-style estimator,
+    """Unit mean of per-exemplar readout gradients (LRE-style estimator,
     Chanin et al. 2023, arXiv:2311.08968).
 
-    Each row is d(z_entity - z_other)/dh at the site token: the local direction
-    the role readout responds to, pooled over BOTH roles' exemplars (a gradient
-    of the agent readout points toward agent on every exemplar, so there is no
-    class contrast to subtract — the contrast lives inside each row).
-    diff-of-means finds the direction that SEPARATES roles; this finds the
-    direction that STEERS the readout. The two need not coincide.
+    Each row is d(z_entity - z_other)/dh at the site token, pooled over both
+    roles' exemplars — the contrast lives inside each row, so there is no class
+    difference to subtract. diff-of-means finds the direction that SEPARATES
+    roles; this finds the one that STEERS the readout, and they need not agree.
     """
     rows = np.asarray(rows, dtype=float)
     if rows.ndim != 2:
@@ -173,11 +157,9 @@ def bootstrap_stability(
 ) -> float:
     """Mean cosine between bootstrap-refit directions and the full-fit direction.
 
-    Resamples agent and patient rows independently with replacement (the two
-    classes are separate samples). Values near 1 mean the direction is stable
-    under resampling; near 0 means the fitting corpus is too small/noisy to
-    pin down a direction (the proposal's pilot check for fitting-corpus size).
-    Degenerate resamples (zero direction) count as cosine 0.
+    Resamples the two classes independently with replacement. Near 1 means the
+    direction is stable; near 0 means the corpus is too small or noisy to pin
+    one down. Degenerate resamples count as cosine 0.
     """
     agent_acts = np.asarray(agent_acts, dtype=float)
     patient_acts = np.asarray(patient_acts, dtype=float)
@@ -200,15 +182,12 @@ def shuffled_label_direction(
 ) -> np.ndarray:
     """Refit with agent/patient labels shuffled: the direction-overfitting control.
 
-    Pools all rows, deals them back into two groups of the original sizes
-    uniformly at random, and runs the same difference-of-means. The result
-    carries whatever non-role structure the corpus has, but no role signal
-    ON AVERAGE — note that when the true role signal is strong, a chance
-    label imbalance leaves any single shuffled (unit-normalized) direction
-    partially aligned with the role axis; the collapse of its RAW norm
-    relative to the real fit is the cleaner per-shuffle diagnostic. As a
-    null-band control this bias is conservative: residual alignment can only
-    widen the band the real effect must clear, never shrink it.
+    Pools all rows, deals them back into two groups of the original sizes, and
+    runs the same difference-of-means. Carries no role signal on average, but
+    under a strong true signal a chance label imbalance leaves a single
+    shuffled direction partially aligned with the role axis — the collapse of
+    its RAW norm is the cleaner per-shuffle diagnostic. As a null-band control
+    the bias is conservative: it can only widen the band, never shrink it.
     """
     agent_acts = np.asarray(agent_acts, dtype=float)
     patient_acts = np.asarray(patient_acts, dtype=float)
@@ -245,15 +224,12 @@ def fit_all(
     """Fit every entity's direction plus both control variants at one site.
 
     activations maps entity -> (agent_acts, patient_acts). Shuffle seeds are
-    offset per entity so no two entities share a shuffle. With a single-entity
-    corpus (e.g. the hand-written doctor set) the leave-one-out generic
-    variant is undefined; its rows are stored as zeros and direction() raises
-    if that variant is ever requested.
+    offset per entity. With a single-entity corpus the leave-one-out generic
+    variant is undefined; its rows are stored as zeros and direction() raises.
 
-    estimator "diff_means" treats the rows as activations and fits
-    unit(mean(agent) - mean(patient)); "lre_gradient" treats them as readout
-    gradients and fits the unit POOLED mean (fit_gradient_direction), with the
-    sign-scramble null standing in for the label-shuffle control.
+    estimator "diff_means" fits unit(mean(agent) - mean(patient));
+    "lre_gradient" treats the rows as readout gradients and fits their unit
+    pooled mean, with a sign-scramble null in place of the label shuffle.
     """
     if estimator not in ("diff_means", "lre_gradient"):
         raise ValueError(f"unknown estimator {estimator!r}")

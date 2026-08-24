@@ -1,46 +1,29 @@
 #!/usr/bin/env python3
-"""Replication gate: is the J-lens reading this model correctly? (proposal §10, wks 1-2)
+"""Replication gate: is the J-lens reading this model correctly?
 
-Run this BEFORE trusting any experiment result. It answers one question the
-experiments cannot answer about themselves:
+Run before trusting any experiment result. It separates two things RQ1/RQ2/E4
+cannot tell apart from their own output — both produce near-chance numbers, and
+they call for opposite responses:
 
     when an experiment reports "role is not in J-space", is that a finding
     about the model, or is the lens simply not reading?
 
-Those are indistinguishable from RQ1/RQ2/E4 output alone -- all three produce
-near-chance numbers -- and they call for opposite responses. This is the
-cheapest thing that separates them: a handful of prompts, no stimuli, no fitted
-directions, ~5 minutes.
+Two machine-checked properties plus an inspection pass:
 
-Neel Nanda's team replicated the core J-lens results on this exact model
-(Qwen3.6-27B), so the phenomenon is known to exist here -- but they fitted their
-OWN lens (Jacobian at the penultimate layer, 25 sequences from the Pile) while
-we load the released neuronpedia artifact fitted on Salesforce-wikitext. This
-gate covers that gap: not "does the workspace exist" but "is OUR lens, at OUR
-layer, producing sane reads".
+  1. NON-DEGENERATE — the sparse pursuit selects atoms at all, and the J-space
+     component is a non-trivial fraction of the residual. A mis-scaled,
+     transposed, or wrong-model lens typically selects zero atoms or
+     reconstructs h wholesale.
+  2. DIRECTED MODULATION — the "Think about X. Do Y" protocol. X's own token
+     must score higher in J-space when the prompt names X than when it names
+     something else. Load-bearing because it is a CONTRAST, so a lens that
+     merely surfaces frequent tokens cannot pass it.
 
-Two machine-checked properties, plus an inspection pass:
+The selected atoms are PRINTED, not asserted on: what the workspace contains is
+this project's research question, and a plumbing gate must not prejudge it.
 
-  1. NON-DEGENERATE -- the sparse pursuit selects atoms at all, and the J-space
-     component is a non-trivial fraction of the residual. A lens that is
-     mis-scaled, transposed, or from the wrong model typically selects zero
-     atoms or reconstructs h wholesale.
-  2. DIRECTED MODULATION -- the paper's "Think about X. Do Y" protocol, and the
-     specific result Nanda's team reproduced. X's own token must score higher
-     in J-space when the prompt names X than when it names something else.
-     This is the load-bearing check: a CONTRAST, so it cannot be passed by a
-     lens that merely surfaces frequent tokens.
-
-  Plus: the selected atoms are PRINTED, not asserted on. An earlier version
-  required content words ("doctor" for a sentence about a doctor) and failed a
-  lens whose modulation contrast passed cleanly on the same run -- what layer 48
-  actually holds is meta-linguistic ("this sentence", "who is", "verb",
-  "reverse"). What the workspace CONTAINS is this project's research question;
-  a plumbing gate must not prejudge it.
-
-Uses the backend's internals (_jspace_component etc.) deliberately: the point is
-to inspect the lens machinery the experiments depend on, not a public summary of
-it.
+Uses the backend's internals deliberately — the point is to inspect the lens
+machinery the experiments depend on, not a public summary of it.
 
     python scripts/replication_gate.py --config configs/default.yaml
 """
@@ -54,25 +37,12 @@ from pathlib import Path
 from jspace_binding.config import Config
 from jspace_binding.model.factory import build_model, preflight_or_exit
 
-# Prompts for the inspection pass. No expected-token list: the first version of
-# this gate asserted that a sentence about a doctor should surface "doctor" and
-# friends, and FAILED on a lens that was demonstrably working (the directed
-# modulation contrast passed cleanly on the same run).
-#
-# What layer 48 actually holds for these sentences, observed on Qwen3.6-27B:
-#
-#   'The doctor treated the lawyer.'
-#     ['', '这句话', '�', 'vs', '?\\', 'verbs', '反向', 'ambiguous', '是谁', ...]
-#
-# 这句话 = "this sentence", 是谁 = "who is", 动词 = "verb", 反向 = "reverse",
-# 解析 = "parse". These are META-LINGUISTIC tokens about the parsing task, not
-# the sentence's content words -- the same "interpretive meta-token" phenomenon
-# Nanda's team reported on this model.
-#
-# So content-word matching tests a hypothesis about workspace CONTENT, which is
-# the project's research question, not a plumbing check. The gate must not
-# prejudge it. Atoms are printed for human reading; the machine-checked part is
-# non-degeneracy plus the directed-modulation contrast.
+# Prompts for the inspection pass. Deliberately no expected-token list: what
+# these layers actually surface is META-LINGUISTIC ("this sentence", "who is",
+# "verb", "reverse"), not the sentence's content words, so an earlier
+# content-word assertion failed a lens whose modulation contrast passed cleanly
+# on the same run. Content matching tests a hypothesis about workspace CONTENT,
+# which is the research question, not a plumbing check.
 _INSPECTION_PROBES: tuple[str, ...] = (
     "The doctor treated the lawyer.",
     "The chef prepared the meal in the kitchen.",

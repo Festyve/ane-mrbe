@@ -1,19 +1,9 @@
-"""Corpus QC: the disjointness checks the proposal's design depends on.
+"""Corpus QC: the disjointness checks the design depends on.
 
-The role-direction fitting corpus must be disjoint from the primary stimulus
-set (proposal, Datasets §1 — fitting and testing on the same sentences would
-contaminate the causal test), and any evaluation set must not leak fitting
-sentences. These helpers make the checks mechanical; scripts/check_corpus.py
-is the CLI, and fit_directions warns when handed a colliding corpus.
-
-Findings on the first hand-written drop (2026-07, doctor corpus): the
-active/passive frames necessarily match the primary templates, which is
-tolerable at the lexical level — but three of its verbs (praised, criticized,
-interviewed) are ALSO in the primary verb pool, producing 12 exact sentence
-collisions with generated primary items, and the recognized x lawyer combo
-appears in both the fitting corpus and the eval set (4 leaked sentences).
-Remedy: keep the handwritten verbs out of templates.VERBS_BY_CONSTRUCTION
-(or vice versa), and de-duplicate combos across fitting/eval files.
+The fitting corpus must be disjoint from the primary stimulus set — fitting and
+testing on the same sentences contaminates the causal test — and an evaluation
+set must not leak fitting sentences. scripts/check_corpus.py is the CLI, and
+fit_directions warns when handed a colliding corpus.
 """
 
 from __future__ import annotations

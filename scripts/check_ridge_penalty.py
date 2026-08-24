@@ -1,49 +1,31 @@
 #!/usr/bin/env python3
-"""Is the cross-source comparison confounded by REGULARISATION? (RESULTS.md §8)
+"""Is the RQ1 cross-source comparison confounded by REGULARISATION?
 
-The open anomaly: `random_subspace` scores 0.719 at entity_token -- ABOVE
-`residual` (0.545), the 5120-dimensional space it is a 16-dimensional
-projection OF. A projection cannot contain information its source lacks, so
-one of the two numbers is not measuring what it claims to.
+`fit_ridge_probe` applies a fixed l2=1e-2 to every source regardless of
+dimensionality, which is a very different amount of regularisation for a 16-dim
+problem than for a 5120-dim one with the same number of rows. If the ranking
+reports that difference rather than a difference in content, every cross-source
+comparison in RQ1 inherits the confound.
 
-The suspect is the fixed ridge penalty. `fit_ridge_probe` applies l2=1e-2 to
-every source regardless of dimensionality, and 1e-2 is a very different
-amount of regularisation for a 16-dim problem than for a 5120-dim one with
-the same number of rows. The low-dimensional projection is then effectively
-better regularised while the full residual overfits, and the ranking reports
-that difference rather than any difference in content.
+Collects RQ1's activations once and re-runs the same leave-one-pair-out probe
+over a grid of penalties offline — one GPU pass, many penalties.
 
-If so, every cross-source comparison in RQ1 inherits the confound -- so this
-is not a footnote, it is a prerequisite for the table being readable at all.
+Reading the output, in four views:
 
-This script collects RQ1's activations ONCE and re-runs the same
-leave-one-pair-out probe over a grid of penalties, offline. One GPU pass, many
-penalties.
+  per-penalty table  every source at every penalty. Descriptive.
+  best column        max over penalties. OPTIMISTICALLY BIASED, since the
+                     penalty is chosen on the folds the accuracy is read from.
+                     Never rank sources on this.
+  nested CV          penalty chosen on inner folds, scored on the held-out
+                     pair. The honest number, and the one to report.
+  matched penalty    every source at the penalty suiting the FULL-RANK sources.
+                     The fair setting for the projection-beats-source anomaly,
+                     which each-source-at-its-own-best would manufacture rather
+                     than test.
 
-READING THE OUTPUT. Three views, and the first is NOT the one to rank on:
-
-  per-penalty table   every source at every penalty. Descriptive.
-  best column         max over penalties -- OPTIMISTICALLY BIASED, because the
-                      penalty is chosen on the same folds the accuracy is read
-                      from. Never rank sources on this.
-  nested CV           penalty chosen on inner folds, scored on the held-out
-                      pair. The honest number, and the one to report.
-  matched penalty     all sources at the penalty that suits the FULL-RANK
-                      sources. This is the fair setting for the anomaly.
-
-THE LOAD-BEARING CHECK is jspace against the CAPACITY CONTROL, not against
-chance. The project never claimed jspace sits at exactly 0.5; it claimed the
-workspace is not a privileged place for role, i.e. that jspace carries less
-role information than an arbitrary subspace of the same rank. So the question
-is whether jspace clears random_subspace at any penalty or under nested CV.
-Checking jspace against an absolute chance floor instead would report an
-overturned headline the moment heavy regularisation lifts every source --
-which is a fact about probe capacity, not about where role lives.
-
-THE ANOMALY (random_subspace above residual, the space it is a projection of)
-must be judged at a MATCHED penalty. Comparing each source at its own best
-lets the 16-dim source pick the setting where the 5120-dim ones are still
-overfitting, which manufactures the impossibility rather than testing it.
+The load-bearing check is jspace against the CAPACITY CONTROL, not against
+chance: the claim is that jspace carries less role information than an
+arbitrary subspace of the same rank, not that it sits at exactly 0.5.
 
     python scripts/check_ridge_penalty.py --config configs/default.yaml --limit 200
 """

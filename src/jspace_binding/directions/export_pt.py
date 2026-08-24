@@ -1,16 +1,10 @@
-"""Export fitted role-directions as torch ``.pt`` files for Group A.
+"""Export fitted role-directions as torch ``.pt`` files.
 
-``directions.fit`` stores directions as ``directions_{site}.npz`` (+ a JSON
-summary): pure numpy, no torch dependency. Group A's editing stack is
-torch-based, so this module is the handoff bridge — it reads the fitted
-directions back (from in-memory ``FittedDirections`` or the saved ``.npz``)
-and writes one ``{entity}_role_direction.pt`` per entity, bundling every
-injection site.
-
-The split mirrors the fit module's discipline: :func:`build_pt_payloads` is
-pure numpy and unit-testable on any machine; only :func:`export_pt` imports
-torch, and it does so lazily so the rest of the package (and CI without the
-model extra) never pays for it.
+``directions.fit`` stores directions as pure-numpy ``directions_{site}.npz``;
+this is the bridge to a torch-based editing stack, writing one
+``{entity}_role_direction.pt`` per entity across every injection site.
+:func:`build_pt_payloads` stays pure numpy, and only :func:`export_pt` imports
+torch, lazily.
 
 Payload schema (``{entity}_role_direction.pt``; a plain dict, load with
 ``torch.load(path, weights_only=False)``)::

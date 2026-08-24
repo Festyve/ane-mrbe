@@ -1,13 +1,8 @@
 """Progress logging for the long sweeps.
 
-The runners print nothing between "generated N families" and the final JSON, so
-a real-backend run looks identical to a hung one for tens of minutes. That is
-tolerable at RQ1's ~4,800 reads and not at RQ2's ~21,600 per site, where the
-gap is hours — and it is actively harmful on a metered or time-limited box,
-where the useful question is not "is it alive" but "will it finish before the
-machine goes away, and should I cut the sweep short".
-
-Writes to STDERR so `> results.json` still captures clean JSON.
+Without it a multi-hour run is indistinguishable from a hung one, and on a
+metered box the useful question is not "is it alive" but "will it finish".
+Writes to stderr so `> results.json` still captures clean JSON.
 """
 
 from __future__ import annotations

@@ -3,20 +3,16 @@
 
 Usage: smoke_test.py [--model-id Qwen/Qwen2.5-0.5B] [--out DIR]
 
-Purpose: convert "first-contact bugs on GPU day" into "bugs found today on a
-laptop". The dummy backend validates the ANALYSIS against ground truth; this
-script validates the BACKEND CODE PATHS — model loading, lens loading,
-J-lens vectors, sparse pursuit, edit hooks (pushes, identity swap, both
-ablations), token indexing, direction fitting, calibration, and all three
-experiment runners — by actually running them on a small open model.
+The dummy backend validates the ANALYSIS against ground truth; this validates
+the BACKEND CODE PATHS — model and lens loading, J-lens vectors, sparse
+pursuit, edit hooks, token indexing, direction fitting, calibration, and all
+three runners — by running them on a small open model.
 
-The trick that makes this principled rather than fake: per Gurnee et al.
-(2026) §2.4, the logit lens is exactly the J-lens with J_l = identity. So we
-fabricate a lens artifact of identity Jacobians at a mid-band of layers and
-the backend runs a real (if weak) logit-lens-based version of the
-experiment. RESULT NUMBERS ARE NOT SCIENCE — a 0.5B model with an identity
-lens at tiny stimulus counts proves nothing about binding. PASS means every
-stage executed and produced well-formed output.
+What makes it principled rather than fake: the logit lens is exactly the J-lens
+with J_l = identity (Gurnee et al. 2026 §2.4), so a fabricated artifact of
+identity Jacobians makes the backend run a real, if weak, version of the
+experiment. RESULT NUMBERS ARE NOT SCIENCE; PASS means every stage executed and
+produced well-formed output.
 
 Needs the heavy extras: pip install '.[model]' (CPU is fine; a 0.5B model
 runs the whole thing in minutes).

@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 """Re-score archived RQ2 ablation verdicts under the CURRENT verdict rule.
 
-`rq2_ablation.json` stores its verdict alongside the deltas that produced it,
-so an archived file is frozen at whatever `_involvement_verdict` did on the day
-it ran. Two commits have since changed that rule:
+An archived `rq2_ablation.json` is frozen at whatever `_involvement_verdict`
+did on the day it ran, and two commits have since changed that rule: `dd6e4fa`
+(two improvements must not read as involvement) and `e61aa81` (require a
+magnitude of binding damage). Neither changed a measurement — only which
+measurements were allowed to be called a result.
 
-    dd6e4fa  two IMPROVEMENTS must not read as causal involvement (sign clause)
-    e61aa81  require a MAGNITUDE of binding damage (_MIN_BINDING_DEFICIT)
-
-Neither changed a measurement. Both changed which measurements were allowed to
-be called a result, which is the failure mode this project has now hit four
-times. The deltas in every archived run remain valid; only the boolean on top
-of them moved.
-
-The verdict is a pure function of numbers the archive already holds
-(`binding_deficit`, `binding_specific_deficit`, `ci_excludes_zero`), so
-re-scoring needs no model, no GPU, no lens, and no rerun:
+The verdict is a pure function of numbers the archive already holds, so
+re-scoring needs no model, GPU, lens, or rerun:
 
     python scripts/reanalyze_rq2.py --run runs/gemma3-12b-pilot
     python scripts/reanalyze_rq2.py --all                # scan every run

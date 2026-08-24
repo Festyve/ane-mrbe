@@ -1,16 +1,9 @@
 """RQ1: is the target entity's role linearly decodable, and from where?
 
-Caches no-edit activations for every primary-stimulus cell via
-model.probe_activation and runs the leave-one-pair-out ridge probe per
-(injection site x activation source), reporting accuracy, control-task
-accuracy, and selectivity (analysis.probes). The three sources — J-space
-component, orthogonal remainder, full residual — localize any decodable role
-signal relative to the workspace.
-
-This is the proposal's warm-up analysis: decodability is evidence about
-information PRESENCE, not use (RQ2's ablation speaks to use), and a linear
-null is nearly uninformative (Smolensky-style multiplicative codes are
-invisible to it). analyze-time interpretation stays in those bounds.
+Caches no-edit activations for every primary-stimulus cell and runs the
+leave-one-pair-out ridge probe per (injection site x activation source),
+reporting accuracy, control-task accuracy, and selectivity. Decodability is
+evidence about information PRESENCE, not use — RQ2's ablation speaks to use.
 """
 
 from __future__ import annotations

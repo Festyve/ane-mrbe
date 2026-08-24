@@ -1,15 +1,8 @@
 """What was actually run: stamped into every results JSON.
 
-A results file that records only numbers cannot be audited later. When a run
-is shared as a bare JSON blob, "which model, which lens, which layer?" has no
-answer, and a config that drifted from the branch it was supposed to match is
-indistinguishable from one that did not. Every RQ summary therefore carries a
-`provenance` block naming the model, the lens artifact, the layer band, the
-edit sparsity, and the commit — enough to reproduce the run or to disqualify
-it.
-
-The git lookup is best-effort: a missing/!repo checkout records None rather
-than failing a run that is otherwise fine.
+Every summary carries a `provenance` block naming the model, lens artifact,
+layer band, edit sparsity, and commit — enough to reproduce a run shared as a
+bare JSON blob, or to disqualify it. The git lookup is best-effort.
 """
 
 from __future__ import annotations
@@ -44,18 +37,12 @@ def run_provenance(
 ) -> dict[str, Any]:
     """Model/lens/layer/commit identity for one run.
 
-    `dirty` flags uncommitted changes: a run made from a dirty tree is not
-    reproducible from its commit alone, and silently reporting the commit
-    would overstate what the SHA pins down.
+    `dirty` flags uncommitted changes, since a run from a dirty tree is not
+    reproducible from its commit alone.
 
     Pass `model` — the backend instance that actually ran. Config alone
-    describes what was *requested*, and the two can disagree: constructing
-    `DummyModel(mode="bag")` against a config saying "binding" produced a
-    results file stamped "binding". The scripts build the model from config so
-    they agree in practice, but provenance exists to record what happened, and
-    a field that silently reports the request instead is exactly the failure it
-    is meant to prevent. When they disagree the RUN wins, and the mismatch is
-    recorded rather than hidden.
+    describes what was *requested*, and the two can disagree. When they do, the
+    RUN wins and the mismatch is recorded rather than hidden.
     """
     cfg_model = config.model
     status = _git("status", "--porcelain")
