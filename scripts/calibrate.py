@@ -8,9 +8,9 @@ Usage: calibrate.py --config configs/default.yaml [--dry-run] [--dummy-mode bind
 - alpha (IDENTITY_SWAP): smallest grid value that moves the NEUTRAL-probe
   readout on a small stimulus sample.
 
-Copy the printed values into configs/*.yaml (model.push_coefficient /
-model.alpha) before running the primary experiment — the runner reads them
-from config, not from calibration.json (the JSON is the audit record).
+scripts/run_primary.py loads push_coefficient / alpha from this file
+automatically (matching on the calibrated site); set model.push_coefficient /
+model.alpha in configs/*.yaml only to override the record.
 
 Exit codes: 2 = backend not runnable yet (missing config/lens/directions);
 3 = intervention-strength failure — no grid value moved behavior enough,
@@ -121,13 +121,16 @@ def main() -> None:
         "alpha": None if alpha is None else asdict(alpha),
         "alpha_failure": alpha_failure,
         "note": (
-            "copy push_coefficient.value / alpha.value into configs/*.yaml "
-            "(model section), then run run_primary.py --site " + site.value
+            "run scripts/run_primary.py --site " + site.value + " — it loads "
+            "push_coefficient.value / alpha.value from this file automatically. "
+            "Set model.* in configs/*.yaml only to override."
         )
         if alpha is not None
         else (
-            "copy push_coefficient.value into configs/*.yaml; leave alpha null "
-            "(pure swap). alpha_failure records why the swap did not calibrate."
+            "run scripts/run_primary.py --site " + site.value + " — it loads "
+            "push_coefficient.value from this file automatically; alpha stays "
+            "null (pure swap). alpha_failure records why the swap did not "
+            "calibrate."
         ),
     }
     out = Path(config.paths.calibration)

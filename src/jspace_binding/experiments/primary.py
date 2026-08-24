@@ -13,6 +13,8 @@ band, the per-sign gap-change breakdown, both strength checks, and the figures.
 from __future__ import annotations
 
 import json
+import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -69,6 +71,111 @@ def validate_config(config: Config) -> None:
             f"the crossover binding score needs both push signs, got {got}; "
             "set experiment.push_signs: [toward_agent, toward_patient]"
         )
+
+
+def resolve_calibrated_strengths(
+    config: Config,
+    site: InjectionSite | None = None,
+    *,
+    dry_run: bool = False,
+) -> Config:
+    """Fill ``model.alpha`` / ``model.push_coefficient`` from the calibration
+    audit record when the config leaves them open.
+
+    This removes the manual "copy the two printed values into the YAML" step
+    between ``scripts/calibrate.py`` and ``scripts/run_primary.py`` that the
+    runbook warned would *silently* run the primary sweep with a pure swap and
+    no push scaling if forgotten. Precedence:
+
+    1. An explicit value in the config always wins — pasting into the YAML still
+       works, and a calibration record that disagrees only warns.
+    2. Otherwise the value is read from ``config.paths.calibration``, but only
+       when that record was calibrated at the site being run. A push coefficient
+       is in absolute residual-norm units and the fitted directions differ in
+       norm across sites, so a value calibrated at another site is not
+       applied silently.
+    3. If a push experiment still has no ``push_coefficient`` afterwards, the
+       run is refused (exit 2) instead of sweeping with no push scaling.
+
+    ``dry_run`` bypasses all of this: the DummyModel has no strength dial.
+    Returns a config with the resolved values (the input unchanged when nothing
+    needed filling).
+    """
+    if dry_run:
+        return config
+
+    model = config.model
+    push = model.push_coefficient
+    alpha = model.alpha
+    target = site.value if site is not None else None
+    cal_path = Path(config.paths.calibration)
+
+    record = None
+    if cal_path.exists():
+        try:
+            record = json.loads(cal_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"ignoring unreadable calibration {cal_path}: {exc}", file=sys.stderr)
+
+    if isinstance(record, dict):
+        cal_site = record.get("site")
+
+        def _calibrated(section: str) -> float | None:
+            entry = record.get(section)
+            return entry.get("value") if isinstance(entry, dict) else None
+
+        if target is not None and cal_site is not None and cal_site != target:
+            # Never auto-apply a record fitted at a different injection site.
+            if push is None:
+                print(
+                    f"calibration {cal_path} was fit at site={cal_site} but the "
+                    f"primary sweep targets site={target}; re-run "
+                    f"scripts/calibrate.py --site {target} — a push coefficient "
+                    "does not transfer across sites.",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+            print(
+                f"warning: calibration {cal_path} site={cal_site} != run "
+                f"site={target}; using the config's push_coefficient={push} / "
+                f"alpha={alpha}, not the record.",
+                file=sys.stderr,
+            )
+        else:
+            if push is None:
+                push = _calibrated("push_coefficient")
+                if push is not None:
+                    print(
+                        f"loaded push_coefficient={push} from {cal_path} "
+                        f"(calibrated at site={cal_site})",
+                        file=sys.stderr,
+                    )
+            if alpha is None:
+                cal_alpha = _calibrated("alpha")
+                if cal_alpha is not None:
+                    alpha = cal_alpha
+                    print(
+                        f"loaded alpha={alpha} from {cal_path} "
+                        f"(calibrated at site={cal_site})",
+                        file=sys.stderr,
+                    )
+
+    has_push = any(e in DIRECTION_PUSH_EDIT_TYPES for e in config.experiment.edit_types)
+    if has_push and push is None:
+        where = f"in {cal_path}" if record is not None else f"({cal_path} not found)"
+        print(
+            "model.push_coefficient is unset and no calibrated value is available "
+            f"{where}. Run scripts/calibrate.py --config <cfg> --site "
+            f"{target or '<site>'} first, or set model.push_coefficient in the "
+            "config. Refusing to run the primary sweep with a pure swap and no "
+            "push scaling (see RUNBOOK).",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if push == model.push_coefficient and alpha == model.alpha:
+        return config
+    return replace(config, model=replace(model, push_coefficient=push, alpha=alpha))
 
 
 def run_primary(
