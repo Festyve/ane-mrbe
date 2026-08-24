@@ -1,9 +1,21 @@
 [project]
 name = "jspace-binding"
 version = "0.1.0"
-description = "Causal test of role-filler binding in the J-space global workspace (Qwen3.6-27B + Jacobian lens)"
+description = "Is the J-space global workspace a privileged locus for role-filler binding?"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Anonymous" },
+    { name = "Anonymous" },
+]
+keywords = ["interpretability", "global-workspace", "jacobian-lens", "role-filler-binding"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
 dependencies = [
     "numpy>=1.26",
     "matplotlib>=3.8",
@@ -26,6 +38,10 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+
+[project.urls]
+Repository = "https://github.com/anonymous/anonymous-repo"
+Results = "https://github.com/anonymous/anonymous-repo/blob/main/RESULTS.md"
 
 [build-system]
 requires = ["hatchling"]
