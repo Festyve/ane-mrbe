@@ -66,7 +66,7 @@ run gemma-within-entity within_entity -- \
   python scripts/check_within_pair.py --config "$CFG" --site entity_token
 
 # ---- 6. RQ2 ablation, both sites (P1) ---------------------------------------
-# NB: regenerates the verdict under the CURRENT logic (86c96cc), so the stale
+# NB: regenerates the verdict under the CURRENT logic (e2bd7d9), so the stale
 # workspace_causally_involved=true label on the old pilot JSON is superseded.
 run gemma-rq2 rq2 -- \
   python scripts/run_rq2.py --config "$CFG"

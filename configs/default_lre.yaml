@@ -40,7 +40,7 @@ model:
   # alpha stays null: calibrate_identity_alpha failed again here (counterpart
   # shifts 0.0011 / 0.0027 / 0.0057 against a 0.05 floor), consistent with
   # RESULTS.md §7's retraction. IDENTITY_SWAP conditions therefore run as a
-  # pure swap, and after b29aebd that failure no longer gates the verdict --
+  # pure swap, and after d871059 that failure no longer gates the verdict --
   # the primary is gated on the ROLE_PUSH arm, which calibrated cleanly.
   alpha: null
   push_coefficient: 4.0
