@@ -118,3 +118,8 @@ Two habits the code enforces as a result:
 - **Read per-fold accuracies, not just means.** With as few as three concept
   pairs the mean cannot distinguish "transfers weakly everywhere" from
   "transfers on most pairs and inverts on one".
+
+## License
+
+MIT — see [LICENSE](LICENSE). If you use this work, please cite the repository
+and [RESULTS.md](RESULTS.md), which records which artifact backs each number.
