@@ -1,39 +1,25 @@
 """Binding score: position-averaged, both-sign log-odds crossover per ItemFamily.
 
-Pure numpy — no model dependencies — so the math heart is unit-testable on any
-machine. Probabilities arrive as TrialResult records; this module reads
-answer_probs[entity] (the pushed entity, NOT the identity-swap counterpart),
-converts to log-odds, and never renormalizes (full-softmax reads, per
-protocol).
+Pure numpy. Probabilities arrive as TrialResult records; this module reads
+`answer_probs[entity]` (the pushed entity, NOT the identity-swap counterpart)
+and converts to log-odds without renormalizing.
 
-Why log-odds (proposal, Motivation): a role-blind uniform push shifts the
-entity's answer log-odds by the same increment in both role conditions
-regardless of their starting point, so floor/ceiling effects cannot fake a
-role interaction. In raw probability the same uniform push moves a
-near-ceiling condition less than a mid-range one — exactly the artifact the
-log-odds readout removes.
+Log-odds rather than raw probability because a role-blind uniform push shifts
+the entity's log-odds by the same increment in both role conditions regardless
+of where they started, so floor/ceiling effects cannot fake a role interaction.
 
-Notation: L(role, edit, sign) is logit P(entity) at the ROLE probe, averaged
-over the two surface positions. For each push sign s the gap change is
+With `L(role, edit, sign)` the logit P(entity) at the ROLE probe averaged over
+the two surface positions, the per-sign gap change and family score are
 
     dG(s) = [L(agent, push_s) - L(patient, push_s)]
           - [L(agent, no_edit) - L(patient, no_edit)]
+    BS_i  = -(dG(toward_agent) + dG(toward_patient)) / 2
 
-A bag workspace leaves dG(s) ~ 0 for both signs (the uniform increment cancels
-in the agent-patient difference). A binding workspace shrinks the natural gap
-from opposite sides — the agent-pole push lifts patient sentences most, the
-patient-pole push drops agent sentences most (the crossover) — making dG(s)
-negative under both signs. The family binding score folds both signs into one
-positive-means-binding number:
-
-    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2
-
-which is algebraically the edit x role interaction summed over signs. Control
-edits (null_non_participant, random_direction, shuffled_label_direction) plug
-into the same statistic in place of ROLE_PUSH and form the null band the real
-scores must clear. A within-family agent/patient label swap negates every
-dG(s) and hence BS_i, so the sign-flip permutation test in analysis.stats
-remains exact.
+A bag workspace leaves dG(s) ~ 0 for both signs; a binding workspace shrinks
+the natural gap from opposite sides (the crossover), making both negative and
+BS_i positive. Control edits plug into the same statistic in place of ROLE_PUSH
+and form the null band. A within-family agent/patient swap negates BS_i, so the
+sign-flip permutation test in analysis.stats is exact.
 """
 
 from __future__ import annotations
@@ -60,17 +46,10 @@ CONTROL_EDIT_TYPES: tuple[EditType, ...] = (
     EditType.SHUFFLED_LABEL_DIRECTION,
 )
 
-# The three constructions testing agent/patient proper; DATIVE is reported
-# separately (proposal, Experimental Setup §2), so the "meaningful in >= 2 of 3
-# constructions" positive-result criterion quantifies over these only.
-#
-# CORRECTION (an earlier version of this comment said the dative tests
-# "recipient/theme"): it does not. The theme is the literal string "a letter"
-# in all four cells — never a target, never pushed, never read. The contrast
-# that actually runs is GIVER vs RECIPIENT, with the giver mapped onto AGENT
-# and the recipient onto PATIENT. It is still excluded from the criterion
-# above, because a recipient is a goal rather than a patient, so the dative
-# measures a different thematic relation from the other three.
+# The three constructions testing agent/patient proper, which the "meaningful in
+# >= 2 of 3 constructions" criterion quantifies over. DATIVE is reported
+# separately: it contrasts giver against recipient, and a recipient is a goal
+# rather than a patient, so it measures a different thematic relation.
 AGENT_PATIENT_CONSTRUCTIONS: tuple[str, ...] = (
     "active_passive",
     "cleft",
@@ -89,11 +68,9 @@ def logit(p: float) -> float:
 def position_average(values: dict[tuple[Role, Position], float]) -> dict[Role, float]:
     """Collapse the position nuisance axis: L(role) = mean over FIRST/SECOND.
 
-    Because the target entity appears once in each position per role, any
-    surface-order bias (e.g. earlier tokens easier to recall) contributes
-    equally to L(agent) and L(patient) and cancels in the gap. A role present
-    with only one position would silently reintroduce that confound, so it
-    raises instead.
+    Any surface-order bias contributes equally to both roles and cancels in the
+    gap. A role present with only one position would reintroduce that confound,
+    so it raises instead.
     """
     out: dict[Role, float] = {}
     for role in Role:
@@ -121,13 +98,8 @@ def _cell_logits(
 ) -> dict[_CellKey, float]:
     """Logit P(entity) per (role, position, edit, sign) cell at one probe.
 
-    Collects the treatment edit (both signs) plus NO_EDIT. Requires exactly
-    one trial per cell — 12 cells total (2 roles x 2 positions x [2 signed
-    treatment conditions + unsigned no-edit]). Missing or duplicate cells
-    raise ValueError naming the cell, never a silently wrong score.
-
-    probe_kind selects the readout: ROLE (default, every construction) or
-    RECIPIENT (dative only — see PROBE_ORIENTATION for the sign convention).
+    Requires exactly one trial per cell — 12 in total. Missing or duplicate
+    cells raise ValueError naming the cell, never a silently wrong score.
     """
     cells: dict[_CellKey, float] = {}
     for t in trials:
@@ -173,15 +145,12 @@ def family_gap_changes(
     treatment: EditType = EditType.ROLE_PUSH,
     probe_kind: ProbeKind = ProbeKind.ROLE,
 ) -> dict[PushSign, float]:
-    """dG(sign) for both signs of one family — the edit-induced change of the
-    position-averaged agent-patient log-odds gap, and the descriptive
-    per-sign breakdown (binding predicts both negative; an asymmetry, e.g.
-    promotion works but demotion doesn't, shows up here rather than being
-    averaged away). One trial scan serves both signs.
+    """dG(sign) for both signs of one family.
 
-    These are RAW gap changes in the probe's own orientation — the
-    PROBE_ORIENTATION flip is applied by the score functions, not here, so the
-    per-sign breakdown always describes what the probe literally measured.
+    Binding predicts both negative; an asymmetry (promotion works, demotion
+    does not) shows up here rather than being averaged away. Raw, in the
+    probe's own orientation — PROBE_ORIENTATION is applied by the score
+    functions, so this always describes what the probe literally measured.
     """
     cells = _cell_logits(trials, entity_token, treatment, probe_kind)
     baseline = position_average(
@@ -209,16 +178,9 @@ def _crossover_score(gaps: dict[PushSign, float]) -> float:
     return -(gaps[PushSign.TOWARD_AGENT] + gaps[PushSign.TOWARD_PATIENT]) / 2.0
 
 
-# Which way "more probable entity" points relative to the AGENT role.
-#
-# The ROLE probe asks who the AGENT is, so P(entity) rises as the entity
-# becomes more agent-like: +1. The dative RECIPIENT probe asks who RECEIVED,
-# so P(entity) rises as the entity becomes more PATIENT-like — the natural gap
-# and every push invert. Negating restores the shared convention that a
-# positive binding score means binding, so recipient- and role-probe scores are
-# directly comparable and the null band means the same thing in both.
-#
-# Applied once, in the score functions. family_gap_changes stays raw.
+# Which way "more probable entity" points relative to the AGENT role. The
+# RECIPIENT probe inverts, so negating keeps "positive means binding" shared
+# between the two readouts. Applied once, in the score functions.
 PROBE_ORIENTATION: dict[ProbeKind, float] = {
     ProbeKind.ROLE: 1.0,
     ProbeKind.RECIPIENT: -1.0,
@@ -232,14 +194,8 @@ def family_binding_score(
 ) -> float:
     """Binding score of one family from its trials at one site and probe.
 
-    BS_i = -(dG(toward_agent) + dG(toward_patient)) / 2 in log-odds, positive
-    under binding, ~0 under a bag workspace. Requires all 12
-    (role x position x [push sign / no-edit]) cells; raises otherwise.
-    Primary analysis reads FINAL_TOKEN-site trials; site filtering is the
-    caller's job (collect_scores) so the same math serves both sites.
-
-    probe_kind=RECIPIENT scores the dative from the recipient's side, with
-    PROBE_ORIENTATION applied so "positive = binding" still holds.
+    Positive under binding, ~0 under a bag workspace. Requires all 12 cells.
+    Site filtering is the caller's job (collect_scores).
     """
     gaps = family_gap_changes(trials, entity_token, EditType.ROLE_PUSH, probe_kind)
     return PROBE_ORIENTATION[probe_kind] * _crossover_score(gaps)
@@ -251,14 +207,10 @@ def control_binding_score(
     edit_type: EditType,
     probe_kind: ProbeKind = ProbeKind.ROLE,
 ) -> float:
-    """Same crossover statistic with ROLE_PUSH replaced by a control edit;
-    samples the null band.
+    """Same crossover statistic with ROLE_PUSH replaced by a control edit.
 
-    The control carries no genuine role information for THIS sentence — the
-    pushed direction belongs to an absent entity, is random, or was fit on
-    shuffled labels — so under any representation its score should sit near
-    0. The empirical distribution of these scores is the band a genuine
-    binding effect must clear.
+    The control carries no role information for this sentence, so its score
+    should sit near 0; their empirical distribution is the null band.
     """
     if edit_type not in CONTROL_EDIT_TYPES:
         allowed = ", ".join(e.value for e in CONTROL_EDIT_TYPES)
@@ -273,16 +225,11 @@ def control_binding_score(
 class ScoreTable:
     """Family-level scores grouped for stats and the forest plot.
 
-    real maps group_key = (construction.value, pair_id) to that group's
-    per-family BS_i, keeping constructions separate so a single-construction
-    effect cannot masquerade as general binding. gap_changes pools the
-    per-sign dG values of the ROLE_PUSH across all families (keyed by
-    PushSign.value) for the descriptive per-sign summary. null_band pools
-    control-edit scores across all groups: controls estimate the same
-    statistic with no role information, so they share one null distribution.
-    null_by_edit keeps the same control scores split per control edit type
-    (keyed by EditType.value) so the verdict can check each control — in
-    particular the random direction — individually against the band.
+    `real` is keyed by (construction, pair_id), keeping constructions separate
+    so a single-construction effect cannot masquerade as general binding.
+    `null_band` pools every control score into one null distribution;
+    `null_by_edit` keeps them split so the verdict can check each control —
+    the random direction in particular — individually against the band.
     """
 
     real: dict[tuple[str, str], list[float]] = field(default_factory=dict)
@@ -298,16 +245,8 @@ def collect_scores(
 ) -> ScoreTable:
     """Compute every family's real and control binding scores at one site.
 
-    Filters to `probe_kind` trials at `site`, groups by family, and computes
-    family_binding_score wherever ROLE_PUSH trials exist plus one
-    control_binding_score per control edit present. The entity token is
-    recovered from pair_id ("entity->counterpart", see ConceptPair.pair_id)
-    since TrialResult does not carry the AnswerSet. Incomplete cells inside
-    any attempted score raise (via _cell_logits) rather than being skipped.
-
-    probe_kind=RECIPIENT yields the dative-only recipient-side table (empty
-    for any other construction, which carries no recipient trials). Scores
-    carry PROBE_ORIENTATION, so the two tables are directly comparable.
+    The entity token is recovered from pair_id, since TrialResult does not
+    carry the AnswerSet. Incomplete cells raise rather than being skipped.
     """
     orientation = PROBE_ORIENTATION[probe_kind]
     by_family: dict[str, list[TrialResult]] = {}
@@ -321,7 +260,6 @@ def collect_scores(
         entity_token = ConceptPair.entity_of(first.pair_id)
         edits_present = {t.edit_type for t in trials}
         if EditType.ROLE_PUSH in edits_present:
-            # One cell scan yields both the per-sign gaps and the score.
             gaps = family_gap_changes(trials, entity_token, EditType.ROLE_PUSH, probe_kind)
             group_key = (first.construction.value, first.pair_id)
             table.real.setdefault(group_key, []).append(orientation * _crossover_score(gaps))

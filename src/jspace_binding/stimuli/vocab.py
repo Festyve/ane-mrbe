@@ -29,35 +29,17 @@ PROFESSION_ENTITIES: tuple[str, ...] = (
     "coach",
 )
 
-# One discriminating cue per profession, for the CONCEPT probe (the recall
-# control). The probe asks "Which one {cue}?" of a sentence containing BOTH
-# participants, so lexical presence cannot answer it — the model has to know
-# what the profession is. See ProbeKind.CONCEPT.
-#
-# Two constraints, both load-bearing:
-#   1. NO SHARED STEM with the profession it identifies ("nursing" would let
-#      the model match "nurse" on surface form and skip the semantics).
-#   2. Must discriminate WITHIN any (entity, other_entity) pair the generator
-#      can produce. Counterparts are excluded from other_entity, so the
-#      same-domain collisions (doctor/nurse, teacher/student, driver/passenger)
-#      never co-occur as the two participants.
+# One discriminating cue per profession, for the CONCEPT probe. Two constraints:
+# no shared stem with the profession it identifies (or the model matches on
+# surface form), and it must discriminate within any (entity, other_entity) pair
+# the generator can produce.
 PROFESSION_CUE: dict[str, str] = {
-    # Kept deliberately weak. doctor is the lowest-margin cue in the set, and
-    # "diagnoses illness" raises it a lot (+1.42 -> +1.76 overall, and every
-    # doctor pair improves). It was reverted anyway: role-blindness went from
-    # 1.54 SEM to 3.95 SEM, i.e. the probe started tracking role.
-    #
-    # The mechanism generalises, so read it before "improving" any cue here.
-    # Diagnosing is something a doctor DOES, and so is treating / examining --
-    # the sentence verbs. An ACTION cue aligned with the verb favours whichever
-    # participant is performing it, which is exactly the role information this
-    # probe must not see. Margin is not the criterion; a stronger control that
-    # leaks role is not a control at all.
-    #
-    # Verify any replacement with `python scripts/check_concept_probe.py`, whose
-    # role-blindness check averages all four role x position cells. Ad-hoc
-    # active-vs-passive comparisons confound voice with role and will call a
-    # perfectly good cue a leak.
+    # Deliberately weak, and read this before "improving" any cue here. The
+    # stronger "diagnoses illness" lifts the margin (+1.42 -> +1.76) but takes
+    # role-blindness from 1.54 to 3.95 SEM: an ACTION cue aligned with the
+    # sentence verb favours whichever participant is performing it, which is
+    # exactly the role information the control must not see. Verify any
+    # replacement with scripts/check_concept_probe.py.
     "doctor": "works in medicine",
     "nurse": "assists on a hospital ward",
     "teacher": "leads a classroom",
@@ -72,15 +54,9 @@ PROFESSION_CUE: dict[str, str] = {
     "coach": "trains athletes",
 }
 
-# Default non-target participant per concept pair. doctor->nurse uses "lawyer"
-# to match the proposal's worked example.
-#
-# The last three pairs back configs/expanded_pairs.yaml (6 pairs -> 6
-# leave-one-pair-out folds, addressing the 3-fold generality critique).
-# Counterpart reuse across pairs (nurse, student twice) is deliberate and safe:
-# a counterpart never appears in any sentence — it exists only as the
-# IDENTITY_SWAP target — so two pairs sharing one cannot contaminate each
-# other's stimuli.
+# Default non-target participant per concept pair. The last three back
+# configs/expanded_pairs.yaml (6 leave-one-pair-out folds). Counterpart reuse
+# across pairs is safe: a counterpart never appears in any sentence.
 OTHER_ENTITY_BY_PAIR: dict[str, str] = {
     "doctor->nurse": "lawyer",
     "teacher->student": "judge",
@@ -90,13 +66,10 @@ OTHER_ENTITY_BY_PAIR: dict[str, str] = {
     "coach->student": "judge",
 }
 
-# Candidates for the NULL_NON_PARTICIPANT control: the pushed direction must
-# belong to an entity absent from the sentence, so plan_edit picks the first
-# candidate that is not the family's entity, counterpart, or other participant.
-# NOTE (deviation from the proposal's "tuesday" example, flagged for team
-# review): a day-of-the-week token cannot bear a thematic role, so no r_tuesday
-# can be fitted — the role-direction analogue of "absent concept" is an absent
-# PROFESSION with its own fitted role direction.
+# Candidates for the NULL_NON_PARTICIPANT control: plan_edit picks the first
+# that is not the family's entity, counterpart, or other participant. An absent
+# PROFESSION rather than the proposal's "tuesday", because a day-of-the-week
+# token cannot bear a thematic role and so has no fittable role direction.
 NON_PARTICIPANT_CANDIDATES: tuple[str, ...] = ("chef", "farmer", "coach")
 
 

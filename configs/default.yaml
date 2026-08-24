@@ -1,7 +1,7 @@
 # Default experiment configuration.
-# Null fields are open Methods decisions — leave null until the team pins
-# them (layer band) or calibration produces them (alpha, push_coefficient);
-# code that needs them fails loudly rather than guessing.
+# Null fields are decisions the code refuses to guess: it fails loudly until
+# they are pinned by hand (layer band) or produced by calibration (alpha,
+# push_coefficient).
 
 model:
   # dummy | qwen_jlens. Now the REAL backend: this config describes the run we

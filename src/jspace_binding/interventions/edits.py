@@ -1,69 +1,41 @@
 """Edit planning: (EditType, PushSign) -> backend-agnostic EditSpec.
 
-This module is pure data-plumbing (stdlib only); the residual-stream math lives
-in the model backend. This docstring is the canonical in-repo description of
-the procedures every backend must implement.
+Pure data plumbing; the residual-stream math lives in the model backend. The
+lens artifact is a per-layer averaged Jacobian `J_l`; the J-lens vector for
+vocabulary token t is `v_t = J_l^T W_U[t]`, and an activation's J-space
+component is recovered by sparse pursuit against those vectors (Gurnee et al.
+2026 §2). Both edit families below are defined at the injection-site token.
 
-Grounding (Gurnee et al. 2026, §2): the lens artifact is a per-layer averaged
-Jacobian J_l; the J-LENS VECTOR for vocabulary token t at layer l is
-v_t = J_l^T W_U[t], a residual-stream direction; the J-space is the set of
-sparse nonnegative combinations of such vectors, and an activation's J-space
-COMPONENT is recovered by sparse pursuit against them (their §2.3).
-
-Role push (PRIMARY — proposal, Methods / Concept-swap intervention)
--------------------------------------------------------------------
-Let r be the fitted unit role direction for the spec's entity at the
-injection site: the difference-of-means of J-space COMPONENTS (agent minus
-patient exemplars, directions.fit), which lives directly in residual space.
-At the site token:
+Role push (primary). With `r` the fitted unit role direction for the spec's
+entity at the site (difference-of-means of J-space components, directions.fit):
 
     h_patched = h + s * c * unit(r)
 
-where s = +1 for PushSign.TOWARD_AGENT, -1 for TOWARD_PATIENT, and c is the
-push coefficient calibrated on the fitting corpus (never on the primary
-stimuli). unit() keeps c in residual-norm units, so every push — real or
-control — perturbs the stream by exactly c. The same (r, s, c, site) is
-applied to every sentence in a condition — byte-identical across the minimal
-pair, never conditioned on the sentence's own role label. That uniformity is
-what licenses reading any role-dependent effect as binding.
+`s` is +1 for TOWARD_AGENT and -1 for TOWARD_PATIENT; `c` is calibrated on the
+fitting corpus, never on the primary stimuli. unit() keeps `c` in residual-norm
+units, so every push perturbs the stream by exactly `c`. The same (r, s, c,
+site) applies to every sentence in a condition — byte-identical across the
+minimal pair, never conditioned on the sentence's own role label, which is what
+licenses reading a role-dependent effect as binding. The three strength-matched
+controls share these mechanics: NULL_NON_PARTICIPANT pushes an entity absent
+from the sentence, RANDOM_DIRECTION a seeded random unit direction, and
+SHUFFLED_LABEL_DIRECTION the same entity's shuffled-label refit.
 
-Controls sharing the push mechanics (all strength-matched at exactly c):
-- NULL_NON_PARTICIPANT: push the fitted r of an entity ABSENT from the
-  sentence (plan_edit picks it per family). Ties any effect to the sentence's
-  relational content rather than generic workspace perturbation.
-- RANDOM_DIRECTION: replace r with a seeded random unit residual-space
-  direction. Direction-specificity control.
-- SHUFFLED_LABEL_DIRECTION: push the same entity's shuffled-label refit
-  (directions.fit.shuffled_label_direction). Direction-overfitting control.
+Identity swap (control only — intervention-strength check, Gurnee et al. §2.5).
+With `V = [v_s v_t]` the J-lens vectors of the swap tokens:
 
-Identity swap (CONTROL ONLY — intervention-strength check)
-----------------------------------------------------------
-The Gurnee et al. coordinate swap (their §2.5), inherited wholesale, paired
-exclusively with the NEUTRAL probe. With v_s, v_t the J-LENS VECTORS of the
-swap tokens at the layer, V = [v_s v_t], and h the residual activation:
-
-    c = pinv(V) @ h                      # c[0]: source amount, c[1]: target amount
+    c = pinv(V) @ h          # c[0] source amount, c[1] target amount
     h_patched = h + V @ (sigma(c) - c)
 
-where sigma swaps the two coordinates, optionally scaled by alpha (None = 1.0,
-a pure swap). The component of h orthogonal to span(V) is untouched. If this
-fails to move the role-neutral readout, the lens is too weak for any null
-role result to be interpretable. (Comparability note: several of the source
-paper's swap experiments apply the swap at ALL token positions; our design
-anchors it at the injection site — a deliberate difference, flagged in docs.)
+`sigma` swaps the two coordinates, optionally scaled by alpha (None = pure
+swap); the component orthogonal to span(V) is untouched. The source paper
+applies its swap at all token positions where we anchor at the injection site —
+a deliberate difference.
 
-NO_EDIT: the untouched baseline the difference-in-differences subtracts.
-
-RQ2 ablations (never part of the primary sweep; experiments.rq2_ablation
-builds their EditSpecs directly)
---------------------------------
-ABLATE_JSPACE (their §3.5.2): zero h's projection onto the span of the
-top-k most strongly active J-lens vectors at the site (k = model.ablate_k,
-paper uses 10).
-ABLATE_RANDOM_SUBSPACE: h_patched = h - Q @ (Q^T @ h) for a seeded random
-orthonormal basis Q with the SAME number of columns (ablate_k) — the
-capacity-matched comparison that separates "the J-space specifically" from
-"any subspace of that size".
+RQ2 ablations are built directly by experiments.rq2_ablation: ABLATE_JSPACE
+zeroes h's projection onto the top-`ablate_k` active J-lens vectors (§3.5.2),
+and ABLATE_RANDOM_SUBSPACE removes a seeded random orthonormal basis with the
+same number of columns — the capacity-matched comparison.
 """
 
 from __future__ import annotations

@@ -5,22 +5,19 @@ fitting + eval JSONL the pipeline reads.
 Usage: csv_to_jsonl.py --entity doctor
        csv_to_jsonl.py --csv data/stimuli/doctor.csv --out-dir data/handwritten
 
-This makes the CSV the single source of truth: humans edit the spreadsheet,
-this regenerates the JSONL the code consumes, and the two can't drift. The
-CSV layout (per the team's sheet) is eight columns:
+The CSV is the single source of truth: humans edit the spreadsheet, this
+regenerates the JSONL the code consumes. Eight columns, mapped by POSITION
+rather than header (some sheet headers are mislabelled):
 
     fitting: agent-active | agent-passive | patient-active | patient-passive
     eval:    agent-active | agent-passive | patient-active | patient-passive
 
-(the 2nd/3rd fitting headers read "AGENT PASSIVE" in the sheet, but the 3rd
-column's content is patient-active — we map by position, not by header). The
-(verb, other) for each row is read from the agent-active cell and all four
-forms are regenerated from templates, so a typo in one cell can't slip
-through. An eval form is emitted only where its cell is non-empty (the sheet
-leaves some passive eval cells blank).
+The (verb, other) pair is read from the agent-active cell and all four forms
+are regenerated from templates, so a typo in one cell cannot slip through. Eval
+forms are emitted only where their cell is non-empty.
 
-After converting, run scripts/check_corpus.py to confirm the result is clean
-against the primary stimulus set.
+Run scripts/check_corpus.py afterwards to confirm the result is clean against
+the primary stimulus set.
 """
 
 from __future__ import annotations

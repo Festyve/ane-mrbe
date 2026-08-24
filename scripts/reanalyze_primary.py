@@ -2,17 +2,13 @@
 """Re-score an archived primary run under the CURRENT analysis code.
 
 `run_primary.py` prints its analysis to stdout and writes no summary JSON, so
-an archived verdict is frozen at whatever `analyze()` did on the day it ran.
-When the analysis changes the archived log does not, and nothing in it says
-which side of the change it fell on.
+an archived verdict is frozen at whatever `analyze()` did on the day it ran and
+nothing in the log says which side of a later change it fell on. Commit
+`a5b843c` gave the neutral strength check a magnitude floor, for instance, and
+every log written before it recorded `passes` under a signs-only rule.
 
-That is not hypothetical here. Commit `a5b843c` gave the neutral strength
-check a magnitude floor (`_MIN_COUNTERPART_SHIFT`); every primary log written
-before it recorded `passes` under a signs-only rule. `runs/gemma3-12b-lre`
-is one of them.
-
-The trials are the forward passes and they are already spent, so re-scoring
-needs no model, no GPU, and no lens — just the archived `trials.jsonl`.
+The forward passes are already spent, so re-scoring needs only the archived
+`trials.jsonl` — no model, GPU, or lens.
 
     python scripts/reanalyze_primary.py --run runs/gemma3-12b-lre --site entity_token
 

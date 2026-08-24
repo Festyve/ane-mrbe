@@ -1,31 +1,20 @@
 #!/usr/bin/env python3
-"""Is role encoded at all, just lexically? (diagnostic for the below-chance runs)
+"""Is role encoded at all, just lexically? Diagnostic for the below-chance runs.
 
-RQ1 and E4 both came back BELOW chance on the real model, with every fold
-inverting:
+RQ1 and E4 both came back below chance on the real model with every fold
+inverting, meaning the probe learned a rule on the training pairs that runs
+BACKWARDS on the held-out pair. Two very different situations produce that, and
+leave-one-pair-out cannot separate them:
 
-    RQ1 final_token   jspace 0.32  orthogonal 0.28  residual 0.28
-    E4  jspace        role_q 0.281  bag_q 0.263
+  A. Role is encoded LEXICALLY, per concept pair, with no shared sign across
+     pairs. Within a pair the probe works; across pairs it inverts. Role is
+     present but not filler-general — directly on the research question, since
+     binding in the Smolensky sense requires role separable from filler.
+  B. Role is not linearly readable at all, and the cross-pair inversion is an
+     artifact of having three folds.
 
-Noise scatters around 0.5. Landing consistently below it means the probe learned
-a rule on the training pairs that runs BACKWARDS on the held-out pair -- the
-direction meaning "agent" for doctor/lawyer means "patient" for teacher/student.
-
-Two very different situations produce that, and the experiments cannot separate
-them because both use leave-one-pair-out:
-
-  A. Role is encoded LEXICALLY, per concept pair. Each pair has its own role
-     axis and they do not share a sign. Within a pair the probe would work;
-     across pairs it inverts. Role is present, but not filler-general -- which
-     is a claim about the representation, and directly on the proposal's
-     question, since binding in the Smolensky sense requires role to be
-     separable from filler.
-  B. Role is not linearly readable at all. Within-pair decoding would also sit
-     at chance, and the cross-pair inversion is an artifact of three folds.
-
-This script runs the same probe WITHIN each concept pair (random split, no
-leave-one-out) and reports both numbers side by side. Cheap: it reuses RQ1's
-activations, so one pass over the stimuli, no edits, no fitted directions.
+This runs the same probe WITHIN each concept pair (random split, no
+leave-one-out) and reports both numbers side by side, reusing RQ1's activations.
 
     within-pair HIGH + cross-pair BELOW chance  -> A: lexically entangled role
     within-pair CHANCE                          -> B: no linear role signal

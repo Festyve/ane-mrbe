@@ -1,14 +1,9 @@
 # Results — Qwen3.6-27B, layer 48
 
-**Read this before any file under `runs/`.**
-
-`scripts/save_run.py` copies the whole of `data/results/` each time, so every
-run directory carries forward the results of every earlier experiment. A given
-JSON therefore appears in several directories, sometimes with a verdict string
-that predates a fix. **This file names the authoritative artifact for each
-experiment and states the corrected verdict.** Where a verdict differs from a
-saved copy, the number was never wrong — only the label was, and the fix commit
-is cited.
+**Read this before any file under `runs/`.** Each run directory holds only the
+artifacts that run produced, and the table below names the authoritative copy
+for every experiment. Where a verdict here differs from a saved copy, the number
+was never wrong — only the label was, and the fix commit is cited.
 
 Model `Qwen/Qwen3.6-27B` · lens `neuronpedia/jacobian-lens`
 (`qwen3.6-27b/jlens/Salesforce-wikitext`) · read layer 48 · 3× A100-40GB ·
@@ -32,7 +27,7 @@ bf16 · `device_map="auto"`
 | RQ2 `entity_token` | `runs/rq2-entity-token/…` (+ patch below) | **not causally involved** |
 | fit_directions | `runs/fit-directions/results/…` | site dissociation |
 | calibrate | `runs/calibrate-exit3/…` | **exit 3** |
-| Primary (E3) | `runs/logs/primary.log` | ⚠️ **`significant_but_tiny` is STALE — needs re-scoring** |
+| Primary (E3) | `runs/logs/primary.log` | **`uninterpretable_strength_failure`** (re-scored; see "Note on verdict labels") |
 | Nonlinear probe | `runs/nonlinear-probe/results/nonlinear_probe.json` | `null_survives_nonlinearity` |
 | Ridge penalty sweep | `runs/ridge-penalty/results/ridge_penalty_sweep.json` | `jspace_null_survives_penalty_sweep` |
 
@@ -71,8 +66,7 @@ subspace" is true on average but not at every layer.
 
 ### Stale labels to ignore
 
-- `runs/e4-first/`, and every directory saved before it — `e4_recruitment.json`
-  reads `always_on`. Corrected to `anti_transfer_both` (commit `483ca1f`).
+- E4's `always_on` — corrected to `anti_transfer_both` (commit `483ca1f`).
   0.281/0.263 are both **below** chance; the old rule never checked which side
   of 0.5 its inputs were on.
 - **Within-pair verdict renamed: `present_not_filler_general` -> `present_within_pair`.**
@@ -258,9 +252,13 @@ shift      −0.005  +0.008  +0.011  +0.005  +0.017
 same nothing. This is not the proposal's "too weak" case — pushing along fitted
 J-space role directions has **no effect at any strength**.
 
-E3 was then run at `push_coefficient=8.0` (largest grid value):
-`significant_but_tiny`, pooled d **−0.096** against a pre-set meaningfulness
-threshold of 0.5, `meaningful_constructions: []`, controls all ≈ −0.008.
+E3 was then run at `push_coefficient=8.0` (largest grid value). It was
+originally labelled `significant_but_tiny`, pooled d **−0.096** against a
+pre-set meaningfulness threshold of 0.5, `meaningful_constructions: []`,
+controls all ≈ −0.008. **Under the fixed rule it re-scores to
+`uninterpretable_strength_failure`** — pooled mean −0.0050, inside its own null
+band, 0.61× its strongest control. No measurement was re-run; see "Note on
+verdict labels".
 
 **E3 must not be presented as a standalone causal null** — it ran under a
 documented intervention-strength failure and its own proposal calls that case
@@ -297,9 +295,12 @@ entity drops hard (0.2122 → 0.0961) while the counterpart still barely moves
 the counterpart — consistent with the identity-overlap account, and not a
 working swap either. Its calibration recorded the same `alpha_failure`.
 
-**Consequence: the project currently has no positive causal result.** Every
-J-space claim is a null. This is the single most important thing to know before
-choosing a framing.
+**Consequence: Qwen has no positive causal result.** Every J-space claim on
+this model is a null. The project's one positive causal result came later and
+on a different model — Gemma-3-27B-IT's RQ2 ablation (+0.284 of baseline margin
+against a −0.0015 random-subspace control, holding under three lenses); see
+"Cross-model results" above. This is the single most important thing to know
+before choosing a framing.
 
 ## 8. Nonlinear probe — the multiplicative-code objection
 
@@ -400,20 +401,16 @@ magnitude threshold.
 2. **One model.** Layers are covered (24/36/48/59, §3) and the seed is
    replicated for what it can cover (§3), but every number in this file comes
    from Qwen3.6-27B. This is the largest remaining exposure.
-3. **Three of four constructions are unvalidated drafts** — only
-   `active_passive` is verified; cleft, relative-clause and dative are marked
-   "pending team validation" in `templates.py`, yet all four appear in the
-   primary table.
-4. **E3 ran under an intervention-strength failure** (§7).
-5. **Rank-matched, not norm-matched** ablation control (§6).
-6. **Every experiment except §9 ran at the fixed `l2=1e-2`**, which §9 shows is
+3. **E3 ran under an intervention-strength failure** (§7).
+4. **Rank-matched, not norm-matched** ablation control (§6).
+5. **Every experiment except §9 ran at the fixed `l2=1e-2`**, which §9 shows is
    a weak-penalty regime where high-dimensional sources overfit. The J-space
    null is unaffected (it holds at every penalty), but the *absolute* accuracies
    quoted for `residual` and `orthogonal` elsewhere in this file understate them
    — 0.545 vs 0.677 for `residual` at `entity_token`. Re-running RQ1 under
    nested CV would make the whole table internally consistent.
-7. **Decodability ≠ use** everywhere except RQ2.
-8. `difficulty_matched: false` in RQ2 at both sites.
+6. **Decodability ≠ use** everywhere except RQ2.
+7. `difficulty_matched: false` in RQ2 at both sites.
 
 ## Note on verdict labels
 

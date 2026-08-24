@@ -1,12 +1,9 @@
 """Backend construction and CLI scaffolding shared by every script.
 
-One place owns the config-to-constructor wiring (previously five scripts each
-hand-copied a _build_model and three of them silently dropped
-directions.variant) and the not-ready-vs-crashed distinction: preflight()
-surfaces missing config decisions / lens artifacts / unfitted directions
-BEFORE any sweep starts, so scripts no longer need a broad try/except around
-the run itself — a mid-sweep RuntimeError (e.g. CUDA OOM) stays a real error
-instead of being mislabeled "backend cannot run yet".
+preflight() surfaces missing config decisions, lens artifacts, and unfitted
+directions BEFORE any sweep starts, so scripts need no broad try/except around
+the run itself and a mid-sweep failure (e.g. CUDA OOM) stays a real error
+rather than being mislabeled "backend cannot run yet".
 """
 
 from __future__ import annotations

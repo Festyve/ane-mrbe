@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """Audit fitting/eval corpus disjointness across the expanded dataset files.
 
-The direction-sanity check enforces disjointness at run time for the single
-fit/eval pair it is handed. This script is the standalone, repeatable audit
-over MANY files at once: give it every fitting corpus and every evaluation
-set, and it reports overlap for all fit x eval pairs on each axis that can
-contaminate a held-out result.
-
-Axes (reusing the same library functions the sanity check trusts):
+`direction_sanity.py` enforces disjointness at run time for the one fit/eval
+pair it is handed; this is the repeatable audit over many files at once,
+reporting overlap for every fit x eval pair on each contaminating axis:
   - sentence  : exact sentence reuse (weakest holdout, still a hard fail)
   - frame_id  : shared structural frame IDs         (overlapping_templates)
   - template  : shared normalized surface templates (template_signature) —

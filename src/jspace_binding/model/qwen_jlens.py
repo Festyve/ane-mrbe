@@ -1,52 +1,30 @@
-"""Qwen3.6-27B + pre-fitted Jacobian-lens backend.
+"""Transformer + pre-fitted Jacobian-lens backend.
 
-Implements WorkspaceModel + FittingActivationSource + ProbeActivationSource
-against the real model, grounded in the ACTUAL methods of Gurnee et al.
-(2026) — not a guessed schema:
+Implements WorkspaceModel, FittingActivationSource, and ProbeActivationSource
+against a real model, following Gurnee et al. (2026) §2:
 
-- The released lens artifact is a per-layer averaged Jacobian J_l, a
-  (d_model x d_model) matrix mapping layer-l residual directions to their
-  final-layer counterparts (their §2.1). Reading the lens is
-  lens(h) = softmax(W_U norm(J_l h)), with W_U the model's own unembedding.
-- The J-lens VECTOR for vocabulary token t at layer l is
-  v_t = J_l^T W_U[t] — the residual-stream direction whose inner product
-  with h gives t's lens score. These are the atoms every intervention uses.
-- The J-space is NOT a linear subspace (their §2.3): it is the set of sparse
-  nonnegative combinations of at most k J-lens vectors. The "J-space
-  component" of an activation is recovered by sparse pursuit against the
-  J-lens dictionary; the non-J-space component is the remainder. We
-  implement a matching-pursuit approximation of their gradient pursuit
-  (argmax lens score -> refit active set -> clamp negatives), k from
-  config.model.jspace_k.
-- The identity swap patches in lens coordinates (their §2.5):
-  V = [v_s v_t], c = V^+ h, h_patched = h + V(sigma(c) - c), optional alpha.
-  No auxiliary "concept vector" forwards are needed — the swap operator is
-  pure linear algebra over J_l and W_U, so it is safe to build inside hooks
-  (cached per pair and layer).
-- J-space ABLATION zeroes the residual's projection onto the span of the
-  top-k most strongly active J-lens vectors (their §3.5.2, k ~= 10; config
-  model.ablate_k). Their capability evals additionally exclude tokens in the
-  clean forward's top-10 to avoid ablating intended outputs — a refinement
-  to consider on GPU day, not implemented here.
+- The lens artifact is a per-layer averaged Jacobian J_l, a (d_model x d_model)
+  matrix mapping layer-l residual directions to their final-layer counterparts.
+  Reading it is lens(h) = softmax(W_U norm(J_l h)).
+- The J-lens VECTOR for token t at layer l is v_t = J_l^T W_U[t] — the
+  residual-stream direction whose inner product with h gives t's lens score.
+  These are the atoms every intervention uses.
+- The J-space is not a linear subspace: it is the set of sparse nonnegative
+  combinations of at most k J-lens vectors. We recover an activation's J-space
+  component by matching pursuit against the dictionary (argmax lens score,
+  refit the active set, clamp negatives), k from config.model.jspace_k.
+- The identity swap patches in lens coordinates: V = [v_s v_t], c = V^+ h,
+  h_patched = h + V(sigma(c) - c), optional alpha. Pure linear algebra over J_l
+  and W_U, so it is safe to build inside hooks and is cached per (pair, layer).
+- J-space ablation zeroes the residual's projection onto the span of the top-k
+  most active J-lens vectors (config.model.ablate_k).
 
-Layer semantics: config.layer_band is an inclusive (lo, hi) pair of RAW
-layer indices. Edits apply at every layer in the band; reads (fitting, RQ1)
-use `hi`. [L, L] reproduces the source paper's single-layer swaps. Their
-workspace band is reindexed layers ~38-92 of 100, with single-layer analyses
-typically mid-workspace (~L75 reindexed); convert to raw indices once the
-model's layer count is known.
-
-Site anchoring: FINAL_TOKEN = the last token of the SENTENCE (not the
-probe); ENTITY_TOKEN = the last tokenizer token of the target entity word.
-For the NULL_NON_PARTICIPANT control the pushed direction belongs to an
-absent entity but the anchor stays the sentence's own target-entity token —
-the site is a sentence position, not a property of the direction.
-
-STATUS: written to the paper's spec but never run on real weights. The lens
-artifact's schema is confirmed against the release (neuronpedia/jacobian-lens:
-a .pt holding a nested "J" mapping of int layer -> Jacobian; see _read_arrays
-and tests/test_lens_loading.py), so the remaining unknown is ordinary
-first-contact bugs.
+Layer semantics: config.layer_band is an inclusive (lo, hi) pair of RAW layer
+indices. Edits apply at every layer in the band; reads use `hi`. Site anchoring:
+FINAL_TOKEN is the sentence's last token (not the probe's); ENTITY_TOKEN is the
+target entity word's last token. The NULL_NON_PARTICIPANT control still anchors
+at the sentence's own entity token — the site is a position, not a property of
+the direction.
 """
 
 from __future__ import annotations
@@ -68,12 +46,9 @@ class LensFormatError(RuntimeError):
     """The lens artifact does not match the schema _load_lens expects."""
 
 
-# Key patterns we try, in order, for layer L's Jacobian in the released
-# artifact. CONFIRMED against neuronpedia/jacobian-lens (2026-07): the release
-# is a torch .pt holding {"J": {int_layer: (d_model, d_model) fp16 tensor},
-# "source_layers": [...], "d_model": int, "n_prompts": int}. _read_arrays
-# normalises that nested mapping to flat "layer_{L}" keys, which is why the
-# first pattern matches; the rest are kept for other/older spellings.
+# Key patterns tried in order for layer L's Jacobian. _read_arrays normalises
+# the released nested mapping to flat "layer_{L}" keys, so the first matches;
+# the rest cover other spellings.
 _JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
     "layer_{L}",
     "J_{L}",
@@ -85,12 +60,9 @@ _JACOBIAN_KEY_PATTERNS: tuple[str, ...] = (
 # Artifact file extensions we know how to read, in preference order.
 _LENS_SUFFIXES: tuple[str, ...] = (".pt", ".npz", ".safetensors")
 
-# Seed for RQ1's capacity-control subspace (probe_activation's
-# "random_subspace"). Fixed rather than drawn from experiment.seed because the
-# backend holds only ModelConfig, and because the basis must be IDENTICAL for
-# every example in a run — it is a readout basis, like jspace, not per-trial
-# noise. Vary it only to check that a localisation result is not an artifact of
-# one unlucky draw.
+# Seed for RQ1's capacity-control subspace. Fixed, because the basis must be
+# identical for every example in a run — it is a readout basis like jspace, not
+# per-trial noise. Vary it only to check for one unlucky draw.
 _RQ1_CAPACITY_SEED = 0
 
 
@@ -130,15 +102,12 @@ class QwenJLensModel:
         self._directions: dict[InjectionSite, FittedDirections] = {}
         self._jlens_vectors: dict[tuple[int, int], Any] = {}  # (layer, token_id) -> v_t
         self._swap_operators: dict[tuple[str, str, int], Any] = {}  # (src, tgt, layer) -> (V, V^+)
-        # (seed, rank) -> orthonormal (d_model, rank). Keyed by rank too because
-        # RQ2's ablation control uses ablate_k and RQ1's capacity control uses
-        # jspace_k; a seed-only key would hand back the wrong-rank basis.
+        # (seed, rank) -> orthonormal (d_model, rank). Keyed by rank because
+        # RQ2 uses ablate_k where RQ1 uses jspace_k.
         self._random_subspaces: dict[tuple[int, int], Any] = {}
-        # ||delta|| / ||h|| for each applied edit, drained by the caller (RQ2).
-        # An ablation removing ablate_k of d_model directions can move the
-        # residual by a fraction of a percent, and a null deficit measured
-        # next to an unrecorded edit cannot be distinguished from an edit that
-        # never landed. One norm ratio per hook, so recording is unconditional.
+        # ||delta|| / ||h|| per applied edit, drained by RQ2: a null deficit
+        # next to an unrecorded edit cannot be told from an edit that never
+        # landed. One ratio per hook, recorded unconditionally.
         self._edit_magnitudes: list[float] = []
 
     def drain_edit_magnitudes(self) -> list[float]:
@@ -211,11 +180,10 @@ class QwenJLensModel:
     ) -> list[float]:
         """d(z_entity - z_other)/dh at the read layer, `site` token.
 
-        Same prompt construction and site anchoring as answer_distribution, so
-        the gradient is taken exactly where the push would inject. The raw
-        logit difference equals the answer log-odds (softmax cancels), so this
-        is the local steering direction of the role readout. Residual space,
-        not J-space: the push adds in residual space. No edit applied.
+        Same prompt and anchoring as answer_distribution, so the gradient is
+        taken where the push would inject. The raw logit difference equals the
+        answer log-odds, so this is the local steering direction of the role
+        readout, in residual space (where the push adds). No edit applied.
         """
         self._ensure_ready()
         import torch
@@ -260,11 +228,10 @@ class QwenJLensModel:
         h projected onto a random subspace of the SAME rank as jspace. No edit
         applied.
 
-        random_subspace is the capacity control (analysis.probes.PROBE_SOURCES):
-        jspace has effective rank <= jspace_k while orthogonal has ~d_model, so
-        jspace-vs-orthogonal confounds localisation with capacity. The basis is
-        fixed per (seed, rank) rather than drawn per sentence — it is a readout
-        basis like jspace, not noise.
+        random_subspace is the capacity control: jspace has effective rank
+        <= jspace_k while orthogonal has ~d_model, so comparing them directly
+        would confound localisation with capacity. Its basis is fixed per
+        (seed, rank), not drawn per sentence.
         """
         self._ensure_ready()
         anchor = self._site_index(sentence, sentence, site, target_entity=entity)
@@ -273,16 +240,12 @@ class QwenJLensModel:
     def recruitment_activation(
         self, sentence: str, probe: str, entity: str
     ) -> dict[str, list[float]]:
-        """E4: the same sources, read with `probe` in context (proposal §6 E4).
+        """E4: the same sources, read with `probe` in context.
 
-        Read at the FINAL token of `sentence + probe`, not at an InjectionSite.
-        The question is appended after the sentence, so under a causal mask it
-        cannot affect any token inside the sentence — reading at FINAL_TOKEN
-        (last token of the SENTENCE) or ENTITY_TOKEN would return identical
-        activations for the role and bag questions, and E4's recruitment effect
-        would be exactly zero as an artifact of where we looked. The prompt's
-        last token is where the model composes its answer and the only position
-        the two questions can differ at. See base.RecruitmentActivationSource.
+        Read at the FINAL token of `sentence + probe`, not at an InjectionSite:
+        the question follows the sentence, so under a causal mask any in-sentence
+        position would return identical activations for the two questions and the
+        recruitment effect would be zero as an artifact of where we looked.
         """
         self._ensure_ready()
         full = f"{sentence} {probe}"
@@ -327,17 +290,15 @@ class QwenJLensModel:
                 "the qwen_jlens backend needs the heavy extras: pip install '.[model]'"
             ) from exc
 
-        # device_map="auto" routes through accelerate's sharded dispatch — right
-        # for multi-GPU, but it segfaults on a CPU-only Mac. device_map=None
-        # takes the classic single-device load path (config.device_map).
+        # device_map="auto" routes through accelerate's sharded dispatch —
+        # right for multi-GPU, but it segfaults on a CPU-only Mac.
         kwargs: dict[str, Any] = {}
         if self.config.device_map is not None:
             kwargs["device_map"] = self.config.device_map
-            # Shared GPU box: "auto" sizes shards from free-memory-at-load-time and
-            # fills devices in order, packing the first card to the brim. The tail is
-            # then CPU-offloaded and the first forward OOMs in accelerate's
-            # pre_forward hook with megabytes to spare. JSPACE_MAX_MEMORY
-            # ("0=31GiB,1=15GiB,2=15GiB", VISIBLE indices) reserves headroom.
+            # On a shared box "auto" packs the first card to the brim and the
+            # first forward OOMs in accelerate's pre_forward hook.
+            # JSPACE_MAX_MEMORY ("0=31GiB,1=15GiB", visible indices) reserves
+            # headroom.
             cap = os.environ.get("JSPACE_MAX_MEMORY")
             if cap:
                 kwargs["max_memory"] = {
@@ -355,21 +316,17 @@ class QwenJLensModel:
         self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
         self._model = AutoModelForCausalLM.from_pretrained(self.config.model_id, **kwargs)
         self._model.eval()
-        # Detached: we only READ the unembedding for lens math. Without this,
-        # every J-lens score / pursuit step builds an autograd graph through
-        # the (huge) unembedding weight — wasted memory that can OOM a
-        # memory-tight GPU, plus a requires_grad scalar-conversion warning.
+        # Detached: lens math only READS the unembedding, and without this
+        # every pursuit step builds an autograd graph through it.
         self._w_u = self._model.get_output_embeddings().weight.detach()  # (n_vocab, d_model)
 
     def _load_lens(self) -> None:
         """Load the per-layer averaged Jacobians J_l for the layer band.
 
-        Expected artifact (per the source paper's §2.1 and its companion
-        release): one (d_model x d_model) matrix per layer, in a .pt / .npz /
+        One (d_model x d_model) matrix per layer, in a .pt / .npz /
         .safetensors file under config.lens_repo (local path or HF repo id).
-        We try the key patterns in _JACOBIAN_KEY_PATTERNS; if none match,
-        we fail listing the keys actually present so the mapping can be
-        added in one line.
+        If no _JACOBIAN_KEY_PATTERNS entry matches we fail listing the keys
+        actually present.
 
         config.lens_subpath scopes BOTH the download and the file search to
         one model's directory. The published repo holds a lens per model in
@@ -461,23 +418,16 @@ class QwenJLensModel:
     def _read_arrays(path: Path) -> dict[str, Any]:
         """Load a lens artifact as a flat {key: matrix} mapping.
 
-        The released .pt nests its Jacobians one level down under "J", keyed
-        by INT layer index, alongside scalar metadata ("d_model",
-        "source_layers", "n_prompts"). We flatten that to the flat
-        "layer_{L}" spelling the key patterns expect, and pass d_model
-        through as "__d_model__" so _load_lens can reject a lens fitted for
-        a different model. Values stay torch tensors — torch.as_tensor
-        handles both those and numpy arrays.
+        The released .pt nests its Jacobians under "J" keyed by int layer
+        index, alongside scalar metadata. We flatten to the "layer_{L}"
+        spelling the key patterns expect and pass d_model through as
+        "__d_model__" so _load_lens can reject a lens fitted for another model.
         """
         if path.suffix == ".pt":
             import torch
 
-            # weights_only=True: the artifact is plain tensors + scalars, so
-            # never execute pickle code from a downloaded file.
-            # mmap=True: the Qwen release is 3.3 GB of Jacobians but a run
-            # touches only its layer band, so map the file and let the OS page
-            # in the few layers actually read. Falls back to a full load for
-            # artifacts not saved in the zipfile format mmap requires.
+            # weights_only: never execute pickle code from a downloaded file.
+            # mmap: the artifact is GBs but a run touches only its layer band.
             try:
                 obj = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
             except (RuntimeError, ValueError):
@@ -492,12 +442,10 @@ class QwenJLensModel:
                 # neuronpedia/jacobian-lens spelling: {int layer -> matrix}.
                 arrays = {f"layer_{int(layer)}": m for layer, m in nested.items()}
             elif nested is not None and getattr(nested, "ndim", 0) == 3:
-                # camilablank/workspace-lenses (R-lens and its matched J-lens)
-                # stacks the per-layer Jacobians into one (n_layers, d, d)
-                # tensor and names the layers separately in "source_layers".
-                # Same content, different packing — map row i onto the layer
-                # index it actually came from rather than assuming 0..n-1,
-                # since these releases start above layer 0.
+                # The R-lens releases stack the Jacobians into one
+                # (n_layers, d, d) tensor and name the layers in
+                # "source_layers". Map row i onto the layer it came from —
+                # these releases start above layer 0.
                 layers = obj.get("source_layers")
                 if layers is None or len(layers) != nested.shape[0]:
                     raise LensFormatError(
@@ -528,20 +476,11 @@ class QwenJLensModel:
     def _lens_device(self) -> Any:
         """Device the lens algebra runs on.
 
-        Multi-GPU correctness. Under `device_map="auto"` accelerate spreads the
-        model across GPUs, so there is no single "model device": `_w_u` follows
-        the lm_head (typically the LAST GPU) while `_device()` reports the first
-        parameter's device (typically the FIRST). Hidden states arrive from
-        hooks on whichever GPU owns the hooked layer — a third device again.
-
-        Pinning the Jacobians to `_device()` therefore produced
-        "Expected all tensors to be on the same device" the moment the band
-        landed on a different shard than the embeddings. Invisible on one GPU;
-        immediate on several.
-
-        `_w_u` is the anchor because it is the largest lens tensor (~2.5 GB)
-        and already resident — everything else is moved to meet it, and hidden
-        states are a few KB, so the copies are free.
+        Under `device_map="auto"` there is no single model device: `_w_u`
+        follows the lm_head, `_device()` reports the first parameter's device,
+        and hidden states arrive from whichever GPU owns the hooked layer.
+        `_w_u` is the anchor because it is the largest lens tensor and already
+        resident; hidden states are a few KB, so the copies are free.
         """
         return self._w_u.device
 

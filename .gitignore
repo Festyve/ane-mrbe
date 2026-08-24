@@ -6,29 +6,21 @@ __pycache__/
 dist/
 build/
 
-# Experiment outputs (regenerable; keep the repo lean). Checked-in source
-# data (e.g. data/handwritten/) is tracked by default — ignore generated
-# OUTPUT locations wholesale instead of blanket-ignoring by extension, so
-# new curated data files never need a negation rule to be seen by git.
-data/results*/
-data/directions*/
-data/calibration*.json
-data/stimuli/*.jsonl
-figures*/
-
 # Tooling
 .pytest_cache/
 .ruff_cache/
 .DS_Store
 
-PROJECT_MAP.md
-# Smoke-test run artifacts, one dir per model (data/smoke, data/smoke_2b, ...).
+# Experiment outputs. Regenerable, and archived under runs/ when they are not.
+# Generated OUTPUT locations are ignored wholesale rather than by extension, so
+# curated source data (data/handwritten/, the stimuli CSVs) stays tracked
+# without needing negation rules.
+data/results*/
+data/directions*/
+data/calibration*.json
+data/stimuli/*.jsonl
 data/smoke*/
-# Local real-backend runs on substitute models (directions, figures, results).
 data/local_*/
 data/gemma3_12b/
-# Per-model run outputs. Same rule as gemma3_12b above: data/ holds working
-# output, runs/ holds the archive. The 27B configs wrote to paths no existing
-# pattern matched, so 24 result files were committed here before being
-# archived properly under runs/gemma3-27b-it*.
 data/gemma3_27b*/
+figures*/

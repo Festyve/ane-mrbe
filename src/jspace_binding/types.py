@@ -1,20 +1,10 @@
-"""Core types shared across the pipeline.
+"""Core types shared across the pipeline. Stdlib only, so any module can import
+it without pulling in numpy or torch.
 
-Everything downstream (stimuli, interventions, model backends, analysis) speaks
-in these types. Keep this module dependency-free (stdlib only) so any module can
-import it without pulling in numpy/torch.
-
-Design note: the unit of analysis is the ItemFamily — the matched quadruple of
-sentences spanning all four (role x position) cells for one lexical content in
-one construction. The binding score is computed per family, and bootstrap
-resampling happens at the family level to preserve the difference-in-differences
-pairing.
-
-Primary vs control interventions (proposal, Methods): the primary causal test
-is the ROLE_PUSH — a byte-identical push along an in-house-fitted role axis
-r_entity, run in both signs as separate uniform conditions. The lexical
-identity swap (IDENTITY_SWAP, e.g. doctor->nurse) is retained only as the
-intervention-strength control, paired with the NEUTRAL probe.
+The unit of analysis is the ItemFamily: the matched quadruple of sentences
+spanning all four (role x position) cells for one lexical content in one
+construction. Scores are computed per family and resampled at that level, which
+preserves the difference-in-differences pairing.
 """
 
 from __future__ import annotations
@@ -94,54 +84,21 @@ class ProbeKind(str, Enum):
 
     ROLE = "role"  # role-diagnostic: the answer depends on who is agent/patient
     NEUTRAL = "neutral"  # role-blind: only checks the edit propagated at all
-    # DATIVE only: the ROLE probe there asks for the GIVER (mapped to AGENT),
-    # so the recipient — arguably the dative's more interesting participant —
-    # is never queried. This probe asks for the recipient instead.
-    # ORIENTATION: P(entity) is high when the entity is the RECIPIENT, i.e. the
-    # PATIENT slot, so the agent-patient gap and every push inverts relative to
-    # the ROLE probe. analysis.binding_score negates it (see PROBE_ORIENTATION)
-    # so "positive = binding" still holds. Families whose construction has no
-    # recipient probe (ItemFamily.recipient_probe == "") skip it entirely.
+    # DATIVE only, where the ROLE probe asks for the GIVER and so never queries
+    # the recipient. Inverted orientation: P(entity) is high when the entity is
+    # the recipient, i.e. the PATIENT slot, so binding_score negates it (see
+    # PROBE_ORIENTATION). Families with recipient_probe == "" skip it.
     RECIPIENT = "recipient"
     # Role-blind recall control for RQ2, replacing NEUTRAL there. Asks which of
-    # the two participants matches a profession cue ("Which one works in
-    # medicine?"), so BOTH candidate answers are present in the sentence and
-    # lexical presence cannot answer it.
+    # the two participants matches a profession cue, so BOTH candidate answers
+    # are in the sentence and lexical presence cannot answer it — NEUTRAL asked
+    # about an absent word and so sat at exactly 1.0 under every condition.
     #
-    # Why NEUTRAL could not do this job: it asks "which professions are
-    # mentioned", pitting two in-context words against one that never appears.
-    # No ablation small enough to be informative about binding can close that
-    # gap, so the control sat at exactly 1.0 under every condition — in
-    # DummyModel as well as on the real model — and could not register damage.
-    #
-    # Measured on Qwen2.5-1.5B over the committed stimuli (n=80 active_passive
-    # families, scored exactly as rq2_ablation does; reproduce with
-    # `python scripts/check_concept_probe.py --limit 80`):
-    #     NEUTRAL margin  +3.77 log-odds  (~43x; nothing to lose)
-    #     CONCEPT margin  +1.42 log-odds, positive on 80/80 families
-    # Both are in the same units, so the comparison is direct: CONCEPT keeps
-    # the model clearly correct while leaving room to fall.
-    #
-    # ROLE-BLIND by construction: the answer is invariant under the agent/
-    # patient swap ("The doctor treated the lawyer" and "The lawyer treated
-    # the doctor" both answer "doctor"). Verified empirically rather than
-    # assumed — the signed agent-minus-patient shift is +0.054 against a SEM of
-    # 0.035 (1.5 SEM, i.e. indistinguishable from zero) and 3.8% of the margin,
-    # so what movement there is is per-cell noise that averaging the four
-    # role x position cells cancels.
-    #
-    # Scored COUNTERBALANCED — asked once per participant and averaged. This is
-    # load-bearing: a one-sided semantic probe is confounded by base rate
-    # ("doctor" is a commoner word than its partners) and by primacy, and
-    # reordering identical tokens moved a one-sided probe by 3.6 log-odds.
-    # Each asking carries both confounds in the opposite direction, so the
-    # mean is free of them and either asking alone is not.
-    #
-    # KNOWN LIMITATION: cue strength varies by pair. Over the same run,
-    # teacher/judge reaches +2.89 while doctor/student sits at +0.61 — every
-    # pair stays above the usability floor and positive on average, but the
-    # weaker pairs have proportionally less room to fall. See
-    # docs/CONCEPT_PROBE.md; the doctor cues are the ones worth revisiting.
+    # Scored COUNTERBALANCED, once per participant and averaged: a one-sided
+    # semantic probe is confounded by base rate and primacy, and each asking
+    # carries both in the opposite direction. Cue strength does vary by pair
+    # (+2.89 for teacher/judge against +0.61 for doctor/student), so the weaker
+    # pairs have proportionally less room to fall. See docs/CONCEPT_PROBE.md.
     CONCEPT = "concept"
 
 
@@ -244,11 +201,8 @@ class ItemFamily:
     # DATIVE only; "" for constructions with no recipient reading. See
     # ProbeKind.RECIPIENT for the orientation caveat.
     recipient_probe: str = ""
-    # ProbeKind.CONCEPT, counterbalanced: the first names the ENTITY's cue (so
-    # the entity is the correct answer), the second names the OTHER
-    # participant's. Scoring averages the two, which is what cancels base-rate
-    # and primacy. Both are byte-identical across the four cells, like every
-    # other probe.
+    # ProbeKind.CONCEPT, counterbalanced: entity's cue then the other
+    # participant's. Byte-identical across the four cells, like every probe.
     concept_probe_entity: str = ""
     concept_probe_other: str = ""
     answer_set: AnswerSet | None = None
@@ -266,20 +220,11 @@ def cell_key(role: Role, position: Position) -> str:
 class EditSpec:
     """Backend-agnostic description of one intervention.
 
-    Model backends execute this (interventions.edits documents the math);
-    analysis code only reads edit_type and sign.
-
-    Field usage by edit type:
-    - ROLE_PUSH / SHUFFLED_LABEL_DIRECTION: entity + sign + coefficient
-      (entity names whose fitted direction to push; the shuffled variant loads
-      the shuffled-label refit of the same entity's direction).
-    - NULL_NON_PARTICIPANT: entity (an entity ABSENT from the sentence) + sign
-      + coefficient.
-    - RANDOM_DIRECTION: sign + coefficient + seed (matched-norm random unit
-      direction in the same subspace).
-    - IDENTITY_SWAP: swap_source + swap_target + alpha (lexical coordinate
-      swap; the intervention-strength control).
-    - NO_EDIT: everything None.
+    Backends execute this (interventions.edits documents the math); analysis
+    reads only edit_type and sign. Fields used per edit type: pushes take
+    entity + sign + coefficient (NULL_NON_PARTICIPANT's entity is absent from
+    the sentence, RANDOM_DIRECTION additionally takes a seed); IDENTITY_SWAP
+    takes swap_source + swap_target + alpha; NO_EDIT takes nothing.
     """
 
     edit_type: EditType

@@ -1,27 +1,14 @@
-"""Sanity check for fitted role-directions.
+"""Sanity check for fitted role-directions. Pure numpy.
 
-Complements the proposal's Datasets §1 pilot check (the bootstrap-stability
-resample, which lives in directions.fit) with two further questions — both
-cheap, both a precondition for trusting any binding score built on a
-direction:
+Two questions the bootstrap stability in directions.fit does not answer:
 
-1. *Does the fitted direction linearly separate role on HELD-OUT sentences?*
-   Project held-out agent/patient J-space activations onto the entity's fitted
-   unit direction and score the 1-D separation. The direction was fit on the
-   training split only, so this is genuine generalization, not a memorized
-   split. AUC is the headline (threshold-free: the probability a random agent
-   sentence projects above a random patient one); accuracy at a mean-midpoint
-   threshold is the "2-line classifier" companion.
+1. Does the direction separate role on HELD-OUT sentences? Project held-out
+   activations onto the fitted unit direction and score the 1-D separation.
+   AUC is the headline; midpoint-threshold accuracy is the companion.
+2. Are the per-entity directions distinct, or one vector? Pairwise cosine —
+   near 1 means the role axis is filler-general, near 0 entirely per-entity.
 
-2. *Are the per-entity directions related but distinct, or the same vector?*
-   Pairwise cosine between the fitted directions. Near 1 across the board means
-   the role axis is filler-general (one direction would do); moderate positive
-   cosine means a shared role component plus entity-specific structure; near 0
-   means entirely entity-specific axes.
-
-Pure numpy — no torch, no matplotlib at import — so it runs anywhere and stays
-unit-testable. The optional scatter figure lives in :func:`scatter_projections`,
-which imports matplotlib lazily and degrades to a no-op if it is unavailable.
+`scatter_projections` imports matplotlib lazily and no-ops without it.
 """
 
 from __future__ import annotations

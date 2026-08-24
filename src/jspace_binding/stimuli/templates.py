@@ -47,9 +47,8 @@ VERBS_BY_CONSTRUCTION: dict[Construction, tuple[str, ...]] = {
     Construction.DATIVE: ("handed", "sent", "mailed", "offered", "promised"),
 }
 
-# Probe drafts, pending team validation of wording. DATIVE needs its own
-# frame: "Who handed someone?" is ungrammatical for ditransitives, so the
-# dative probe includes the fixed theme from the stimulus sentences.
+# DATIVE needs its own frame: "Who handed someone?" is ungrammatical for
+# ditransitives, so the dative probe includes the stimulus sentences' fixed theme.
 _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
     Construction.ACTIVE_PASSIVE: "Question: Who {verb_past} someone? Answer: The",
     Construction.CLEFT: "Question: Who {verb_past} someone? Answer: The",
@@ -58,18 +57,13 @@ _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
 }
 _NEUTRAL_PROBE = "Question: Which professions are mentioned? Answer: The"
 
-# ProbeKind.CONCEPT. Both participants are in the sentence, so the answer turns
-# on knowing what the profession IS, not on whether its token appeared. Shared
-# by every construction: the question references neither the verb nor the roles,
-# which is what makes it role-blind.
+# ProbeKind.CONCEPT. References neither the verb nor the roles, which is what
+# makes it role-blind, so it is shared by every construction.
 _CONCEPT_PROBE_TEMPLATE = "Question: Which one {cue}? Answer: The"
 
-# The ROLE probe above queries the dative's GIVER, so the recipient — arguably
-# the dative's more interesting participant — is never asked about. This second
-# probe queries the recipient, so the dative can be scored from both sides.
-# DATIVE only: the other three constructions have no recipient reading, and
-# build_family leaves their recipient_probe empty so the sweep skips them.
-# Byte-identical across the four cells, like every other probe.
+# The ROLE probe queries the dative's GIVER, so this second probe queries the
+# recipient and the dative can be scored from both sides. DATIVE only; the
+# others get an empty recipient_probe and the sweep skips them.
 _RECIPIENT_PROBE_TEMPLATES: dict[Construction, str] = {
     Construction.DATIVE: "Question: Who was {verb_past} the letter by someone? Answer: The",
 }
@@ -84,7 +78,6 @@ _ACTIVE_PASSIVE: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "The {other} {verb_past} the {target}.",
 }
 
-# Draft cleft 2x2, pending team validation.
 _CLEFT: dict[_Cell, str] = {
     (Role.AGENT, Position.FIRST): "It was the {target} who {verb_past} the {other}.",
     (Role.AGENT, Position.SECOND): "It was the {other} whom the {target} {verb_past}.",
@@ -92,7 +85,6 @@ _CLEFT: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "It was the {other} who {verb_past} the {target}.",
 }
 
-# Draft relative-clause 2x2, pending team validation.
 _RELATIVE_CLAUSE: dict[_Cell, str] = {
     (Role.AGENT, Position.FIRST): "The {target} who {verb_past} the {other} smiled.",
     (Role.AGENT, Position.SECOND): "The {other} whom the {target} {verb_past} smiled.",
@@ -100,10 +92,9 @@ _RELATIVE_CLAUSE: dict[_Cell, str] = {
     (Role.PATIENT, Position.SECOND): "The {other} who {verb_past} the {target} smiled.",
 }
 
-# Draft dative 2x2, pending team validation. "Role" here is
-# giver/recipient, with the recipient mapped onto the PATIENT slot. Actives use
-# the prepositional frame, passives the passivized double-object frame, and the
-# theme is fixed ("a letter") so the four cells stay lexically matched.
+# "Role" here is giver/recipient, with the recipient mapped onto the PATIENT
+# slot. Actives use the prepositional frame, passives the passivized
+# double-object frame, and the theme is fixed so the four cells stay matched.
 _DATIVE: dict[_Cell, str] = {
     (Role.AGENT, Position.FIRST): "The {target} {verb_past} a letter to the {other}.",
     (Role.AGENT, Position.SECOND): "The {other} was {verb_past} a letter by the {target}.",
@@ -143,10 +134,8 @@ def build_family(
 ) -> ItemFamily:
     """Instantiate the matched quadruple for one lexical content.
 
-    ACTIVE_PASSIVE reproduces the proposal's worked example verbatim; the
-    other constructions are drafts (see the notes on the template tables).
-    Both probes are built once per family, so they are byte-identical across
-    cells by construction.
+    ACTIVE_PASSIVE reproduces the proposal's worked example verbatim. Probes are
+    built once per family, so they are byte-identical across cells.
     """
     cells = {
         cell_key(role, position): Stimulus(

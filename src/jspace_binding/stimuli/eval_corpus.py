@@ -1,33 +1,21 @@
 """Held-out EVALUATION corpus spanning all four construction families.
-As a note, this generation script was co-authored by Claude Opus 5 and later human reviewed.
-Third tier of the dataset, distinct from the two that already exist:
 
-    primary set      (templates.py)      -> where directions are PUSHED
-    fitting corpus   (fitting_corpus.py) -> where directions are FIT
-    eval corpus      (this module)       -> where directions are VALIDATED
+The third dataset tier: the primary set (templates.py) is where directions are
+PUSHED, the fitting corpus (fitting_corpus.py) is where they are FIT, and this
+is where they are VALIDATED. `scripts/direction_sanity.py` refuses an eval set
+reusing the fitting corpus's sentences, frame IDs, or normalized templates, so
+the frames below are disjoint from both other tiers on all three axes.
 
-`scripts/direction_sanity.py` refuses an eval set that reuses the fitting
-corpus's sentences, frame IDs, or normalized surface templates, so the frames
-below are disjoint from BOTH other tiers on all three axes (locked by tests).
+Coverage is the point: the primary experiment pushes one fitted direction
+across all four constructions, while the hand-written eval set covers
+active/passive only, so a direction validated on it alone has never been tested
+against the syntax it is used on.
 
-Why generated rather than hand-authored via CSV: the hand-written doctor
-corpus (data/stimuli/doctor.csv -> scripts/csv_to_jsonl.py) exists because a
-human picked idiosyncratic verb/distractor pairings. This corpus is a
-deterministic cross-product — construction x cell x verb — so a spreadsheet
-would only be a lossy transcription of a rule. Same reasoning that makes the
-primary set generated, with CSV as an export rather than a source.
+DummyModel scores only two of the four constructions correctly — its role
+inference is lexical and cannot parse pseudo-clefts or `that`-relatives. That
+is a dummy limitation, not a labelling error.
 
-Coverage matters here: the primary experiment pushes ONE fitted direction
-across all four constructions, but the hand-written eval set covers
-active/passive only. A direction validated on active/passive alone has never
-been tested against the syntax it is actually used on. These frames close
-that gap.
-
-Note the DummyModel scores only two of the four constructions correctly: its
-role inference is lexical ("agent = the participant after a `by` or `whom`,
-else the earlier one"), which cannot parse pseudo-clefts or `that`-relatives.
-That is a dummy limitation, not a labelling error — the real backend reads
-activations and has no such heuristic.
+Co-authored by Claude Opus 5 and human reviewed.
 """
 
 from __future__ import annotations
@@ -35,9 +23,7 @@ from __future__ import annotations
 from jspace_binding.stimuli.fitting_corpus import FittingExample
 
 # Imported rather than restated: the held-out corpus must ask the SAME
-# questions as the primary set, or a sanity result would not transfer. Sharing
-# the strings makes drift impossible — reword a probe in templates.py and this
-# corpus follows on regeneration.
+# questions as the primary set, or a sanity result would not transfer.
 from jspace_binding.stimuli.templates import (
     _CONCEPT_PROBE_TEMPLATE,
     _NEUTRAL_PROBE,
@@ -96,20 +82,13 @@ _ROLE_PROBE_TEMPLATES: dict[Construction, str] = {
 _A, _P = Role.AGENT, Role.PATIENT
 _F, _S = Position.FIRST, Position.SECOND
 
-# (frame_id, role, position, template) per construction. {entity} is the
-# entity whose direction is validated; {other} the distractor. `position` is
-# the surface order of {entity} relative to {other} — asserted in tests,
-# because a mislabelled position silently reintroduces the word-order
-# confound that position-averaging exists to cancel.
+# (frame_id, role, position, template) per construction. `position` is the
+# surface order of {entity} relative to {other}, asserted in tests: a
+# mislabelled position reintroduces the word-order confound.
 #
-# Each family stays WITHIN its construction while changing the surface frame:
-#   active_passive  past perfect        (primary: simple past)
-#   cleft           pseudo-cleft        (primary: it-cleft)
-#   relative_clause `that` + new matrix (primary: who/whom + "smiled")
-#   dative          double-object       (primary: prepositional)
-#
-# active_passive has the least syntactic room — the construction IS the bare
-# transitive clause — so its holdout is the weakest of the four by nature.
+# Each family stays within its construction while changing the surface frame —
+# past perfect, pseudo-cleft, `that`-relative, double-object dative.
+# active_passive has the least syntactic room, so its holdout is the weakest.
 _FRAMES: dict[Construction, tuple[tuple[str, Role, Position, str], ...]] = {
     Construction.ACTIVE_PASSIVE: (
         ("eval4_active_perfect", _A, _F, "The {entity} had {verb} the {other}."),
@@ -157,11 +136,9 @@ def generate_eval_corpus(
 ) -> list[FittingExample]:
     """Deterministic held-out corpus: entity x construction x cell x verb.
 
-    Every construction contributes all four (role x position) cells for every
-    verb, so the role x position grid is balanced by construction — no
-    `verbs_per_cell` value can unbalance it. No randomness and no dependence
-    on any experiment seed: regeneration is byte-identical, matching
-    stimuli.generate's determinism contract.
+    Every construction contributes all four cells for every verb, so no
+    `verbs_per_cell` value can unbalance the grid. Deterministic: regeneration
+    is byte-identical.
 
     `verbs_per_cell` defaults to the full pool (8), giving 128 examples per
     entity across the four constructions.

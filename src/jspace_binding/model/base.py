@@ -1,13 +1,8 @@
 """Model backend protocols.
 
-Every backend — the real Qwen3.6-27B + J-lens stack and the GPU-free
-DummyModel — implements WorkspaceModel. The experiment runner is written
-against the protocol only, so the full pipeline can be exercised end-to-end
-without a GPU (scripts/run_primary.py --dry-run).
-
-Backends that can also serve the direction-fitting pipeline additionally
-implement FittingActivationSource (scripts/fit_directions.py is written
-against it).
+Every backend implements WorkspaceModel, and the runners are written against
+the protocol only, so the pipeline runs end-to-end without a GPU. Backends that
+also serve direction fitting implement FittingActivationSource.
 """
 
 from __future__ import annotations
@@ -101,21 +96,12 @@ class ProbeActivationSource(Protocol):
 class RecruitmentActivationSource(Protocol):
     """A model that can be read WHILE a given question is in context (E4).
 
-    Separate from ProbeActivationSource because the read POSITION differs, and
-    the difference is forced by causal attention rather than chosen.
-
-    E4 presents identical stimulus tokens under a role question and a bag
-    question and asks whether binding information appears in the workspace only
-    when the task needs it (proposal §6 E4, testing H3). The question is
-    appended AFTER the sentence, so under a causal mask it cannot influence any
-    token inside the sentence — reading at InjectionSite.FINAL_TOKEN or
-    ENTITY_TOKEN would return byte-identical activations for both questions and
-    the measured recruitment effect would be exactly zero by construction.
-
-    The read is therefore at the final token of the full prompt (sentence +
-    probe), the position where the model is actually composing its answer and
-    the only one both questions can differ at. There is no `site` parameter
-    because no other position can carry the effect.
+    Separate from ProbeActivationSource because the read position differs, and
+    causal attention forces the difference: the question follows the sentence,
+    so reading at FINAL_TOKEN or ENTITY_TOKEN would return byte-identical
+    activations for both questions and the effect would be zero by
+    construction. The read is at the final token of the full prompt — the only
+    position the two questions can differ at, hence no `site` parameter.
     """
 
     def recruitment_activation(

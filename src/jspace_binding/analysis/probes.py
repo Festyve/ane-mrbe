@@ -1,26 +1,17 @@
 """RQ1 linear probes: is role decodable, and from where? Pure numpy.
 
-The proposal's warm-up analysis (§4): train a linear probe to predict the
-target entity's role (agent vs patient) from three activation sources — the
-J-space component, the orthogonal remainder, and the full residual stream —
-and report control-task selectivity (Hewitt & Liang, 2019) alongside raw
-accuracy, so "information present" is distinguishable from "probe memorized
-the stimuli".
+Ridge-regularized least squares to +/-1 role labels, closed form and
+deterministic, over four activation sources (PROBE_SOURCES). Splits are by
+lexical pair, so no profession noun appears on both sides of a split.
 
-Interpretation guardrails (proposal, Potential Limitations): a positive
-result shows decodability, not use; a negative result is nearly
-uninformative, because tensor-product-style binding may be multiplicatively
-encoded and invisible to a linear readout (Smolensky, 1990).
+Control task: each example also gets a deterministic pseudo-random label
+independent of role. A probe scoring well on those is fitting stimulus
+identity, not reading role; selectivity = task accuracy - control accuracy
+(Hewitt & Liang, 2019).
 
-Probe: ridge-regularized least squares to +/-1 labels with a bias term,
-closed form, deterministic — no sklearn dependency, no iterative training.
-Splits are BY LEXICAL PAIR (leave-one-pair-out), so no profession noun
-appears on both sides of a split (proposal, Datasets / Training data).
-
-Control task: each example gets a deterministic pseudo-random +/-1 label
-(seeded, content-independent of role). A probe that can hit high accuracy on
-these arbitrary labels is fitting stimulus identity, not reading role;
-selectivity = task accuracy - control accuracy.
+Guardrails: a positive result shows decodability, not use, and a negative one
+is nearly uninformative, since multiplicatively encoded binding is invisible
+to a linear readout (Smolensky, 1990).
 """
 
 from __future__ import annotations
@@ -29,18 +20,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-# "random_subspace" is RQ1's CAPACITY CONTROL — the counterpart of RQ2's
-# ABLATE_RANDOM_SUBSPACE: the residual projected onto a random subspace of the
-# SAME rank as jspace.
-#
-# Without it, "jspace decodes role better than orthogonal" is uninterpretable.
-# jspace has effective rank <= jspace_k (16) while orthogonal has ~d_model
-# (5120), so the two differ in CAPACITY as well as in content, and a probe on
-# the larger space can win for reasons that have nothing to do with where
-# binding lives. The random subspace holds capacity fixed and varies only
-# WHICH directions are kept, so `jspace > random_subspace` isolates
-# localisation. `jspace ~= random_subspace` means any 16 directions would have
-# served equally well and no localisation claim survives.
+# "random_subspace" is RQ1's capacity control: the residual projected onto a
+# random subspace of the SAME rank as jspace. Without it, jspace (rank <= 16)
+# beating orthogonal (~5120) confounds capacity with content, so only
+# `jspace > random_subspace` isolates localisation.
 PROBE_SOURCES: tuple[str, ...] = ("jspace", "orthogonal", "residual", "random_subspace")
 
 
@@ -149,10 +132,9 @@ def leave_one_pair_out(
     sees the held-out professions during training, so above-chance accuracy
     requires role information that generalizes across lexical items.
 
-    Both the mean and the per-fold accuracies are returned. Read the folds
-    first: with one fold per concept pair there are as few as three of them,
-    and the mean alone cannot distinguish "transfers weakly everywhere" from
-    "transfers on most pairs and inverts on one" (see ProbeReport).
+    Read the per-fold accuracies first: with as few as three folds the mean
+    cannot distinguish "transfers weakly everywhere" from "transfers on most
+    pairs and inverts on one".
     """
     pair_ids = sorted({ex.pair_id for ex in examples})
     if len(pair_ids) < 2:

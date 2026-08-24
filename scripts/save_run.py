@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 """Copy a run's outputs into the tracked `runs/` tree and push them.
 
-Written for ephemeral GPU boxes, where the machine and everything on it is
-deleted at a fixed time. The failure mode this exists to prevent is silent:
-.gitignore excludes `data/results*/`, `data/directions*/`,
-`data/calibration*.json` and `figures*/` — all of them regenerable on a normal
-machine, none of them regenerable once the box is gone — so `git add -A` stages
-nothing, reports success, and pushes an empty commit. You would find out after
-shutdown.
-
-`runs/` is deliberately NOT ignored, so copies made here are tracked normally
-and no force-add is needed.
+Written for ephemeral GPU boxes. The failure mode it prevents is silent:
+.gitignore excludes every output location as regenerable, so on a box that is
+about to be deleted `git add -A` stages nothing, reports success, and pushes an
+empty commit. `runs/` is deliberately not ignored.
 
     python scripts/save_run.py rq1-pilot          # copy + commit + push
     python scripts/save_run.py rq2-full --no-push  # commit only
@@ -44,15 +38,8 @@ DEFAULT_SOURCES = (
 def _sources_for(config_path: Path | None) -> tuple[Path, ...]:
     """Output locations to archive, read from the config that produced them.
 
-    These were hard-coded to the default config's paths. configs/
-    expanded_pairs.yaml writes to data/results_6pair, figures_6pair and
-    data/directions_6pair so a 6-pair run cannot clobber the 3-pair results --
-    and save_run then silently archived the OLD default-path files under the new
-    run's name. It reported "17 files committed" and was telling the truth about
-    files it had no business copying.
-
-    Reading the paths from the config makes the archive follow the run rather
-    than a guess about it.
+    Non-default configs write to their own paths, so hard-coded defaults would
+    silently archive an earlier run's files under this run's name.
     """
     if config_path is None:
         return DEFAULT_SOURCES
@@ -74,10 +61,9 @@ _SKIP_OVER = 90 * 1024 * 1024
 def _git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     """Run git, surfacing its own error text on failure.
 
-    check=True previously raised CalledProcessError, whose message is the
-    command line and an exit code — git's actual explanation was captured and
-    thrown away. On a fresh box the usual cause is an unset user.name/email,
-    and the traceback said nothing about that. Failing to save results on a
+    CalledProcessError reports only the command line and an exit code, throwing
+    away git's explanation — usually an unset user.name/email on a fresh box.
+    Failing to save results on a
     machine that deletes itself is the worst place to hide an error message.
     """
     result = subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)

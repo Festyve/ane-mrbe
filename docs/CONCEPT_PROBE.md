@@ -1,10 +1,9 @@
 # The CONCEPT probe: replacing RQ2's recall control
 
-**Status: validated on Qwen2.5-1.5B against the committed stimuli.** Not yet
-run on `Qwen/Qwen3.6-27B` — the numbers below establish that the probe is
-*usable*, not that they transfer to the target model. Re-run
-`scripts/check_concept_probe.py` on the GPU box before trusting any of it for
-a real result.
+**Status: validated on Qwen2.5-1.5B against the committed stimuli, then used
+for every RQ2 run in RESULTS.md.** The numbers below establish that the probe is
+*usable*; they are 1.5B numbers and do not themselves transfer to a larger
+model. Re-run `scripts/check_concept_probe.py` on any new target model.
 
 ## Why the old control had to go
 
@@ -175,10 +174,8 @@ so both tasks happened to share a 0–1 scale.
 
 ## What is still open
 
-- **Not run on Qwen3.6-27B.** Everything above is 1.5B.
-- **No ablation validation.** The probe has *headroom*; that it degrades under
-  real J-space ablation by the right amount is untested, because that needs the
-  GPU. First hour on the box.
+- **Every number above is 1.5B.** The probe was validated there and then used
+  on the three target models without re-validation at scale.
 - **`doctor` cues are weak** (see the table). The obvious fixes leak role; a
   replacement has to pass both the margin and the role-blindness check.
 - **NEUTRAL is retained** and still used by `primary.py` for the IDENTITY_SWAP

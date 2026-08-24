@@ -3,16 +3,11 @@
 
 Usage: stimuli_to_csv.py [--config configs/default.yaml] [--out PATH]
 
-Why this exists: the primary stimuli live in data/stimuli/*.jsonl, which is
-gitignored (regenerable output), so nobody can read the actual sentences and
-probes on GitHub. This writes the same content as a CSV that GitHub renders
-as a browsable table — the same way the hand-written data/stimuli/<entity>.csv
-sheets are readable.
-
-The CSV is a REVIEW ARTIFACT, not an input: the pipeline still reads the
-JSONL. Generation is deterministic, so re-running this after any template or
-config change reproduces it exactly. Layout mirrors the team's sheets — one
-row per item family, the four design cells as columns:
+The primary stimuli live in gitignored JSONL, so this writes the same content
+as a CSV that renders as a browsable table on GitHub. It is a REVIEW ARTIFACT,
+not an input — the pipeline still reads the JSONL, and generation is
+deterministic, so re-running after a template change reproduces it exactly.
+One row per item family, the four design cells as columns:
 
     agent+first | agent+second | patient+first | patient+second
 
