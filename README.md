@@ -1,4 +1,5 @@
-# jspace-binding
+#  Bag of Concepts? Testing Role-Filler
+Binding in the Verbalizable Workspace
 
 Code, data, and analysis scripts for *A Bag of Concepts? Testing Role-Filler
 Binding in the Verbalizable Workspace*.
