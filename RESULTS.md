@@ -20,7 +20,6 @@ bf16 · `device_map="auto"`
 | RQ1 layer sweep | `runs/rq1-L{24,36,59}/results_L*/rq1_probe.json` | null holds 24–59 |
 | RQ1 seed replication | `runs/rq1-seed42/results_S42/rq1_probe.json` | control reproduces |
 | RQ1 6 pairs | `runs/rq1-6pair/results_6pair/rq1_probe.json` | replicates `entity_token` |
-| E4 (recruitment) | `runs/e4-corrected/results/e4_recruitment.json` | `anti_transfer_both` |
 | Within-pair `final_token` | `runs/within-pair-allpairs/results/within_pair.json` | `present_within_pair` (archived as `present_not_filler_general`) |
 | Within-pair `entity_token` | `runs/within-pair-entity/results/within_pair.json` | `present_within_pair` (archived as `present_not_filler_general`) |
 | RQ2 `final_token` | `runs/rq2/results/rq2_ablation.json` | not causally involved |
@@ -70,8 +69,6 @@ Verdict rules tightened during analysis while the measurements stayed fixed, so
 some archived JSON carries a superseded string. The current reading, in each
 case:
 
-- E4 reads **`anti_transfer_both`**, not `always_on`: 0.281/0.263 are both
-  *below* chance, so neither is evidence of presence.
 - Within-pair reads **`present_within_pair`**, not `present_not_filler_general`:
   `check_within_pair.py` measures within-pair only, and filler-generality is
   RQ1's leave-one-pair-out, a different experiment.
@@ -128,7 +125,7 @@ random_subspace 0.427. Every source **below chance**, all folds inverting.
 `entity_token` — jspace 0.524 · orthogonal 0.626 · residual 0.594 ·
 **random_subspace 0.713**.
 
-A rank-matched random subspace beats J-space. See the anomaly in §8.
+A rank-matched random subspace beats J-space. See the anomaly in §7.
 
 ### Layer sweep — the null is not layer 48 alone
 
@@ -195,12 +192,7 @@ the rank-matched control. Absolute accuracies are lower here than at
 `final_token` (0.81 vs 0.99 for residual) but the ordering is unchanged, and
 J-space is the only source failing to clear 0.8.
 
-## 5. E4 — recruitment
-
-jspace: role question 0.359, bag question 0.385, delta −0.026. No recruitment;
-both conditions below chance. Verdict `anti_transfer_both`.
-
-## 6. RQ2 — ablation
+## 5. RQ2 — ablation
 
 ### `final_token`
 
@@ -230,7 +222,7 @@ exceeding the control is therefore not by itself evidence of localisation.
 
 `difficulty_matched: false` at both sites (role 0.79 vs concept 0.59, gap 0.195).
 
-## 7. Intervention — calibrate (exit 3) and E3
+## 6. Intervention — calibrate (exit 3) and E3
 
 Push coefficient sweep at `entity_token`, target 0.5 log-odds shift:
 
@@ -283,7 +275,7 @@ against a −0.0015 random-subspace control, holding under three lenses); see
 "Cross-model results" above. This is the single most important thing to know
 before choosing a framing.
 
-## 8. Nonlinear probe — the multiplicative-code objection
+## 7. Nonlinear probe — the multiplicative-code objection
 
 `entity_token`, 200 families, leave-one-pair-out:
 
@@ -300,9 +292,9 @@ tensor-product code. J-space peaks at **0.522** against chance 0.500.
 **The multiplicative-encoding escape hatch is closed empirically**, in the
 direction that supports the headline.
 
-### The anomaly, resolved — §9
+### The anomaly, resolved — §8
 
-## 9. Ridge penalty sweep — the regularisation confound, settled
+## 8. Ridge penalty sweep — the regularisation confound, settled
 
 `entity_token`, 200 families, leave-one-pair-out at seven penalties
 (`runs/ridge-penalty/results/ridge_penalty_sweep.json`):
@@ -332,7 +324,7 @@ on the same folds it reports. Two honest views:
    last under nested CV. It never clears the rank-matched control, which is the
    comparison the localisation claim rests on.
 
-2. **The §8 anomaly was regularisation.** At `l2=1e+02`, `residual` 0.677 and
+2. **The §7 anomaly was regularisation.** At `l2=1e+02`, `residual` 0.677 and
    `random_subspace` 0.678 are level, and `orthogonal` 0.722 exceeds both. The
    "projection beats its source" impossibility appears only at weak penalties,
    where the 5120-dim sources overfit and the 16-dim one does not — and
@@ -355,7 +347,7 @@ throughout:
    `final_token`, 0.805 at `entity_token`) and less so from J-space (0.587 /
    0.661), which sits at or below a rank-matched random control at both sites,
    at every layer in the 24–59 band, and at every ridge penalty across four
-   orders of magnitude (§9). **Not "at chance"** — under heavy regularisation
+   orders of magnitude (§8). **Not "at chance"** — under heavy regularisation
    J-space reaches 0.645 — but always *below the capacity control*.
 2. **Transfer** — the role axis does not generalise across concept pairs;
    cross-pair transfer is systematically *inverted*, not merely at chance.
@@ -377,9 +369,9 @@ and it is not filler-general.**
 2. **One model.** Layers are covered (24/36/48/59, §3) and the seed is
    replicated for what it can cover (§3), but every number in this file comes
    from Qwen3.6-27B. This is the largest remaining exposure.
-3. **E3 ran under an intervention-strength failure** (§7).
-4. **Rank-matched, not norm-matched** ablation control (§6).
-5. **Every experiment except §9 ran at the fixed `l2=1e-2`**, which §9 shows is
+3. **E3 ran under an intervention-strength failure** (§6).
+4. **Rank-matched, not norm-matched** ablation control (§5).
+5. **Every experiment except §8 ran at the fixed `l2=1e-2`**, which §8 shows is
    a weak-penalty regime where high-dimensional sources overfit. The J-space
    null is unaffected (it holds at every penalty), but the *absolute* accuracies
    quoted for `residual` and `orthogonal` elsewhere in this file understate them

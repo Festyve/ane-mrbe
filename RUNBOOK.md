@@ -40,7 +40,7 @@ Run it before spending GPU money.
 
 ## 1. Run order
 
-RQ1, RQ2, and E4 need only the model and the lens. The primary experiment needs
+RQ1 and RQ2 need only the model and the lens. The primary experiment needs
 two artifact-producing stages first, and a manual config edit between them.
 
 ```bash
@@ -49,7 +49,6 @@ python scripts/replication_gate.py --config configs/default.yaml   # run this fi
 python scripts/run_rq1.py --config configs/default.yaml
 python scripts/run_rq2.py --config configs/default.yaml            # both sites
 python scripts/run_rq2.py --config configs/default.yaml --site entity_token
-python scripts/run_e4.py  --config configs/default.yaml
 
 # --- primary experiment pipeline ---------------------------------------
 python scripts/fit_directions.py --config configs/default.yaml   # -> data/directions
@@ -94,7 +93,6 @@ At the default 600 families:
 | Stage | Forward passes |
 |---|---|
 | RQ1 | 600 x 4 cells x 2 sites = **4,800** |
-| E4 | 600 x 4 cells x 2 questions = **4,800** |
 | RQ2 | 600 x 3 conditions x 4 cells x 2 probes **per site** = **14,400/site** |
 
 RQ2 defaults to every configured site, because ablating where RQ1 found no

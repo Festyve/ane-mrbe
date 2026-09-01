@@ -71,31 +71,25 @@ run gemma-within-entity within_entity -- \
 run gemma-rq2 rq2 -- \
   python scripts/run_rq2.py --config "$CFG"
 
-# ---- 7. E4 recruitment (P1) -------------------------------------------------
-run gemma-e4 e4 -- \
-  python scripts/run_e4.py --config "$CFG"
-
-# ---- 8. Nonlinear probe — closes the multiplicative-code hatch (P1) ---------
+# ---- 7. Nonlinear probe — closes the multiplicative-code hatch (P1) ---------
 run gemma-nonlinear nonlinear -- \
   python scripts/check_nonlinear_probe.py --config "$CFG"
 
-# ---- 9. Ridge-penalty sweep — sets the wording discipline (P1) --------------
+# ---- 8. Ridge-penalty sweep — sets the wording discipline (P1) --------------
 run gemma-ridge ridge -- \
   python scripts/check_ridge_penalty.py --config "$CFG"
 
-# ---- 10. Push calibration + diagnosis (evidence push fails) (P0 for E3) -----
+# ---- 9. Push calibration (evidence push fails) (P0 for E3) ------------------
 # Calibrate the identity-swap alpha and search the push grid. On Qwen this hit
-# exit 3 (no grid value moved role behaviour); Gemma's pilot diagnose showed the
-# same. Captured, not fatal.
+# exit 3 (no grid value moved role behaviour); Gemma's pilot showed the same.
+# Captured, not fatal.
 set +e
 python scripts/calibrate.py --config "$CFG" --site entity_token \
   --push-grid 0.5,1,2,4,8 2>&1 | tee "$LOGDIR/calibrate.log"
 CAL_EXIT=$?
 set -e
-python scripts/diagnose_push.py --config "$CFG" --site entity_token \
-  --coefficient 8 2>&1 | tee "$LOGDIR/diagnose.log"
 python scripts/save_run.py gemma-calibrate --config "$CFG" $SAVE_FLAGS \
-  --note "gemma3-12b: calibrate (exit $CAL_EXIT) + diagnose"
+  --note "gemma3-12b: calibrate (exit $CAL_EXIT)"
 
 cat <<EOF
 

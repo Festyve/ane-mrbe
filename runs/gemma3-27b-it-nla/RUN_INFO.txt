@@ -1,3 +1,0 @@
-label: gemma3-27b-it-nla
-config: configs/gemma3_27b_it_nla.yaml
-note: NLA input activations, block 41 (the released NLA layer, NOT our workspace band 46). 2400 rows, d_model 5376, entity_token, raw residual, unscaled. SGLang never started: --tp 2 loads and shards the 108GB checkpoint across two 40GB cards fine, but the box has 8 GPUs in Exclusive_Process mode all claimed, so cudaErrorDevicesUnavailable at init. One CUDA-graph capture failure was also seen and is tunable (--cuda-graph-max-bs-decode 16 or --cuda-graph-backend-decode=disabled). Memory is NOT the blocker; card availability is.
