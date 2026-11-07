@@ -1,0 +1,36 @@
+{
+  "site": "final_token",
+  "n_families": 200,
+  "within_pair": {
+    "jspace": {
+      "doctor->nurse": 0.55625,
+      "driver->passenger": 0.5875,
+      "teacher->student": 0.575,
+      "mean": 0.5729166666666666
+    },
+    "orthogonal": {
+      "doctor->nurse": 0.921875,
+      "driver->passenger": 0.953125,
+      "teacher->student": 0.971875,
+      "mean": 0.9489583333333332
+    },
+    "residual": {
+      "doctor->nurse": 0.965625,
+      "driver->passenger": 0.971875,
+      "teacher->student": 0.9875,
+      "mean": 0.975
+    },
+    "random_subspace": {
+      "doctor->nurse": 0.590625,
+      "driver->passenger": 0.615625,
+      "teacher->student": 0.559375,
+      "mean": 0.5885416666666666
+    }
+  },
+  "verdict": "present_not_filler_general",
+  "derived_from": {
+    "log": "runs/gemma3-12b-lre/logs/within_pair_0032.log",
+    "model_id": "google/gemma-3-12b-pt",
+    "method": "Per-pair accuracies reconstructed as k/320 from the three-decimal values printed in the log; each is uniquely recoverable at that denominator and the recovered means reproduce the logged means. Not a re-run."
+  }
+}

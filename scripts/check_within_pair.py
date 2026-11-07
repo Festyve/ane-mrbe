@@ -198,7 +198,14 @@ def main() -> None:
     print("=" * 68)
 
     report["verdict"] = verdict
-    out = Path(config.paths.results) / "within_pair.json"
+    # Site-qualified filename. A site-agnostic "within_pair.json" meant a
+    # second run at a different injection site silently overwrote the first:
+    # on Gemma-3-12B the entity_token run clobbered the final_token scores the
+    # paper reports, leaving them only in the stdout log (recovered by
+    # scripts/export_within_pair_from_log.py). Archived runs predating this
+    # change still use the unqualified name; the site is recorded inside each
+    # file either way.
+    out = Path(config.paths.results) / f"within_pair_{site.value}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {out}")
